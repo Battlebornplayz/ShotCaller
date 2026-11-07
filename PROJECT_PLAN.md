@@ -10,7 +10,7 @@ Stack: Electron + TypeScript + React + Vite, electron-builder (NSIS .exe + AppIm
 ## Phase 1 — Design ✅
 50 design questions answered. `DESIGN.md` written. This plan written.
 
-## Phase 2 — Foundation, repo and auto-update
+## Phase 2 — Foundation, repo and auto-update ✅
 Goal: an installable app shell that updates itself from GitHub.
 Deliverables:
 - `git init`, public repo `Battlebornplayz/ShotCaller` (MIT, README, .gitignore), push existing docs.

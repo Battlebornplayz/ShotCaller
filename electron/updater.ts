@@ -85,5 +85,7 @@ export async function downloadUpdate(): Promise<void> {
 
 export function installUpdate(): void {
   if (state.status !== 'downloaded') return;
-  autoUpdater.quitAndInstall(false, true);
+  // Silent: reinstall into the existing location without showing the installer wizard
+  // (the wizard's "only me / all users" page can move the install), then relaunch.
+  autoUpdater.quitAndInstall(true, true);
 }
