@@ -39,7 +39,7 @@ Done when:
 - The user wants to save usage: they're happy to do manual GUI testing themselves, so give them short checklists instead of driving the desktop at length.
 
 ## Loose ends / known issues
-- Phase 3 is pushed but not released yet (last tag v0.0.2). A local `npm run dist` build packs the uiohook-napi prebuilds and icons correctly (`npmRebuild: false`, since uiohook ships N-API prebuilds and electron-builder otherwise tries to compile it with Visual Studio). Still to check in an installed build: tray icon, "Start with your computer", and no "Alt-key listener couldn't start" warning in Settings. The first release after v0.0.2 also ships the silent-update fix; test one update from it afterwards.
+- v0.0.3 (Phase 3) is released on GitHub (Windows .exe + AppImage). Still to check after updating to it: tray icon, "Start with your computer", and no "Alt-key listener couldn't start" warning in Settings. v0.0.3 is the first build with the silent-update fix, so the next release (v0.0.4) is the real test that updates install silently in place. Local builds need `npmRebuild: false` (already set): uiohook-napi ships N-API prebuilds and electron-builder would otherwise try to compile it with Visual Studio.
 - Not tested yet (user said they'd check): second-monitor mode, hotkey-popup mode, tray menu and close-to-tray, the "Add a game" file picker, onGameLaunch = "open ShotCaller".
 - Skillshot City (borderless fullscreen) minimizes when another window takes focus, so the "open ShotCaller on game launch" option will minimize the game. The default is "show the overlay" only.
 - The default top-right overlay position covers Skillshot City's QUIT button; users can drag it (Alt + drag). Consider a different default in Phase 8 when the real panels exist.
