@@ -1,0 +1,83 @@
+# Builds ShotCaller and publishes it to GitHub Releases when a version tag is pushed.
+#
+#   Stable:  git tag -a v0.0.2 -m "patch notes..."      && git push origin v0.0.2
+#   Beta:    git tag -a v0.0.3-beta.1 -m "patch notes..." && git push origin v0.0.3-beta.1
+#
+# The annotated tag message becomes the release body, which the launcher shows as patch notes.
+# Tags containing "-" (e.g. -beta.1) are published as pre-releases (the beta channel).
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create the GitHub release (if it doesn't exist yet)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+            exit 0
+          fi
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          NOTES="$(git tag -l --format='%(contents)' "$TAG")"
+          if [ -z "$NOTES" ]; then NOTES="ShotCaller $TAG"; fi
+          PRE=""
+          case "$TAG" in *-*) PRE="--prerelease" ;; esac
+          gh release create "$TAG" --title "ShotCaller $TAG" --notes "$NOTES" $PRE --verify-tag
+
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win nsis
+          - os: ubuntu-latest
+            target: --linux AppImage
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Set app version from the tag
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+
+      - run: npm run build
+
+      - name: Package and upload to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          TYPE=release
+          case "$GITHUB_REF_NAME" in *-*) TYPE=prerelease ;; esac
+          npx electron-builder ${{ matrix.target }} --publish always -c.publish.releaseType=$TYPE

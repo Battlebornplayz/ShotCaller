@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+out/
+dist/
+release/
+
+# Logs and local tooling
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Local env / secrets. Never commit keys (the Steam key lives in a server-side proxy).
+.env
+.env.*
+!.env.example
+*.pem
