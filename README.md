@@ -6,8 +6,22 @@ ShotCaller tracks your achievements across games (Steam first), pops up real-tim
 XP and a profile, and adds per-game overlay modules. The first game module is **Skillshot City**, with a
 skill-pick advisor, build tools and a round tracker.
 
-> 🚧 Early development. The current builds are an app shell with a self-updating launcher. Features land
-> phase by phase. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
+> 🚧 Early development. Current builds have the self-updating launcher, game detection (Steam library
+> import, running-game watcher, add games by hand), a tray app and the overlay framework with global
+> hotkeys. Features land phase by phase. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
+
+## The overlay
+
+- Opens automatically when a supported game (Skillshot City) launches. ShotCaller starts with your
+  computer and waits in the tray (both can be turned off in **Settings → Startup**).
+- It's a separate always-on-top window, never injected into the game. It shows over **borderless** and
+  **windowed** games; **exclusive fullscreen hides it**, so switch the game to borderless.
+- Click-through by default, so it never steals your clicks. **Hold Alt** to interact with it or drag it
+  by its header.
+- Modes (**Settings → Overlay**): always-on corner overlay, hotkey popup, or a window on a second monitor.
+- Default hotkeys, all rebindable: Alt+S show/hide, Alt+1 / Alt+2 pick skill, Alt+N next round,
+  Alt+E end match, Alt+H hunt list. If another app already uses a combination (the NVIDIA overlay
+  takes Alt+R, for example), Settings shows it as "In use by another app".
 
 ## Install
 
@@ -54,10 +68,11 @@ Layout:
 
 | Path | What's there |
 | --- | --- |
-| `electron/` | Main process: windows, IPC, settings, auto-updater, patch notes |
+| `electron/` | Main process: windows, IPC, settings, auto-updater, patch notes, Steam import, game detection, overlay, hotkeys, tray |
 | `shared/` | Types and IPC channel names shared by main, preload and renderer |
 | `src/` | React renderer: `splash/` (launcher) and `shell/` (main window) |
-| `games/` | Game modules, one folder per game (`games/<id>/`) |
+| `games/` | Game modules, one folder per game (`games/<id>/`), plus `panels.tsx` (overlay panels) |
+| `resources/`, `build/` | App, tray and installer icons (regenerate with `node scripts/make-icons.cjs`) |
 | `.github/workflows/` | CI checks and the tag-triggered release build |
 
 The update check only runs in installed builds. `npm run dev` shows "Development build — updates are

@@ -1,19 +1,27 @@
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, nativeImage } from 'electron';
 import path from 'node:path';
+import iconPath from '../resources/icon.png?asset';
 
 const PRELOAD = path.join(__dirname, '../preload/index.js');
 const BG = '#0F1023';
 
-function loadRenderer(win: BrowserWindow, windowName: 'splash' | 'main'): void {
+export const APP_ICON = nativeImage.createFromPath(iconPath);
+
+export const OVERLAY_DEFAULT_SIZE = { width: 300, height: 260 };
+
+type WindowName = 'splash' | 'main' | 'overlay';
+
+function loadRenderer(win: BrowserWindow, windowName: WindowName, extra: Record<string, string> = {}): void {
+  const query = { window: windowName, ...extra };
   const devUrl = process.env['ELECTRON_RENDERER_URL'];
   if (devUrl) {
-    void win.loadURL(`${devUrl}?window=${windowName}`);
+    void win.loadURL(`${devUrl}?${new URLSearchParams(query).toString()}`);
   } else {
-    void win.loadFile(path.join(__dirname, '../renderer/index.html'), {
-      query: { window: windowName },
-    });
+    void win.loadFile(path.join(__dirname, '../renderer/index.html'), { query });
   }
 }
+
+const webPreferences = { preload: PRELOAD, contextIsolation: true, sandbox: true };
 
 export function createSplashWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -25,7 +33,8 @@ export function createSplashWindow(): BrowserWindow {
     center: true,
     backgroundColor: BG,
     title: 'ShotCaller',
-    webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true },
+    icon: APP_ICON,
+    webPreferences,
   });
   win.once('ready-to-show', () => win.show());
   loadRenderer(win, 'splash');
@@ -42,9 +51,49 @@ export function createMainWindow(): BrowserWindow {
     show: false,
     backgroundColor: BG,
     title: 'ShotCaller',
-    webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true },
+    icon: APP_ICON,
+    webPreferences,
   });
   win.once('ready-to-show', () => win.show());
   loadRenderer(win, 'main');
+  return win;
+}
+
+/**
+ * corner: transparent, frameless, always-on-top, no taskbar entry, never takes focus.
+ * monitor: an ordinary window for a second screen.
+ */
+export function createOverlayWindow(kind: 'corner' | 'monitor', bounds: Electron.Rectangle): BrowserWindow {
+  const win =
+    kind === 'corner'
+      ? new BrowserWindow({
+          ...bounds,
+          frame: false,
+          transparent: true,
+          backgroundColor: '#00000000',
+          resizable: false,
+          maximizable: false,
+          minimizable: false,
+          fullscreenable: false,
+          alwaysOnTop: true,
+          skipTaskbar: true,
+          focusable: false,
+          hasShadow: false,
+          show: false,
+          title: 'ShotCaller overlay',
+          webPreferences,
+        })
+      : new BrowserWindow({
+          ...bounds,
+          minWidth: 360,
+          minHeight: 420,
+          frame: false,
+          backgroundColor: BG,
+          show: false,
+          title: 'ShotCaller overlay',
+          icon: APP_ICON,
+          webPreferences,
+        });
+  loadRenderer(win, 'overlay', { mode: kind });
   return win;
 }

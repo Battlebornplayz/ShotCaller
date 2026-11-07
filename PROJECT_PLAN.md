@@ -22,7 +22,7 @@ Deliverables:
 Done when:
 - v0.0.1 installed from Releases; publishing v0.0.2 makes the splash show the update button, and clicking it updates and relaunches.
 
-## Phase 3 — Games, detection, overlay framework
+## Phase 3 — Games, detection, overlay framework ✅
 Goal: ShotCaller knows what you're playing and can draw an overlay.
 Deliverables:
 - Game module system (`games/<id>/` manifest: name, exe names, Steam app id, art, optional overlay panels). Skillshot City module stub (Steam app 308600). Generic module for any other game.

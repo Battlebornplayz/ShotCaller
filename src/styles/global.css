@@ -240,3 +240,130 @@ button:disabled {
 .fade {
   animation: fade-in 0.3s var(--ease) both;
 }
+
+/* ---------- Form controls ---------- */
+
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.12);
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s var(--ease);
+}
+.toggle[aria-checked='true'] {
+  background: var(--accent);
+}
+.toggle[aria-checked='true']::after {
+  transform: translateX(18px);
+}
+
+input[type='range'] {
+  accent-color: var(--accent);
+  width: 100%;
+}
+
+select,
+input[type='search'] {
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px 10px;
+  outline: none;
+}
+select:focus,
+input[type='search']:focus {
+  border-color: var(--accent);
+}
+select option {
+  background: var(--card);
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+}
+.kbd.recording {
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: glow-pulse 1.4s infinite;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.dot-live {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(61, 220, 151, 0.2);
+}
+
+/* ---------- Overlay window ---------- */
+
+html.overlay-corner,
+html.overlay-corner body {
+  background: transparent;
+}
+
+.overlay-panel {
+  background: rgba(15, 16, 35, 0.92);
+  border: 1px solid rgba(127, 178, 255, 0.22);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  transition:
+    opacity 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+  overflow: hidden;
+}
+.overlay-panel.interactive {
+  border-color: var(--accent);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast {
+  animation: toast-in 0.25s var(--ease) both;
+}

@@ -28,6 +28,7 @@
     },
     "files": [
       "out/**/*",
+      "resources/**/*",
       "package.json"
     ],
     "publish": {
@@ -65,12 +66,16 @@
       ],
       "category": "Game",
       "synopsis": "Cross-game achievement hub and overlay"
-    }
+    },
+    "asarUnpack": [
+      "resources/**"
+    ]
   },
   "dependencies": {
     "electron-updater": "^6.8.11",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "uiohook-napi": "^1.5.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { games } from '../../games';
+import { useLibrary } from '../hooks/useLive';
 import { Logo } from '../components/Logo';
 import { TitleBar } from '../components/TitleBar';
 import { GameRail } from './GameRail';
@@ -8,9 +8,10 @@ import { HomePage, LibraryPage, ProfilePage, FriendsPage, GamePage, SettingsPage
 
 export function ShellApp() {
   const [section, setSection] = useState<SectionId>('home');
-  const [gameId, setGameId] = useState<string | null>(null);
+  const [gameKey, setGameKey] = useState<string | null>(null);
+  const library = useLibrary();
 
-  const game = games.find((g) => g.id === gameId) ?? null;
+  const game = library?.games.find((g) => g.key === gameKey) ?? null;
 
   const sections: Section[] = [
     { id: 'home', label: 'Home' },
@@ -21,16 +22,16 @@ export function ShellApp() {
   ];
 
   const onSelectSection = (id: SectionId) => {
-    setGameId(null);
+    setGameKey(null);
     setSection(id);
   };
 
-  const onSelectGame = (id: string | null) => {
-    if (id === null) {
-      setGameId(null);
+  const onSelectGame = (key: string | null) => {
+    if (key === null) {
+      setGameKey(null);
       setSection('home');
     } else {
-      setGameId(id);
+      setGameKey(key);
     }
   };
 
@@ -45,7 +46,7 @@ export function ShellApp() {
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <GameRail activeGameId={gameId} onSelectHome={() => onSelectGame(null)} onSelectGame={onSelectGame} />
+        <GameRail activeGameKey={gameKey} onSelectHome={() => onSelectGame(null)} onSelectGame={onSelectGame} />
 
         <SectionNav
           sections={game ? [] : sections}
@@ -54,13 +55,13 @@ export function ShellApp() {
           gameName={game?.name}
         />
 
-        <main key={game ? `game-${game.id}` : section} className="enter" style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '26px 30px' }}>
+        <main key={game ? `game-${game.key}` : section} className="enter" style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '26px 30px' }}>
           {game ? (
             <GamePage game={game} />
           ) : section === 'home' ? (
-            <HomePage />
+            <HomePage onOpenGame={onSelectGame} />
           ) : section === 'library' ? (
-            <LibraryPage />
+            <LibraryPage onOpenGame={onSelectGame} />
           ) : section === 'profile' ? (
             <ProfilePage />
           ) : section === 'friends' ? (

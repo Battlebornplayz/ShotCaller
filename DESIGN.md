@@ -37,7 +37,7 @@ Third-party assistant/overlay app. First supported game: **Skillshot City** (fre
 ### Look and accounts (batch 4)
 - Q17 Theme: ~~esports sharp neon~~ → **Mobalytics-inspired** (changed after Phase 1): deep navy/indigo backgrounds (#0F1023 page, #1A1C3A cards, #090A18 sidebar), rounded cards (10–12px), pill badges, data-dense stat tiles and progress bars, soft colored tints for tiers (gold = S tier, green = synergy), muted lavender secondary text (#8F93C9). Inspired by the style only — no Mobalytics assets, logos or names.
 - Q18 Accent: electric blue #4F8CFF.
-- Q19 Logo: megaphone / "callout" mark (fits "ShotCaller").
+- Q19 Logo: megaphone / "callout" mark (fits "ShotCaller"). **Chosen in Phase 3 ("variant 2"):** white megaphone with sound wave inside two crossed light-blue (#7FB2FF) orbit ellipses (±30°) on a navy #1A1C3A rounded tile; at 16px the wave is dropped and orbits thicken. Source: `src/components/Logo.tsx`; PNGs in `resources/` (tray, window) and `build/icon.png` (installer).
 - Q20 Layout: game-icon sidebar (Discord-style) + section list + content.
 - Q21 Backend: Supabase (auth + Postgres, free tier).
 - Q22 Sign-in: Steam, Discord, Google, email/password.
@@ -47,7 +47,7 @@ Third-party assistant/overlay app. First supported game: **Skillshot City** (fre
 - Q24 Bugged achievements: "mark as earned" inside ShotCaller with screenshot/clip proof (shown with a proof badge, never written to Steam) + community known-bugged database with workarounds. No unlocking on Steam itself.
 - Q25 Overlay default: top right, draggable, idle opacity 70%.
 - Q26 Click-through: (skipped → default) click-through; hold Alt to interact.
-- Q27 Hotkeys: (skipped → defaults, all rebindable) Alt+S popup, Alt+1/Alt+2 pick skill, Alt+R next round, Alt+E end match/recap, Alt+H hunt list.
+- Q27 Hotkeys: (skipped → defaults, all rebindable) Alt+S popup, Alt+1/Alt+2 pick skill, ~~Alt+R~~ **Alt+N** next round (changed in Phase 3: NVIDIA's overlay owns Alt+R), Alt+E end match/recap, Alt+H hunt list. Hotkeys are only registered while a game runs or the overlay is open (setting).
 - Q28 Skill input: goal is auto-detect via screen reading (OCR/image match of the 2 offered skills). Manual icon grid + search kept as fallback until auto-detect is reliable.
 - Q29 Round HUD: full panel — round X/3, build icons, synergy meter.
 - Q30 Performance: full animations always.
@@ -83,7 +83,7 @@ Third-party assistant/overlay app. First supported game: **Skillshot City** (fre
 - Game support is per-game modules (`games/<id>/`): Skillshot City is the first; generic games get the achievement hub only.
 
 ## Open questions
-- Final logo artwork (megaphone mark) — placeholder until the polish phase.
+- Logo chosen (see Q19); Phase 11 may still polish the artwork.
 - Skillshot City skill list/icons: Claude drafts from research, user verifies in-game.
 
 ## Open questions
