@@ -553,3 +553,78 @@ html.popup-window #root {
     transform: translate(var(--dx), var(--dy)) scale(0.3);
   }
 }
+
+/* ---------- Skillshot overlay ---------- */
+
+.ss-card {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition:
+    border-color 0.2s var(--ease),
+    transform 0.15s var(--ease),
+    background 0.2s var(--ease);
+  text-align: left;
+}
+.ss-card.best {
+  border-color: var(--accent);
+  background: rgba(79, 140, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.35);
+}
+.ss-card.synergy::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow: 0 0 14px rgba(61, 220, 151, 0.55);
+  animation: ss-glow 1.6s ease-in-out infinite;
+}
+.ss-card.clickable:hover {
+  transform: translateY(-1px);
+  border-color: rgba(127, 178, 255, 0.55);
+}
+@keyframes ss-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.ss-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.ss-pip.on {
+  background: var(--accent);
+}
+.ss-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px 2px 3px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+}
+.ss-grid-btn {
+  border-radius: 10px;
+  padding: 3px;
+  transition: background 0.15s var(--ease);
+}
+.ss-grid-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.ss-grid-btn[aria-pressed='true'] {
+  background: rgba(79, 140, 255, 0.22);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}

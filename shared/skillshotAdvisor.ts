@@ -175,5 +175,10 @@ export function suggestGoal(data: SkillshotData, build: Record<string, number>, 
     }
   }
   const extra = [...score.entries()].sort((x, y) => y[1] - x[1]).map(([id]) => id);
-  return [...owned, ...extra].slice(0, Math.max(size, owned.length));
+  // Not enough synergy partners: fill with the strongest skills you can still be offered.
+  const rank = (id: string) => TIER_SCORE[data.skills.find((s) => s.id === id)?.tier ?? 'C'];
+  const fill = (pool.length ? pool : data.skills.map((s) => s.id))
+    .filter((id) => !owned.includes(id) && !extra.includes(id))
+    .sort((a, b) => rank(b) - rank(a));
+  return [...owned, ...extra, ...fill].slice(0, Math.max(size, owned.length + 1));
 }

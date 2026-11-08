@@ -366,6 +366,7 @@ export function getSkillshotState(): SkillshotLiveState {
     self: m?.self ?? profileName,
     round: m?.round ?? 1,
     final: m?.final ?? false,
+    roundResults: m?.roundResults ?? [null, null, null],
     level: m?.level ?? 0,
     kills: m?.kills ?? 0,
     deaths: m?.deaths ?? 0,

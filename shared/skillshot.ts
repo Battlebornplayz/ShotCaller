@@ -87,6 +87,8 @@ export interface SkillshotLiveState {
   self: string | null;
   round: number;
   final: boolean;
+  /** Per round: true = won, false = lost, null = not played / unknown. */
+  roundResults: (boolean | null)[];
   level: number;
   kills: number;
   deaths: number;

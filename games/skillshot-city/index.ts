@@ -2,8 +2,7 @@ import type { GameModule } from '../types';
 
 /**
  * Skillshot City (formerly Geneshift). Steam app 308600; ships as SkillshotCity.exe in
- * steamapps/common/SkillshotCity. Skill advisor, database and round tracker arrive in Phases 7-8;
- * Phase 3 draws a placeholder round panel driven by the hotkeys.
+ * steamapps/common/SkillshotCity. The overlay panel lives in ./overlay.tsx (advice, round, build).
  */
 export const skillshotCity: GameModule = {
   id: 'skillshot-city',
@@ -14,4 +13,6 @@ export const skillshotCity: GameModule = {
   color: '#ff7a59',
   overlayPanels: [{ id: 'round', title: 'Round tracker' }],
   autoOverlay: true,
+  // The game's QUIT button sits in the top-right corner (~70 px tall at 1080p).
+  overlayTopClearance: 84 / 1080,
 };

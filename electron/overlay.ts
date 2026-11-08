@@ -63,8 +63,12 @@ function broadcast(): void {
 // ---------- Placement ----------
 
 function defaultCornerPosition(): { x: number; y: number } {
-  const wa = screen.getPrimaryDisplay().workArea;
-  return { x: wa.x + wa.width - size.width - MARGIN, y: wa.y + MARGIN };
+  const display = screen.getPrimaryDisplay();
+  const wa = display.workArea;
+  // Stay below the game's own top-right buttons (e.g. Skillshot City's QUIT).
+  const clearance = game?.moduleId ? (moduleById(game.moduleId).overlayTopClearance ?? 0) : 0;
+  const top = Math.max(wa.y + MARGIN, display.bounds.y + Math.round(display.bounds.height * clearance) + MARGIN);
+  return { x: wa.x + wa.width - size.width - MARGIN, y: top };
 }
 
 /** Saved position if it still lands on a connected display, else the default top-right corner. */
@@ -181,6 +185,11 @@ export function setOverlayGame(next: RunningGame | null): void {
     // A new game: show straight away in "always" / "monitor" modes, unless the user turned
     // auto-open off. "popup" mode waits for the hotkey.
     shown = s.startup.onGameLaunch !== 'nothing' && s.overlay.mode !== 'popup';
+    // At the default spot, follow the new game's clearance (e.g. below Skillshot City's QUIT).
+    if (win && !win.isDestroyed() && isCorner() && !s.overlay.position) {
+      const p = defaultCornerPosition();
+      win.setPosition(p.x, p.y);
+    }
   }
   sync();
 }

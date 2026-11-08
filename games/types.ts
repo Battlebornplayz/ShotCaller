@@ -26,6 +26,11 @@ export interface GameModule {
   overlayPanels: OverlayPanelDef[];
   /** Whether the overlay opens automatically when this game launches. */
   autoOverlay: boolean;
+  /**
+   * Keep the default corner overlay clear of the game's own top-right UI: pixels to leave free at
+   * the top, as a fraction of the screen height (so it scales from 1080p).
+   */
+  overlayTopClearance?: number;
 }
 
 export interface OverlayPanelDef {

@@ -48,7 +48,7 @@ export function OverlayApp() {
     <div style={{ padding: 14, display: 'grid', gap: 14 }}>
       {panels.map(({ def, Component }) =>
         Component ? (
-          <Component key={def.id} game={state?.game ?? null} hotkeys={settings?.hotkeys ?? null} />
+          <Component key={def.id} game={state?.game ?? null} hotkeys={settings?.hotkeys ?? null} wide={kind === 'monitor'} />
         ) : (
           <div key={def.id} className="muted">
             {def.title}
@@ -77,7 +77,7 @@ export function OverlayApp() {
   }
 
   return (
-    <div ref={rootRef} style={{ width: 300, padding: 8 }}>
+    <div ref={rootRef} style={{ width: mod.id === 'skillshot-city' ? 360 : 300, padding: 8 }}>
       <div className={`overlay-panel enter${interactive ? ' interactive' : ''}`} style={{ opacity }}>
         <div
           className={interactive ? 'drag-region' : undefined}
