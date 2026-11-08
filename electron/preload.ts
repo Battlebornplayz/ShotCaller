@@ -46,6 +46,20 @@ const api: ShotCallerApi = {
 
   getDisplays: () => ipcRenderer.invoke(IPC.displaysGet),
 
+  getHub: () => ipcRenderer.invoke(IPC.hubGet),
+  onHub: (cb) => on(IPC.hubChanged, cb),
+  getGameAchievements: (key) => ipcRenderer.invoke(IPC.hubGame, key),
+  getTimeline: (limit) => ipcRenderer.invoke(IPC.hubTimeline, limit),
+  setManualUnlock: (key, id, unlocked) => ipcRenderer.invoke(IPC.hubSetManual, key, id, unlocked),
+  searchSteamApps: (term) => ipcRenderer.invoke(IPC.hubSearchSteam, term),
+  linkSteamApp: (key, appId) => ipcRenderer.invoke(IPC.hubLinkSteam, key, appId),
+  addCustomAchievement: (key, name, description) => ipcRenderer.invoke(IPC.hubAddCustom, key, name, description),
+  removeCustomAchievement: (key, id) => ipcRenderer.invoke(IPC.hubRemoveCustom, key, id),
+  testPopup: (tier) => ipcRenderer.invoke(IPC.hubTestPopup, tier),
+  openExternal: (url) => ipcRenderer.invoke(IPC.openExternal, url),
+  onPopup: (cb) => on(IPC.popupShow, cb),
+  popupDone: () => ipcRenderer.send(IPC.popupDone),
+
   getAuthState: () => ipcRenderer.invoke(IPC.authGetState),
   onAuthState: (cb) => on(IPC.authState, cb),
   signIn: (method) => ipcRenderer.invoke(IPC.authSignIn, method),

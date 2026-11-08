@@ -8,9 +8,12 @@ import {
   type GameLaunchAction,
   type HotkeyAction,
   type OverlayMode,
+  type PopupCorner,
   type SettingsPatch,
   type UpdateState,
+  RARITY_TIERS,
 } from '../../shared/types';
+import { TIER_COLOR, TIER_LABEL } from '../components/achievements';
 import { acceleratorParts, HOTKEY_LABELS } from '../hotkeyLabels';
 import { useHotkeyStatus, useOverlayState, useSettings } from '../hooks/useLive';
 import { useUpdateState } from '../hooks/useUpdateState';
@@ -385,6 +388,63 @@ function UpdateStatus({ state, info }: { state: UpdateState; info: AppInfo | nul
   );
 }
 
+const CORNERS: { id: PopupCorner; label: string }[] = [
+  { id: 'top-left', label: 'Top left' },
+  { id: 'top-right', label: 'Top right' },
+  { id: 'bottom-left', label: 'Bottom left' },
+  { id: 'bottom-right', label: 'Bottom right' },
+];
+
+function PopupSection() {
+  const settings = useSettings();
+  const p = settings?.popups;
+  return (
+    <Section title="Unlock popups" subtitle="The card that slides in when you earn an achievement. Rarer unlocks get fancier cards and sounds.">
+      <SettingRow title="Show unlock popups" description="Shows over borderless and windowed games.">
+        <Toggle checked={p?.enabled ?? true} onChange={(enabled) => update({ popups: { enabled } })} label="Show unlock popups" />
+      </SettingRow>
+      <SettingRow title="Play a sound">
+        <Toggle checked={p?.sound ?? true} onChange={(sound) => update({ popups: { sound } })} label="Play a sound" />
+      </SettingRow>
+      <div>
+        <div className="row">
+          <div style={{ fontWeight: 600 }}>Volume</div>
+          <span className="pill">{Math.round((p?.volume ?? 0.6) * 100)}%</span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={Math.round((p?.volume ?? 0.6) * 100)}
+          disabled={!p?.sound}
+          onChange={(e) => update({ popups: { volume: Number(e.target.value) / 100 } })}
+          style={{ marginTop: 10 }}
+        />
+      </div>
+      <SettingRow title="Corner" description="Where on your main display the card appears.">
+        <select value={p?.corner ?? 'bottom-right'} onChange={(e) => update({ popups: { corner: e.target.value as PopupCorner } })}>
+          {CORNERS.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </SettingRow>
+      <div>
+        <div style={{ fontWeight: 600, marginBottom: 8 }}>Try it</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {RARITY_TIERS.map((tier) => (
+            <button key={tier} className="btn" onClick={() => void window.shotcaller.testPopup(tier)} style={{ color: TIER_COLOR[tier] }}>
+              {TIER_LABEL[tier]}
+            </button>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 export function SettingsPage() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const settings = useSettings();
@@ -399,6 +459,7 @@ export function SettingsPage() {
       <PageHeader title="Settings" subtitle="Overlay, hotkeys, startup and updates. Changes save instantly." />
 
       <AccountSection />
+      <PopupSection />
       <OverlaySection />
       <HotkeysSection />
       <StartupSection info={info} />

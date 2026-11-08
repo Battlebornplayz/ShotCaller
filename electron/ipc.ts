@@ -1,6 +1,26 @@
-import { app, BrowserWindow, ipcMain, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, shell } from 'electron';
 import { IPC } from '../shared/ipc';
-import { HOTKEY_ACTIONS, type DisplayInfo, type HotkeyAction, type ProfilePatch, type SettingsPatch, type SignInMethod } from '../shared/types';
+import {
+  HOTKEY_ACTIONS,
+  RARITY_TIERS,
+  type DisplayInfo,
+  type HotkeyAction,
+  type ProfilePatch,
+  type RarityTier,
+  type SettingsPatch,
+  type SignInMethod,
+} from '../shared/types';
+import {
+  addCustomAchievement,
+  getGameAchievements,
+  getHubState,
+  getTimeline,
+  removeCustomAchievement,
+  setManualUnlock,
+  testPopup,
+} from './achievements';
+import { popupDone } from './popup';
+import { searchSteamApps } from './steamPublic';
 import {
   cancelAuthFlow,
   dismissAuthMessage,
@@ -19,7 +39,7 @@ import {
 import { reportCrash } from './crashReports';
 import { getDetectionState } from './detection';
 import { getHotkeyStatus, setHotkeyCapture } from './hotkeys';
-import { addGameManually, getLibrary, importSteamLibrary, removeGame, setPinned } from './library';
+import { addGameManually, getLibrary, importSteamLibrary, removeGame, setPinned, setSteamLink } from './library';
 import { getOverlayState, handleOverlayAction, resizeOverlay, setOverlayPreview } from './overlay';
 import { fetchPatchNotes } from './patchNotes';
 import { getSettings, updateSettings } from './settings';
@@ -127,6 +147,42 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.profileRefresh, () => refreshProfile());
   ipcMain.on(IPC.crashReport, (_e, message: unknown, stack: unknown) => {
     reportCrash('renderer', str(message, 1000), stack === undefined ? undefined : str(stack, 8000));
+  });
+
+  // Achievement hub
+  const key = (k: unknown) => str(k, 200);
+  ipcMain.handle(IPC.hubGet, () => getHubState());
+  ipcMain.handle(IPC.hubGame, (_e, k: unknown) => getGameAchievements(key(k)));
+  ipcMain.handle(IPC.hubTimeline, (_e, limit: unknown) => getTimeline(Number.isFinite(limit) ? Number(limit) : 200));
+  ipcMain.handle(IPC.hubSetManual, (_e, k: unknown, id: unknown, on: unknown) => setManualUnlock(key(k), str(id, 200), !!on));
+  ipcMain.handle(IPC.hubSearchSteam, async (_e, term: unknown) => {
+    try {
+      return await searchSteamApps(str(term, 100));
+    } catch {
+      return [];
+    }
+  });
+  ipcMain.handle(IPC.hubLinkSteam, (_e, k: unknown, appId: unknown) => {
+    const id = appId === null ? null : Number(appId);
+    if (id !== null && !(Number.isInteger(id) && id > 0)) return { ok: false, error: 'Not a Steam app id.' };
+    return setSteamLink(key(k), id) ? { ok: true } : { ok: false, error: 'This game can’t be linked.' };
+  });
+  ipcMain.handle(IPC.hubAddCustom, (_e, k: unknown, name: unknown, desc: unknown) => addCustomAchievement(key(k), str(name, 80), str(desc, 300)));
+  ipcMain.handle(IPC.hubRemoveCustom, (_e, k: unknown, id: unknown) => removeCustomAchievement(key(k), str(id, 200)));
+  ipcMain.handle(IPC.hubTestPopup, (_e, tier: unknown) => {
+    if (RARITY_TIERS.includes(tier as RarityTier)) testPopup(tier as RarityTier);
+  });
+  ipcMain.on(IPC.popupDone, () => popupDone());
+
+  // Links out: Steam pages and web searches only.
+  const ALLOWED_HOSTS = new Set(['steamcommunity.com', 'store.steampowered.com', 'www.google.com', 'www.youtube.com']);
+  ipcMain.handle(IPC.openExternal, (_e, url: unknown) => {
+    try {
+      const u = new URL(str(url, 2000));
+      if (u.protocol === 'https:' && ALLOWED_HOSTS.has(u.hostname)) void shell.openExternal(u.toString());
+    } catch {
+      // ignore bad URLs
+    }
   });
 
   ipcMain.handle(IPC.displaysGet, (): DisplayInfo[] => {

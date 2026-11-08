@@ -4,6 +4,7 @@ import './styles/global.css';
 import { SplashApp } from './splash/SplashApp';
 import { ShellApp } from './shell/ShellApp';
 import { OverlayApp } from './overlay/OverlayApp';
+import { PopupApp } from './popup/PopupApp';
 
 // One renderer bundle serves every window; the main process passes ?window=splash|main|overlay.
 // Uncaught renderer errors go to the opt-in crash reporter (it drops them unless the user turned it on).
@@ -17,6 +18,6 @@ const windowName = new URLSearchParams(window.location.search).get('window');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {windowName === 'splash' ? <SplashApp /> : windowName === 'overlay' ? <OverlayApp /> : <ShellApp />}
+    {windowName === 'splash' ? <SplashApp /> : windowName === 'overlay' ? <OverlayApp /> : windowName === 'popup' ? <PopupApp /> : <ShellApp />}
   </React.StrictMode>,
 );

@@ -70,7 +70,7 @@ function matchGame(game: LibraryGame, snap: Snapshot): RunningGame['via'] | null
     const p = norm(game.exePath);
     if (snap.paths.includes(p)) return 'process';
   }
-  if (game.source === 'steam' && game.installDir && game.installed) {
+  if ((game.source === 'steam' || game.source === 'anker') && game.installDir && game.installed) {
     const dir = norm(game.installDir) + '\\';
     if (snap.paths.some((p) => p.startsWith(dir))) return 'folder';
   }

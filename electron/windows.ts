@@ -9,7 +9,34 @@ export const APP_ICON = nativeImage.createFromPath(iconPath);
 
 export const OVERLAY_DEFAULT_SIZE = { width: 300, height: 260 };
 
-type WindowName = 'splash' | 'main' | 'overlay';
+type WindowName = 'splash' | 'main' | 'overlay' | 'popup';
+
+export const POPUP_SIZE = { width: 440, height: 150 };
+
+/** The achievement unlock card: transparent, click-through, always on top, never focused. */
+export function createPopupWindow(bounds: Electron.Rectangle): BrowserWindow {
+  const win = new BrowserWindow({
+    ...bounds,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    resizable: false,
+    maximizable: false,
+    minimizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false,
+    hasShadow: false,
+    show: false,
+    title: 'ShotCaller unlock',
+    webPreferences: { ...webPreferences, autoplayPolicy: 'no-user-gesture-required', backgroundThrottling: false },
+  });
+  win.setAlwaysOnTop(true, 'screen-saver');
+  win.setIgnoreMouseEvents(true);
+  loadRenderer(win, 'popup');
+  return win;
+}
 
 function loadRenderer(win: BrowserWindow, windowName: WindowName, extra: Record<string, string> = {}): void {
   const query = { window: windowName, ...extra };

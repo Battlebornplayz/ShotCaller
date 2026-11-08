@@ -6,9 +6,22 @@ ShotCaller tracks your achievements across games (Steam first), pops up real-tim
 XP and a profile, and adds per-game overlay modules. The first game module is **Skillshot City**, with a
 skill-pick advisor, build tools and a round tracker.
 
-> 🚧 Early development. Current builds have the self-updating launcher, game detection (Steam library
-> import, running-game watcher, add games by hand), a tray app and the overlay framework with global
-> hotkeys. Features land phase by phase. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
+> 🚧 Early development. Current builds have the self-updating launcher, the achievement hub (library,
+> game pages, unlock timeline, real-time unlock popups), game detection, a tray app and the overlay
+> framework with global hotkeys. Features land phase by phase. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
+
+## Achievements
+
+- **Steam:** read from the Steam client's own files on your PC (achievement list, your unlocks with
+  their times, playtime). No Steam login or API key needed. Global rarity comes from Steam's public API.
+- **Real-time popups:** when Steam (or a game's local achievement file) records an unlock, a card slides
+  in within a few seconds. Rarer achievements get fancier cards and sounds. Settings → Unlock popups.
+- **Other games:** games added by hand can use a Steam game's achievement list (search by name) or your
+  own custom achievements, ticked off as you earn them. Games installed by the Anker Games launcher are
+  imported automatically, and local emulator achievement files (Goldberg/GSE, CODEX/RUNE, OnlineFix)
+  are read for live unlocks.
+- Library (cover grid or list), game pages (rarity, easiest-first sort, hidden achievements blurred until
+  clicked, guide links, playtime and sessions) and an unlock timeline.
 
 ## The overlay
 
@@ -74,9 +87,9 @@ Layout:
 
 | Path | What's there |
 | --- | --- |
-| `electron/` | Main process: windows, IPC, settings, auto-updater, patch notes, Steam import, game detection, overlay, hotkeys, tray |
+| `electron/` | Main process: windows, IPC, settings, auto-updater, patch notes, Steam import, game detection, overlay, hotkeys, tray, achievement hub (`achievements.ts`, `steamLocal.ts`, `steamPublic.ts`, `emulators.ts`, `anker.ts`, `popup.ts`) |
 | `shared/` | Types and IPC channel names shared by main, preload and renderer |
-| `src/` | React renderer: `splash/` (launcher) and `shell/` (main window) |
+| `src/` | React renderer: `splash/` (launcher), `shell/` (main window; `shell/hub/` = library, game page, timeline) and `popup/` (unlock card + sounds) |
 | `games/` | Game modules, one folder per game (`games/<id>/`), plus `panels.tsx` (overlay panels) |
 | `resources/`, `build/` | App, tray and installer icons (regenerate with `node scripts/make-icons.cjs`) |
 | `firestore.rules`, `docs/FIREBASE.md` | Cloud: Firestore security rules and the Firebase setup guide |

@@ -56,4 +56,18 @@ export const IPC = {
   profileRefresh: 'profile:refresh',
 
   crashReport: 'crash:report',
+
+  hubGet: 'hub:get',
+  hubChanged: 'hub:changed',
+  hubGame: 'hub:game',
+  hubTimeline: 'hub:timeline',
+  hubSetManual: 'hub:set-manual',
+  hubSearchSteam: 'hub:search-steam',
+  hubLinkSteam: 'hub:link-steam',
+  hubAddCustom: 'hub:add-custom',
+  hubRemoveCustom: 'hub:remove-custom',
+  hubTestPopup: 'hub:test-popup',
+  openExternal: 'app:open-external',
+  popupShow: 'popup:show',
+  popupDone: 'popup:done',
 } as const;

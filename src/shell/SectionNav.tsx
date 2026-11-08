@@ -1,4 +1,4 @@
-export type SectionId = 'home' | 'library' | 'profile' | 'friends' | 'settings';
+export type SectionId = 'home' | 'library' | 'timeline' | 'profile' | 'friends' | 'settings';
 
 export interface Section {
   id: SectionId;
@@ -11,9 +11,11 @@ interface SectionNavProps {
   onSelect: (id: SectionId) => void;
   /** When a game is open, the nav is replaced by that game's own page list. */
   gameName?: string;
+  onBack?: () => void;
+  backLabel?: string;
 }
 
-export function SectionNav({ sections, active, onSelect, gameName }: SectionNavProps) {
+export function SectionNav({ sections, active, onSelect, gameName, onBack, backLabel }: SectionNavProps) {
   return (
     <aside
       style={{
@@ -30,9 +32,11 @@ export function SectionNav({ sections, active, onSelect, gameName }: SectionNavP
       {gameName ? (
         <>
           <div style={{ fontSize: 15, fontWeight: 700, padding: '4px 10px 12px' }}>{gameName}</div>
-          <div className="muted" style={{ fontSize: 12, padding: '0 10px' }}>
-            Game pages arrive with the achievement hub (Phase 5).
-          </div>
+          {onBack && (
+            <button onClick={onBack} className="muted" style={{ textAlign: 'left', padding: '9px 12px', borderRadius: 9 }}>
+              ← Back to {backLabel}
+            </button>
+          )}
         </>
       ) : (
         sections.map((s) => {

@@ -377,3 +377,179 @@ html.overlay-corner body {
 .toast {
   animation: toast-in 0.25s var(--ease) both;
 }
+
+/* ---------- Achievement hub ---------- */
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  gap: 2px;
+}
+.segmented button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.secret {
+  filter: blur(5px);
+  cursor: pointer;
+  user-select: none;
+  transition: filter 0.2s var(--ease);
+}
+
+.hover-lift {
+  transition: transform 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  border-color: rgba(79, 140, 255, 0.45);
+}
+
+/* ---------- Unlock popup ---------- */
+
+html.popup-window,
+html.popup-window body,
+html.popup-window #root {
+  background: transparent !important;
+  overflow: hidden;
+}
+
+.unlock-card {
+  --tier: #8f93c9;
+  position: relative;
+  width: 400px;
+  height: 104px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px 0 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(26, 28, 58, 0.97), rgba(15, 16, 35, 0.97));
+  border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55), 0 0 26px color-mix(in srgb, var(--tier) 30%, transparent);
+  overflow: hidden;
+}
+.unlock-card.in {
+  animation: unlock-in 0.5s var(--ease) both;
+}
+.unlock-card.out {
+  animation: unlock-out 0.35s ease-in both;
+}
+.unlock-card .bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--tier);
+}
+.unlock-card .shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, color-mix(in srgb, var(--tier) 22%, transparent) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: unlock-shine 1.4s 0.35s var(--ease) both;
+  pointer-events: none;
+}
+.unlock-card.epic .shine,
+.unlock-card.legendary .shine {
+  animation-iteration-count: 3;
+}
+.unlock-card.legendary {
+  border-color: transparent;
+}
+.unlock-card.legendary::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 16px;
+  padding: 2px;
+  background: conic-gradient(from var(--angle, 0deg), #f5c451, #fff2c4, #ff9f43, #f5c451, #fff2c4, #f5c451);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: unlock-spin 2.5s linear infinite;
+}
+.unlock-card .icon {
+  position: relative;
+  animation: unlock-pop 0.6s 0.15s var(--ease) both;
+}
+.unlock-card.rare .icon,
+.unlock-card.epic .icon,
+.unlock-card.legendary .icon {
+  filter: drop-shadow(0 0 10px var(--tier));
+}
+.spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--tier);
+  box-shadow: 0 0 6px var(--tier);
+  animation: spark 1.6s ease-out both;
+  pointer-events: none;
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes unlock-spin {
+  to {
+    --angle: 360deg;
+  }
+}
+@keyframes unlock-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--from-x, 40px)) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes unlock-out {
+  to {
+    opacity: 0;
+    transform: translateX(var(--from-x, 40px)) scale(0.97);
+  }
+}
+@keyframes unlock-shine {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes unlock-pop {
+  from {
+    transform: scale(0.4) rotate(-12deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes spark {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.3);
+  }
+}

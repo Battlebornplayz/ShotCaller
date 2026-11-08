@@ -5,6 +5,8 @@ import {
   DEFAULT_HOTKEYS,
   HOTKEY_ACTIONS,
   type GameLaunchAction,
+  type LibraryView,
+  type PopupCorner,
   type OverlayMode,
   type Settings,
   type SettingsPatch,
@@ -12,6 +14,8 @@ import {
 
 const DEFAULTS: Settings = {
   channel: 'stable',
+  popups: { enabled: true, sound: true, volume: 0.6, corner: 'bottom-right' },
+  libraryView: 'grid',
   privacy: { crashReports: false },
   overlay: { mode: 'always', idleOpacity: 0.7, position: null, monitorDisplayId: null, allGames: false },
   hotkeys: { ...DEFAULT_HOTKEYS },
@@ -76,6 +80,8 @@ function sanitize(input: unknown): Settings {
   const startup = obj(raw.startup);
   const privacy = obj(raw.privacy);
   const hotkeysRaw = obj(raw.hotkeys);
+  const popups = obj(raw.popups);
+  const volume = finite(popups.volume) ? popups.volume : DEFAULTS.popups.volume;
   const pos = obj(overlay.position);
 
   const hotkeys = { ...DEFAULT_HOTKEYS };
@@ -97,6 +103,13 @@ function sanitize(input: unknown): Settings {
 
   return {
     channel: raw.channel === 'beta' ? 'beta' : 'stable',
+    popups: {
+      enabled: bool(popups.enabled, DEFAULTS.popups.enabled),
+      sound: bool(popups.sound, DEFAULTS.popups.sound),
+      volume: Math.round(Math.min(1, Math.max(0, volume)) * 100) / 100,
+      corner: oneOf<PopupCorner>(popups.corner, ['bottom-right', 'top-right', 'bottom-left', 'top-left'], DEFAULTS.popups.corner),
+    },
+    libraryView: oneOf<LibraryView>(raw.libraryView, ['grid', 'list'], DEFAULTS.libraryView),
     privacy: { crashReports: bool(privacy.crashReports, DEFAULTS.privacy.crashReports) },
     overlay: {
       mode: oneOf<OverlayMode>(overlay.mode, ['always', 'popup', 'monitor'], DEFAULTS.overlay.mode),
@@ -135,6 +148,8 @@ export function updateSettings(patch: SettingsPatch): Settings {
     ...prev,
     ...(p.channel !== undefined ? { channel: p.channel } : {}),
     ...(p.hotkeysOnlyInGame !== undefined ? { hotkeysOnlyInGame: p.hotkeysOnlyInGame } : {}),
+    ...(p.libraryView !== undefined ? { libraryView: p.libraryView } : {}),
+    popups: { ...prev.popups, ...obj(p.popups) },
     overlay: { ...prev.overlay, ...obj(p.overlay) },
     hotkeys: { ...prev.hotkeys, ...obj(p.hotkeys) },
     startup: { ...prev.startup, ...obj(p.startup) },

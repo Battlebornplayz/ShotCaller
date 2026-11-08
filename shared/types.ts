@@ -52,8 +52,23 @@ export interface PrivacySettings {
   crashReports: boolean;
 }
 
+export type PopupCorner = 'bottom-right' | 'top-right' | 'bottom-left' | 'top-left';
+
+export interface PopupSettings {
+  /** Show the unlock card. */
+  enabled: boolean;
+  sound: boolean;
+  /** 0-1. */
+  volume: number;
+  corner: PopupCorner;
+}
+
+export type LibraryView = 'grid' | 'list';
+
 export interface Settings {
   channel: Channel;
+  popups: PopupSettings;
+  libraryView: LibraryView;
   privacy: PrivacySettings;
   overlay: OverlaySettings;
   /** Electron accelerators, e.g. "Alt+S". Empty string = unbound. */
@@ -65,6 +80,8 @@ export interface Settings {
 
 export interface SettingsPatch {
   channel?: Channel;
+  popups?: Partial<PopupSettings>;
+  libraryView?: LibraryView;
   overlay?: Partial<OverlaySettings>;
   hotkeys?: Partial<Record<HotkeyAction, string>>;
   hotkeysOnlyInGame?: boolean;
@@ -126,10 +143,11 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 
 // ---------- Library and detection ----------
 
-export type GameSource = 'module' | 'steam' | 'manual';
+/** anker = installed by the Anker Games launcher; emulator = only found through local emulator achievement files. */
+export type GameSource = 'module' | 'steam' | 'manual' | 'anker' | 'emulator';
 
 export interface LibraryGame {
-  /** "steam:<appid>", "manual:<id>" or "module:<id>" (a supported game not found in Steam). */
+  /** "steam:<appid>", "manual:<id>", "module:<id>" (a supported game not found in Steam), "anker:<id>" or "emu:<appid>". */
   key: string;
   name: string;
   source: GameSource;
@@ -144,6 +162,10 @@ export interface LibraryGame {
   moduleId?: string;
   pinned?: boolean;
   installed: boolean;
+  /** Steam app whose achievement list this game uses (its own app, a linked one, or Anker's). */
+  achievementAppId?: number;
+  /** Cover art from another launcher (Anker poster). */
+  poster?: string;
 }
 
 export interface SteamImportInfo {
@@ -174,6 +196,121 @@ export interface DetectionState {
   running: RunningGame[];
   watcher: 'starting' | 'ok' | 'error';
   error?: string;
+}
+
+// ---------- Achievements ----------
+
+export type RarityTier = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+export const RARITY_TIERS: RarityTier[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+
+/** Tier by global unlock percentage; unknown rarity counts as common. */
+export function rarityTier(percent: number | null | undefined): RarityTier {
+  if (percent === null || percent === undefined) return 'common';
+  if (percent <= 2) return 'legendary';
+  if (percent <= 10) return 'epic';
+  if (percent <= 25) return 'rare';
+  if (percent <= 50) return 'uncommon';
+  return 'common';
+}
+
+/** steam = Steam's own stats cache; emulator = a local emulator file; manual = ticked in ShotCaller. */
+export type UnlockVia = 'steam' | 'emulator' | 'manual';
+
+export interface Achievement {
+  /** Steam API name, or "custom:<id>" for the user's own. */
+  id: string;
+  name: string;
+  description: string;
+  hidden: boolean;
+  icon: string | null;
+  iconGray: string | null;
+  /** Global unlock percentage, null when unknown. */
+  rarity: number | null;
+  unlocked: boolean;
+  /** Epoch ms; null when locked or the time is unknown. */
+  unlockedAt: number | null;
+  via: UnlockVia | null;
+  progress?: { current: number; max: number };
+  custom?: boolean;
+}
+
+/** steam-local = Steam's cache on this PC; steam-public = Steam's public page; custom = only the user's own. */
+export type AchievementListSource = 'steam-local' | 'steam-public' | 'custom' | 'none';
+
+/** How unlocks are found: steam = Steam's stats cache; emulator = local emulator files (+ ticks); manual = ticks only. */
+export type AchievementTracking = 'steam' | 'emulator' | 'manual';
+
+export interface Session {
+  /** Epoch ms. */
+  start: number;
+  end: number;
+}
+
+export interface GameAchievements {
+  key: string;
+  name: string;
+  appId: number | null;
+  listSource: AchievementListSource;
+  tracking: AchievementTracking;
+  achievements: Achievement[];
+  total: number;
+  unlocked: number;
+  /** Minutes, from Steam's local playtime or ShotCaller's own sessions. */
+  playtimeMinutes: number | null;
+  lastPlayed: number | null;
+  sessions: Session[];
+  /** Set when the list couldn't be loaded (e.g. offline). */
+  error?: string;
+}
+
+export interface GameSummary {
+  key: string;
+  total: number;
+  unlocked: number;
+  lastUnlockAt: number | null;
+  playtimeMinutes: number | null;
+}
+
+export interface UnlockEvent {
+  /** Stable id: "<gameKey>|<achievementId>" (syncs to users/{uid}/unlocks later). */
+  id: string;
+  gameKey: string;
+  gameName: string;
+  appId: number | null;
+  achievementId: string;
+  name: string;
+  description: string;
+  icon: string | null;
+  rarity: number | null;
+  /** Epoch ms, 0 when unknown. */
+  unlockedAt: number;
+  via: UnlockVia;
+}
+
+export interface HubState {
+  ready: boolean;
+  steamUser: { steamId: string; persona: string } | null;
+  /** Game key -> completion summary, for games with an achievement list. */
+  summaries: Record<string, GameSummary>;
+  /** Bumped whenever any game's achievements change; the renderer refetches open views. */
+  revision: number;
+}
+
+export interface SteamAppMatch {
+  appId: number;
+  name: string;
+  image: string | null;
+}
+
+/** What the popup window shows. */
+export interface PopupPayload {
+  event: UnlockEvent;
+  tier: RarityTier;
+  sound: boolean;
+  volume: number;
+  corner: PopupCorner;
+  test?: boolean;
 }
 
 // ---------- Overlay and hotkeys ----------
@@ -275,6 +412,24 @@ export interface ShotCallerApi {
   setHotkeyCapture(capturing: boolean): Promise<void>;
 
   getDisplays(): Promise<DisplayInfo[]>;
+
+  getHub(): Promise<HubState>;
+  onHub(callback: (state: HubState) => void): Unsubscribe;
+  getGameAchievements(key: string): Promise<GameAchievements | null>;
+  getTimeline(limit: number): Promise<UnlockEvent[]>;
+  /** Tick or untick an achievement by hand (non-Steam tracking only). */
+  setManualUnlock(key: string, achievementId: string, unlocked: boolean): Promise<ActionResult>;
+  searchSteamApps(term: string): Promise<SteamAppMatch[]>;
+  /** Use a Steam game's achievement list for a non-Steam game; null removes the link. */
+  linkSteamApp(key: string, appId: number | null): Promise<ActionResult>;
+  addCustomAchievement(key: string, name: string, description: string): Promise<ActionResult>;
+  removeCustomAchievement(key: string, achievementId: string): Promise<ActionResult>;
+  testPopup(tier: RarityTier): Promise<void>;
+  /** Opens a Steam or web-search link in the browser (allow-listed hosts only). */
+  openExternal(url: string): Promise<void>;
+  /** Popup window only. */
+  onPopup(callback: (payload: PopupPayload) => void): Unsubscribe;
+  popupDone(): void;
 
   getAuthState(): Promise<AuthState>;
   onAuthState(callback: (state: AuthState) => void): Unsubscribe;

@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import { IPC } from '../shared/ipc';
 import type { RunningGame } from '../shared/types';
+import { disposeHub, initHub, onHubChange } from './achievements';
 import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
 import { disposeAuth, initAuth, onAuthStateChange, refreshProfile } from './auth';
 import { initCrashReports } from './crashReports';
@@ -22,6 +23,8 @@ import {
 } from './overlay';
 import { getSettings, onSettingsChange } from './settings';
 import { applyLaunchAtLogin, startedHidden } from './startup';
+import { disposePopup } from './popup';
+import { flushSessions, sessionStarted, sessionStopped } from './sessions';
 import { createTray, destroyTray, updateTray } from './tray';
 import { checkForUpdates, initUpdater } from './updater';
 import { createMainWindow, createSplashWindow } from './windows';
@@ -104,8 +107,10 @@ if (!app.requestSingleInstanceLock()) {
       refreshTray();
     });
 
-    onDetectionChange((state, started) => {
+    onDetectionChange((state, started, stopped) => {
       broadcast(IPC.detectionChanged, state);
+      for (const rg of started) sessionStarted(rg);
+      for (const rg of stopped) sessionStopped(rg);
       setOverlayGame(overlayGameFrom(state.running));
       if (started.some(wantsOverlay) && getSettings().startup.onGameLaunch === 'window') openMain();
       refreshTray();
@@ -126,7 +131,8 @@ if (!app.requestSingleInstanceLock()) {
 
     // Detection works off the stored library straight away; the Steam re-scan refreshes it.
     startDetection();
-    void importSteamLibrary();
+    onHubChange((state) => broadcast(IPC.hubChanged, state));
+    void importSteamLibrary().then(() => initHub());
 
     if (startedHidden()) {
       // Started with the OS: stay in the tray until a game launches or the user opens it.
@@ -154,6 +160,9 @@ if (!app.requestSingleInstanceLock()) {
   app.on('before-quit', () => {
     quitting = true;
     stopDetection();
+    flushSessions();
+    disposeHub();
+    disposePopup();
     disposeHotkeys();
     disposeAltHook();
     destroyTray();

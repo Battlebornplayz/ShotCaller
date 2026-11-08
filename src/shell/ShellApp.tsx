@@ -4,7 +4,7 @@ import { Logo } from '../components/Logo';
 import { TitleBar } from '../components/TitleBar';
 import { GameRail } from './GameRail';
 import { SectionNav, type Section, type SectionId } from './SectionNav';
-import { HomePage, LibraryPage, ProfilePage, FriendsPage, GamePage, SettingsPage } from './pages';
+import { HomePage, LibraryPage, ProfilePage, FriendsPage, GamePage, SettingsPage, TimelinePage } from './pages';
 
 export function ShellApp() {
   const [section, setSection] = useState<SectionId>('home');
@@ -16,6 +16,7 @@ export function ShellApp() {
   const sections: Section[] = [
     { id: 'home', label: 'Home' },
     { id: 'library', label: 'Library' },
+    { id: 'timeline', label: 'Timeline' },
     { id: 'profile', label: 'Profile' },
     { id: 'friends', label: 'Friends' },
     { id: 'settings', label: 'Settings' },
@@ -53,6 +54,8 @@ export function ShellApp() {
           active={section}
           onSelect={onSelectSection}
           gameName={game?.name}
+          onBack={() => setGameKey(null)}
+          backLabel={sections.find((s) => s.id === section)?.label ?? 'Home'}
         />
 
         <main key={game ? `game-${game.key}` : section} className="enter" style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '26px 30px' }}>
@@ -62,6 +65,8 @@ export function ShellApp() {
             <HomePage onOpenGame={onSelectGame} />
           ) : section === 'library' ? (
             <LibraryPage onOpenGame={onSelectGame} />
+          ) : section === 'timeline' ? (
+            <TimelinePage onOpenGame={onSelectGame} />
           ) : section === 'profile' ? (
             <ProfilePage />
           ) : section === 'friends' ? (

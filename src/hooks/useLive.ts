@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AuthState, DetectionState, HotkeyStatus, Library, OverlayState, Settings } from '../../shared/types';
+import type { AuthState, DetectionState, HotkeyStatus, HubState, Library, OverlayState, Settings } from '../../shared/types';
 
 /** Initial fetch plus live updates from the main process. */
 function useLive<T>(get: () => Promise<T>, subscribe: (cb: (v: T) => void) => () => void): T | null {
@@ -26,3 +26,24 @@ export const useDetection = (): DetectionState | null => useLive(() => api().get
 export const useOverlayState = (): OverlayState | null => useLive(() => api().getOverlayState(), (cb) => api().onOverlayState(cb));
 export const useHotkeyStatus = (): HotkeyStatus | null => useLive(() => api().getHotkeyStatus(), (cb) => api().onHotkeyStatus(cb));
 export const useAuth = (): AuthState | null => useLive(() => api().getAuthState(), (cb) => api().onAuthState(cb));
+
+export const useHub = (): HubState | null => useLive(() => api().getHub(), (cb) => api().onHub(cb));
+
+/** Loads a value and reloads it whenever the hub's data changes (or `deps` change). */
+export function useHubQuery<T>(load: () => Promise<T>, deps: unknown[]): { value: T | null; loading: boolean; reload: () => void } {
+  const hub = useHub();
+  const [tick, setTick] = useState(0);
+  const sig = JSON.stringify([...deps, hub?.revision ?? -1, tick]);
+  // The last result and the request it answered; loading = it answers an older request.
+  const [result, setResult] = useState<{ sig: string | null; value: T | null }>({ sig: null, value: null });
+  useEffect(() => {
+    let active = true;
+    void load().then((value) => active && setResult({ sig, value }));
+    return () => {
+      active = false;
+    };
+    // load is recreated each render; sig decides when to refetch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
+  return { value: result.value, loading: result.sig !== sig, reload: () => setTick((t) => t + 1) };
+}
