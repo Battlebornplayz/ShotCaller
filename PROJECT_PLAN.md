@@ -33,7 +33,8 @@ Deliverables:
 - Settings page (overlay, hotkeys, startup, channel).
 Done when: launching Skillshot City opens ShotCaller and shows a placeholder overlay panel over the game; hotkeys work; settings persist.
 
-## Phase 4 — Accounts and cloud (Firebase)
+## Phase 4 — Accounts and cloud (Firebase) ⏸ Deferred
+**Deferred by the user (2026-11-07).** The code is built and committed but dormant: no Firebase project is connected, so the app hides all account UI. Pick it back up before Phase 10 (Social), which needs accounts. Setup steps: `docs/FIREBASE.md`.
 Goal: sign in and sync.
 Deliverables:
 - Firebase project, Firestore data model (profiles, usernames, games, achievements cache, unlocks, proofs, friends, xp), security rules.
@@ -55,6 +56,7 @@ Done when: unlocking a real Steam achievement shows the popup within seconds and
 
 ## Phase 6 — Hub home, XP, profile, extra sources
 Deliverables:
+- Until accounts are live (Phase 4 deferred), XP, level and profile are stored locally on this PC; they sync once accounts go live.
 - Home widgets: playing now, closest to unlock, recent unlocks, friends feed (placeholder until Phase 10), stats summary, weekly challenge.
 - ShotCaller XP (scales with rarity) + levels; profile page (banner, level ring, 5-achievement showcase).
 - Hunt list pinned to overlay.
@@ -87,6 +89,7 @@ Deliverables:
 Done when: auto-detect picks the right two skills in most level-ups across a few matches at the user's resolution.
 
 ## Phase 10 — Social
+Needs accounts: finish the deferred Phase 4 first (Firebase project, config values, rules deploy, two-PC sign-in test).
 Deliverables:
 - Friends list, friend activity feed, leaderboards, shared hunt lists, friends comparison, "friends who play it".
 - Discord rich presence.

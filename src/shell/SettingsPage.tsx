@@ -396,7 +396,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="Account, overlay, hotkeys, startup, privacy and updates. Changes save instantly." />
+      <PageHeader title="Settings" subtitle="Overlay, hotkeys, startup and updates. Changes save instantly." />
 
       <AccountSection />
       <OverlaySection />

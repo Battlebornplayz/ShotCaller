@@ -191,9 +191,9 @@ export function SignInPanel({ auth }: { auth: AuthState }) {
   if (!auth.configured) {
     return (
       <div className="card enter" style={{ display: 'grid', gap: 8, maxWidth: 760 }}>
-        <div style={{ fontWeight: 700 }}>Accounts aren’t available in this build</div>
+        <div style={{ fontWeight: 700 }}>Accounts are coming later</div>
         <div className="muted" style={{ fontSize: 13 }}>
-          This copy of ShotCaller isn’t connected to a ShotCaller server. Everything else works offline.
+          Sign-in and profile sync aren’t switched on yet. Everything else works without an account.
         </div>
       </div>
     );
@@ -301,7 +301,10 @@ export function ProfilePage() {
   if (auth.status !== 'signed-in' || !auth.user) {
     return (
       <>
-        <PageHeader title="Profile" subtitle="Sign in to get a profile that follows you to every PC." />
+        <PageHeader
+          title="Profile"
+          subtitle={auth.configured ? 'Sign in to get a profile that follows you to every PC.' : 'Your ShotCaller profile.'}
+        />
         <SignInPanel auth={auth} />
       </>
     );
@@ -349,7 +352,7 @@ function SettingsCard({ title, subtitle, children, delay }: { title: string; sub
 export function AccountSection({ delay = 0 }: { delay?: number }) {
   const auth = useAuth();
   const [linkError, setLinkError] = useState<string | null>(null);
-  if (!auth) return null;
+  if (!auth || !auth.configured) return null;
   if (auth.status !== 'signed-in' || !auth.user) {
     return (
       <SettingsCard title="Account" subtitle="Sign in to sync your profile across PCs." delay={delay}>
@@ -434,6 +437,8 @@ export function PrivacySection({ delay = 0 }: { delay?: number }) {
   const settings = useSettings();
   const [error, setError] = useState<string | null>(null);
   const visibility = auth?.profile?.visibility;
+  // Crash reports and profile visibility both need the cloud; hide the card until accounts are live.
+  if (!auth?.configured) return null;
 
   return (
     <SettingsCard title="Privacy" subtitle="ShotCaller only syncs your profile data. There are no usage analytics." delay={delay}>

@@ -25,10 +25,9 @@ skill-pick advisor, build tools and a round tracker.
 
 ## Accounts
 
-Sign in with **Google or email** (Profile, or Settings → Account). Your profile syncs to every PC you sign
-in on, and you can link Google and email to the same account. ShotCaller only syncs profile data. There
-are no usage analytics, and crash reports stay off unless you turn them on (Settings → Privacy). How the
-cloud side works and how to set it up: [`docs/FIREBASE.md`](docs/FIREBASE.md).
+Coming later. Sign-in (Google or email) and profile sync are built but not switched on yet; everything
+else works without an account. ShotCaller has no usage analytics. How the cloud side will work and how to
+set it up: [`docs/FIREBASE.md`](docs/FIREBASE.md).
 
 ## Install
 

@@ -39,7 +39,7 @@ Third-party assistant/overlay app. First supported game: **Skillshot City** (fre
 - Q18 Accent: electric blue #4F8CFF.
 - Q19 Logo: megaphone / "callout" mark (fits "ShotCaller"). **Chosen in Phase 3 ("variant 2"):** white megaphone with sound wave inside two crossed light-blue (#7FB2FF) orbit ellipses (±30°) on a navy #1A1C3A rounded tile; at 16px the wave is dropped and orbits thicken. Source: `src/components/Logo.tsx`; PNGs in `resources/` (tray, window) and `build/icon.png` (installer).
 - Q20 Layout: game-icon sidebar (Discord-style) + section list + content.
-- Q21 Backend: ~~Supabase~~ → **Firebase** (changed in Phase 4): Firebase Auth + Firestore with security rules, free Spark plan. No Cloud Functions (they need the paid Blaze plan).
+- Q21 Backend: ~~Supabase~~ → **Firebase** (changed in Phase 4; accounts then deferred by the user — code built but dormant until a Firebase project is connected): Firebase Auth + Firestore with security rules, free Spark plan. No Cloud Functions (they need the paid Blaze plan).
 - Q22 Sign-in: ~~Steam, Discord,~~ **Google + email/password** (changed in Phase 4: the user dropped Steam and Discord sign-in with the move to Firebase, since both would need server code). Google uses the installed-app OAuth flow (PKCE, loopback redirect) → `signInWithCredential`. Accounts can link Google and email together.
 - Q23 Piracy-adjacent sources: user dislikes that use case; wants the *good* version — helping people whose achievements are bugged/don't register. Resolution in batch 5 (Q24).
 
