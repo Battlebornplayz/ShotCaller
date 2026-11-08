@@ -1,5 +1,7 @@
 // Types shared by the Electron main process, the preload script and the renderer.
 
+import type { MatchRecord, SkillshotData, SkillshotLiveState } from './skillshot';
+
 export type Channel = 'stable' | 'beta';
 
 /** always = shown whenever a game runs; popup = hidden until the popup hotkey; monitor = normal window on another display. */
@@ -425,6 +427,18 @@ export interface ShotCallerApi {
   addCustomAchievement(key: string, name: string, description: string): Promise<ActionResult>;
   removeCustomAchievement(key: string, achievementId: string): Promise<ActionResult>;
   testPopup(tier: RarityTier): Promise<void>;
+
+  /** Skillshot City helper. State is pushed on every change (onSkillshot); get is for the first render. */
+  getSkillshot(): Promise<SkillshotLiveState>;
+  onSkillshot(callback: (state: SkillshotLiveState) => void): Unsubscribe;
+  getSkillshotData(): Promise<SkillshotData | null>;
+  getSkillshotMatches(): Promise<MatchRecord[]>;
+  /** Sets the offered skills (manual grid, screen reader). Empty clears the offer. */
+  setSkillshotOffer(skillIds: string[]): Promise<void>;
+  /** Picks offer #index (0 or 1) or a skill id. */
+  pickSkillshot(which: number | string): Promise<void>;
+  setSkillshotGoal(skillIds: string[], locked: boolean): Promise<void>;
+  setSkillshotClass(classId: string | null): Promise<void>;
   /** Opens a Steam or web-search link in the browser (allow-listed hosts only). */
   openExternal(url: string): Promise<void>;
   /** Popup window only. */

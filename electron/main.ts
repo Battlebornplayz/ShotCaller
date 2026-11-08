@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import { IPC } from '../shared/ipc';
 import type { RunningGame } from '../shared/types';
 import { disposeHub, initHub, onHubChange } from './achievements';
+import { disposeSkillshot, initSkillshot, onSkillshotChange } from './skillshot/tracker';
 import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
 import { disposeAuth, initAuth, onAuthStateChange, refreshProfile } from './auth';
 import { initCrashReports } from './crashReports';
@@ -132,7 +133,8 @@ if (!app.requestSingleInstanceLock()) {
     // Detection works off the stored library straight away; the Steam re-scan refreshes it.
     startDetection();
     onHubChange((state) => broadcast(IPC.hubChanged, state));
-    void importSteamLibrary().then(() => initHub());
+    onSkillshotChange((state) => broadcast(IPC.skillshotChanged, state));
+    void importSteamLibrary().then(() => Promise.all([initHub(), initSkillshot()]));
 
     if (startedHidden()) {
       // Started with the OS: stay in the tray until a game launches or the user opens it.
@@ -162,6 +164,7 @@ if (!app.requestSingleInstanceLock()) {
     stopDetection();
     flushSessions();
     disposeHub();
+    disposeSkillshot();
     disposePopup();
     disposeHotkeys();
     disposeAltHook();

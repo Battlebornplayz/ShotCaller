@@ -3,6 +3,7 @@ import { moduleById } from '../games';
 import { IPC } from '../shared/ipc';
 import type { HotkeyAction, OverlayState, RunningGame, Settings } from '../shared/types';
 import { getSettings, updateSettings } from './settings';
+import { endMatch, nextRound, pickOffer } from './skillshot/tracker';
 import { createOverlayWindow, OVERLAY_DEFAULT_SIZE } from './windows';
 
 /**
@@ -202,6 +203,13 @@ export function handleOverlayAction(action: HotkeyAction): void {
     if (!shown && preview && !game) preview = false;
     sync();
     return;
+  }
+  if (game?.moduleId === 'skillshot-city') {
+    // Skillshot City: the tracker owns picks and rounds, then pushes the new state to every window.
+    if (action === 'pick1') pickOffer(0);
+    else if (action === 'pick2') pickOffer(1);
+    else if (action === 'nextRound') nextRound();
+    else if (action === 'endMatch') endMatch();
   }
   if (win && !win.isDestroyed()) win.webContents.send(IPC.overlayAction, { action, at: Date.now() });
 }

@@ -70,4 +70,13 @@ export const IPC = {
   openExternal: 'app:open-external',
   popupShow: 'popup:show',
   popupDone: 'popup:done',
+
+  skillshotGet: 'skillshot:get',
+  skillshotChanged: 'skillshot:changed',
+  skillshotData: 'skillshot:data',
+  skillshotMatches: 'skillshot:matches',
+  skillshotSetOffer: 'skillshot:set-offer',
+  skillshotPick: 'skillshot:pick',
+  skillshotSetGoal: 'skillshot:set-goal',
+  skillshotSetClass: 'skillshot:set-class',
 } as const;

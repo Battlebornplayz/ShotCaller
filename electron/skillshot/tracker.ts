@@ -1,0 +1,415 @@
+import { app } from 'electron';
+import { promises as fsp, existsSync, readdirSync, watch, type FSWatcher } from 'node:fs';
+import path from 'node:path';
+import type { MatchRecord, OfferSource, SkillshotData, SkillshotLiveState } from '../../shared/skillshot';
+import { activeSynergies, advise, goalProgress, suggestGoal, type SkillStat } from '../../shared/skillshotAdvisor';
+import {
+  applyEvent,
+  newMatch,
+  parseLine,
+  selfStanding,
+  startsNewMatch,
+  type MatchState,
+  type TimedEvent,
+} from '../../shared/skillshotLog';
+import tiers from '../../games/skillshot-city/tiers.json';
+import { extractSkillshotData, findInstallDir } from './gamedata';
+
+/**
+ * Skillshot City match tracker. Reads the game's log (read-only) as it grows, keeps the live match,
+ * saves finished matches to userData/skillshot/matches.json, and runs the advisor on the current offer.
+ * The game writes its log in batches, so manual / screen / memory offers drive the live view and the
+ * log confirms them.
+ */
+
+const LOGS_OLDEST_FIRST = ['logPrevious3.txt', 'logPrevious2.txt', 'logPrevious1.txt', 'log.txt'];
+/** Backup check; the file watcher normally pushes changes the moment the game writes. */
+const FALLBACK_MS = 5000;
+
+let data: SkillshotData | null = null;
+let installDir: string | null = null;
+let profileName: string | null = null;
+let matches: MatchRecord[] = [];
+let live: MatchState | null = null;
+let logOffset = 0;
+let partial = '';
+let lastLogTime: number | null = null;
+let pollTimer: NodeJS.Timeout | null = null;
+let watcher: FSWatcher | null = null;
+let reading = false;
+let readAgain = false;
+let reason: string | undefined;
+
+let offer: SkillshotLiveState['offer'] = null;
+/** Picks made in ShotCaller (Alt+1/Alt+2/grid) that the log hasn't written yet. */
+let pendingPicks: { skillId: string; at: number; round: number }[] = [];
+let goal: { ids: string[]; locked: boolean } = { ids: [], locked: false };
+let classId: string | null = null;
+
+const listeners = new Set<(s: SkillshotLiveState) => void>();
+
+const storeDir = () => path.join(app.getPath('userData'), 'skillshot');
+const matchesFile = () => path.join(storeDir(), 'matches.json');
+const prefsFile = () => path.join(storeDir(), 'prefs.json');
+
+// ---------------------------------------------------------------------------------------------
+// Data
+
+function applyTiers(d: SkillshotData): SkillshotData {
+  const t = tiers as Record<string, { tier?: 'S' | 'A' | 'B' | 'C'; role?: string; tags?: string[] }>;
+  for (const s of d.skills) Object.assign(s, t[s.id] ?? {});
+  return d;
+}
+
+export function getSkillshotData(): SkillshotData | null {
+  return data;
+}
+
+/** Upper-case English name (as in the log) → skill id. */
+function idFromLogName(name: string): string | null {
+  if (!data) return null;
+  const n = name.toUpperCase();
+  return data.skills.find((s) => s.nameEn.toUpperCase() === n)?.id ?? null;
+}
+
+function buildIds(build: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [name, lvl] of Object.entries(build)) {
+    const id = idFromLogName(name);
+    if (id) out[id] = Math.max(out[id] ?? 0, lvl);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Matches
+
+function toRecord(m: MatchState): MatchRecord {
+  const me = selfStanding(m);
+  const won = me ? me.position === 1 : !!m.self && m.winner?.toLowerCase() === m.self.toLowerCase();
+  return {
+    id: m.id,
+    startedAt: m.startedAt,
+    endedAt: m.updatedAt,
+    place: me?.position ?? (won ? 1 : null),
+    won,
+    score: me?.score ?? null,
+    kills: me?.kills ?? m.kills,
+    deaths: me?.deaths ?? m.deaths,
+    level: Math.max(m.level, me?.level ?? 0),
+    build: buildIds(m.build),
+    picks: m.picks.map((p) => ({
+      round: p.round,
+      offers: p.offers.map((o) => idFromLogName(o.name)).filter((x): x is string => !!x),
+      picked: p.selected ? idFromLogName(p.selected.name) : null,
+    })),
+    roundResults: m.roundResults,
+    killedBy: m.killedBy,
+    classId,
+    complete: m.standings.length > 0,
+  };
+}
+
+function archive(m: MatchState | null): void {
+  if (!m || (m.picks.length === 0 && m.standings.length === 0)) return;
+  const rec = toRecord(m);
+  const i = matches.findIndex((x) => x.id === rec.id);
+  if (i >= 0) matches[i] = rec;
+  else matches.push(rec);
+  matches.sort((a, b) => a.startedAt - b.startedAt);
+  void saveMatches();
+}
+
+async function saveMatches(): Promise<void> {
+  await fsp.mkdir(storeDir(), { recursive: true });
+  await fsp.writeFile(matchesFile(), JSON.stringify(matches, null, 1));
+}
+
+export function getMatches(): MatchRecord[] {
+  return matches;
+}
+
+function skillStats(): { stats: Record<string, SkillStat>; overall: number | null } {
+  const stats: Record<string, SkillStat> = {};
+  const done = matches.filter((m) => m.place !== null || m.complete);
+  for (const m of done) {
+    for (const id of Object.keys(m.build)) {
+      const s = (stats[id] ??= { played: 0, wins: 0 });
+      s.played++;
+      if (m.won) s.wins++;
+    }
+  }
+  return { stats, overall: done.length >= 3 ? done.filter((m) => m.won).length / done.length : null };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Log reading
+
+function feed(e: TimedEvent): void {
+  lastLogTime = e.at;
+  if (e.ev.t === 'self') profileName ??= e.ev.name;
+  if (startsNewMatch(live, e)) {
+    archive(live);
+    live = newMatch(e.at, profileName);
+    pendingPicks = [];
+    offer = null;
+    if (!goal.locked) goal = { ids: [], locked: false };
+  }
+  if (!live) return;
+  const before = live.picks.length;
+  applyEvent(live, e);
+  if (e.ev.t === 'draft' && live.picks.length > before) {
+    // The log confirmed a pick: drop the oldest pending manual pick and any offer it answered.
+    pendingPicks.shift();
+    if (offer && e.ev.selected && offer.ids.includes(idFromLogName(e.ev.selected.name) ?? '')) offer = null;
+  }
+  if (e.ev.t === 'standing' || e.ev.t === 'closed') {
+    archive(live);
+    if (e.ev.t === 'closed') live = null;
+  }
+}
+
+function feedText(text: string): void {
+  const lines = (partial + text).split('\n');
+  partial = lines.pop() ?? '';
+  for (const line of lines) {
+    const e = parseLine(line);
+    if (e) feed(e);
+  }
+}
+
+async function readProfileName(dir: string): Promise<string | null> {
+  try {
+    const files = readdirSync(path.join(dir, 'data', 'profiles')).filter((f) => f.endsWith('.guy'));
+    return files.length ? path.basename(files[0], '.guy') : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Reads every log on disk (oldest first) so matches that are about to rotate away get saved. */
+async function importLogs(dir: string): Promise<void> {
+  const dataDir = path.join(dir, 'data');
+  for (const name of LOGS_OLDEST_FIRST) {
+    const file = path.join(dataDir, name);
+    if (!existsSync(file)) continue;
+    partial = '';
+    feedText((await fsp.readFile(file, 'utf8')) + '\n');
+    if (name !== 'log.txt') {
+      archive(live);
+      live = null;
+    } else {
+      logOffset = (await fsp.stat(file)).size;
+    }
+  }
+  partial = '';
+}
+
+/** Reads whatever the game appended. Serialized: a change during a read triggers one more read. */
+async function poll(): Promise<void> {
+  if (!installDir) return;
+  if (reading) {
+    readAgain = true;
+    return;
+  }
+  reading = true;
+  const file = path.join(installDir, 'data', 'log.txt');
+  try {
+    const st = await fsp.stat(file);
+    if (st.size < logOffset) {
+      // The game started again and rotated its logs.
+      archive(live);
+      live = null;
+      logOffset = 0;
+      partial = '';
+    }
+    if (st.size > logOffset) {
+      const fh = await fsp.open(file, 'r');
+      try {
+        const buf = Buffer.alloc(st.size - logOffset);
+        await fh.read(buf, 0, buf.length, logOffset);
+        logOffset = st.size;
+        feedText(buf.toString('utf8'));
+      } finally {
+        await fh.close();
+      }
+      emit();
+    }
+  } catch {
+    /* log missing while the game starts */
+  } finally {
+    reading = false;
+    if (readAgain) {
+      readAgain = false;
+      void poll();
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Live state
+
+export function getSkillshotState(): SkillshotLiveState {
+  const m = live;
+  const build = m ? buildIds(m.build) : {};
+  for (const p of pendingPicks) build[p.skillId] = (build[p.skillId] ?? 0) + 1;
+  const pool: Record<string, number> = {};
+  if (m) for (const [name, r] of Object.entries(m.pool)) {
+    const id = idFromLogName(name);
+    if (id) pool[id] = r;
+  }
+
+  const recentPicks: SkillshotLiveState['recentPicks'] = [];
+  if (m)
+    for (const p of m.picks) {
+      const id = p.selected ? idFromLogName(p.selected.name) : null;
+      if (id) recentPicks.push({ skillId: id, level: p.selected!.level, round: p.round, confirmed: true });
+    }
+  for (const p of pendingPicks) recentPicks.push({ skillId: p.skillId, level: build[p.skillId] ?? 1, round: m?.round ?? 1, confirmed: false });
+
+  let goalIds = goal.ids;
+  if (data && !goal.locked && Object.keys(build).length >= 2) goalIds = suggestGoal(data, build, classId, Object.keys(pool));
+
+  const { stats, overall } = skillStats();
+  const adv =
+    data && offer
+      ? advise({ data, offers: offer.ids, build, classId, goal: goalIds, pool: Object.keys(pool), round: m?.round ?? 1, stats, overallWinRate: overall })
+      : null;
+
+  return {
+    available: !!data,
+    reason,
+    inMatch: !!m && !m.ended,
+    self: m?.self ?? profileName,
+    round: m?.round ?? 1,
+    final: m?.final ?? false,
+    level: m?.level ?? 0,
+    kills: m?.kills ?? 0,
+    deaths: m?.deaths ?? 0,
+    syringes: m?.syringes ?? 0,
+    wanted: m?.wanted ?? 0,
+    classId,
+    build,
+    pool,
+    recentPicks: recentPicks.slice(-6),
+    offer,
+    advice: adv,
+    goal: { ids: goalIds, locked: goal.locked },
+    goalProgress: goalProgress(goalIds, build),
+    activeSynergies: data ? activeSynergies(data, build, classId) : [],
+    lastMatch: matches.at(-1) ?? null,
+    logTime: lastLogTime,
+  };
+}
+
+function emit(): void {
+  const s = getSkillshotState();
+  for (const fn of listeners) fn(s);
+}
+
+export function onSkillshotChange(fn: (s: SkillshotLiveState) => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Actions (overlay hotkeys, manual grid, screen reader, memory reader)
+
+export function setOffer(ids: string[], source: OfferSource): void {
+  const valid = ids.filter((id) => data?.skills.some((s) => s.id === id)).slice(0, 3);
+  offer = valid.length ? { ids: valid, source, at: Date.now() } : null;
+  emit();
+}
+
+/** Picks offer #index (Alt+1 = 0, Alt+2 = 1), or a skill id directly. */
+export function pickOffer(which: number | string): void {
+  const id = typeof which === 'string' ? which : offer?.ids[which];
+  if (!id) return;
+  pendingPicks.push({ skillId: id, at: Date.now(), round: live?.round ?? 1 });
+  offer = null;
+  emit();
+}
+
+export function setGoal(ids: string[], locked: boolean): void {
+  goal = { ids, locked };
+  void savePrefs();
+  emit();
+}
+
+export function setClass(id: string | null): void {
+  classId = id;
+  void savePrefs();
+  emit();
+}
+
+/** Alt+N: move to the next round when the log is behind. */
+export function nextRound(): void {
+  live ??= newMatch(Date.now(), profileName);
+  live.round = Math.min(3, live.round + 1);
+  live.final = live.round === 3;
+  emit();
+}
+
+/** Alt+E: end the match now (the log fills in the standings later). */
+export function endMatch(): void {
+  archive(live);
+  live = null;
+  pendingPicks = [];
+  offer = null;
+  emit();
+}
+
+async function savePrefs(): Promise<void> {
+  await fsp.mkdir(storeDir(), { recursive: true });
+  await fsp.writeFile(prefsFile(), JSON.stringify({ classId, goal }));
+}
+
+async function loadStore(): Promise<void> {
+  try {
+    matches = JSON.parse(await fsp.readFile(matchesFile(), 'utf8')) as MatchRecord[];
+  } catch {
+    matches = [];
+  }
+  try {
+    const p = JSON.parse(await fsp.readFile(prefsFile(), 'utf8')) as { classId?: string | null; goal?: typeof goal };
+    classId = p.classId ?? null;
+    if (p.goal?.locked) goal = p.goal;
+  } catch {
+    /* first run */
+  }
+}
+
+export async function initSkillshot(): Promise<void> {
+  await loadStore();
+  installDir = findInstallDir();
+  if (!installDir) {
+    reason = 'Skillshot City is not installed (or not imported from Steam yet).';
+    emit();
+    return;
+  }
+  try {
+    data = applyTiers(await extractSkillshotData(installDir));
+    profileName = await readProfileName(installDir);
+    await importLogs(installDir);
+    reason = undefined;
+  } catch (err) {
+    reason = `Couldn't read the game's files: ${(err as Error).message}`;
+  }
+  try {
+    watcher = watch(path.join(installDir, 'data'), (_ev, name) => {
+      if (!name || name === 'log.txt') void poll();
+    });
+  } catch {
+    watcher = null;
+  }
+  pollTimer = setInterval(() => void poll(), FALLBACK_MS);
+  emit();
+}
+
+export function disposeSkillshot(): void {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
+  watcher?.close();
+  watcher = null;
+  archive(live);
+}

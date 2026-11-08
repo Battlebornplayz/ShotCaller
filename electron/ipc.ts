@@ -20,6 +20,15 @@ import {
   testPopup,
 } from './achievements';
 import { popupDone } from './popup';
+import {
+  getMatches,
+  getSkillshotData,
+  getSkillshotState,
+  pickOffer,
+  setClass,
+  setGoal,
+  setOffer,
+} from './skillshot/tracker';
 import { searchSteamApps } from './steamPublic';
 import {
   cancelAuthFlow,
@@ -173,6 +182,19 @@ export function registerIpc(h: IpcHandlers): void {
     if (RARITY_TIERS.includes(tier as RarityTier)) testPopup(tier as RarityTier);
   });
   ipcMain.on(IPC.popupDone, () => popupDone());
+
+  // Skillshot City helper
+  const ids = (v: unknown): string[] => (Array.isArray(v) ? v.slice(0, 8).map((x) => str(x, 40)) : []);
+  ipcMain.handle(IPC.skillshotGet, () => getSkillshotState());
+  ipcMain.handle(IPC.skillshotData, () => getSkillshotData());
+  ipcMain.handle(IPC.skillshotMatches, () => getMatches());
+  ipcMain.handle(IPC.skillshotSetOffer, (_e, v: unknown) => setOffer(ids(v), 'manual'));
+  ipcMain.handle(IPC.skillshotPick, (_e, which: unknown) => {
+    if (which === 0 || which === 1 || which === 2) pickOffer(which);
+    else if (typeof which === 'string') pickOffer(str(which, 40));
+  });
+  ipcMain.handle(IPC.skillshotSetGoal, (_e, v: unknown, locked: unknown) => setGoal(ids(v), !!locked));
+  ipcMain.handle(IPC.skillshotSetClass, (_e, id: unknown) => setClass(id === null ? null : str(id, 40)));
 
   // Links out: Steam pages and web searches only.
   const ALLOWED_HOSTS = new Set(['steamcommunity.com', 'store.steampowered.com', 'www.google.com', 'www.youtube.com']);
