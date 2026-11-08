@@ -1,6 +1,22 @@
 import { app, BrowserWindow, ipcMain, screen } from 'electron';
 import { IPC } from '../shared/ipc';
-import { HOTKEY_ACTIONS, type DisplayInfo, type HotkeyAction, type SettingsPatch } from '../shared/types';
+import { HOTKEY_ACTIONS, type DisplayInfo, type HotkeyAction, type ProfilePatch, type SettingsPatch, type SignInMethod } from '../shared/types';
+import {
+  cancelAuthFlow,
+  dismissAuthMessage,
+  getAuthState,
+  linkAccount,
+  refreshProfile,
+  sendPasswordReset,
+  setNewPassword,
+  signIn,
+  signInWithEmail,
+  signOut,
+  signUpWithEmail,
+  unlinkAccount,
+  updateProfile,
+} from './auth';
+import { reportCrash } from './crashReports';
 import { getDetectionState } from './detection';
 import { getHotkeyStatus, setHotkeyCapture } from './hotkeys';
 import { addGameManually, getLibrary, importSteamLibrary, removeGame, setPinned } from './library';
@@ -81,6 +97,37 @@ export function registerIpc(h: IpcHandlers): void {
   // Hotkeys
   ipcMain.handle(IPC.hotkeysGetStatus, () => getHotkeyStatus());
   ipcMain.handle(IPC.hotkeysSetCapture, (_e, on: boolean) => setHotkeyCapture(!!on));
+
+  // Accounts. Every argument is coerced here; auth.ts validates the values.
+  const METHODS: SignInMethod[] = ['steam', 'discord', 'google'];
+  const method = (m: unknown): SignInMethod | null => (METHODS.includes(m as SignInMethod) ? (m as SignInMethod) : null);
+  const str = (v: unknown, max = 500) => String(v ?? '').slice(0, max);
+  const bad = { ok: false as const, error: 'Unknown sign-in method.' };
+
+  ipcMain.handle(IPC.authGetState, () => getAuthState());
+  ipcMain.handle(IPC.authSignIn, (_e, m: unknown) => (method(m) ? signIn(method(m)!) : bad));
+  ipcMain.handle(IPC.authSignInEmail, (_e, email: unknown, pw: unknown) => signInWithEmail(str(email, 320), str(pw, 200)));
+  ipcMain.handle(IPC.authSignUpEmail, (_e, email: unknown, pw: unknown, name: unknown) => signUpWithEmail(str(email, 320), str(pw, 200), str(name, 64)));
+  ipcMain.handle(IPC.authSendReset, (_e, email: unknown) => sendPasswordReset(str(email, 320)));
+  ipcMain.handle(IPC.authSetPassword, (_e, pw: unknown) => setNewPassword(str(pw, 200)));
+  ipcMain.handle(IPC.authCancel, () => cancelAuthFlow());
+  ipcMain.handle(IPC.authDismissMessage, () => dismissAuthMessage());
+  ipcMain.handle(IPC.authSignOut, () => signOut());
+  ipcMain.handle(IPC.authLink, (_e, m: unknown) => (method(m) ? linkAccount(method(m)!) : bad));
+  ipcMain.handle(IPC.authUnlink, (_e, m: unknown) => (m === 'discord' || m === 'google' ? unlinkAccount(m) : bad));
+  ipcMain.handle(IPC.profileUpdate, (_e, patch: unknown) => {
+    const p = patch && typeof patch === 'object' ? (patch as Record<string, unknown>) : {};
+    const clean: ProfilePatch = {};
+    if (p.username !== undefined) clean.username = str(p.username, 40);
+    if (p.displayName !== undefined) clean.displayName = str(p.displayName, 64);
+    if (p.bio !== undefined) clean.bio = str(p.bio, 400);
+    if (p.visibility !== undefined) clean.visibility = str(p.visibility, 10) as ProfilePatch['visibility'];
+    return updateProfile(clean);
+  });
+  ipcMain.handle(IPC.profileRefresh, () => refreshProfile());
+  ipcMain.on(IPC.crashReport, (_e, message: unknown, stack: unknown) => {
+    reportCrash('renderer', str(message, 1000), stack === undefined ? undefined : str(stack, 8000));
+  });
 
   ipcMain.handle(IPC.displaysGet, (): DisplayInfo[] => {
     const primary = screen.getPrimaryDisplay().id;

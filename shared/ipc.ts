@@ -39,4 +39,21 @@ export const IPC = {
   hotkeysSetCapture: 'hotkeys:set-capture',
 
   displaysGet: 'displays:get',
+
+  authGetState: 'auth:get-state',
+  authState: 'auth:state',
+  authSignIn: 'auth:sign-in',
+  authSignInEmail: 'auth:sign-in-email',
+  authSignUpEmail: 'auth:sign-up-email',
+  authSendReset: 'auth:send-reset',
+  authSetPassword: 'auth:set-password',
+  authCancel: 'auth:cancel',
+  authDismissMessage: 'auth:dismiss-message',
+  authSignOut: 'auth:sign-out',
+  authLink: 'auth:link',
+  authUnlink: 'auth:unlink',
+  profileUpdate: 'profile:update',
+  profileRefresh: 'profile:refresh',
+
+  crashReport: 'crash:report',
 } as const;

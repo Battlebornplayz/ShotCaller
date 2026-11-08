@@ -46,6 +46,22 @@ const api: ShotCallerApi = {
 
   getDisplays: () => ipcRenderer.invoke(IPC.displaysGet),
 
+  getAuthState: () => ipcRenderer.invoke(IPC.authGetState),
+  onAuthState: (cb) => on(IPC.authState, cb),
+  signIn: (method) => ipcRenderer.invoke(IPC.authSignIn, method),
+  signInWithEmail: (email, password) => ipcRenderer.invoke(IPC.authSignInEmail, email, password),
+  signUpWithEmail: (email, password, displayName) => ipcRenderer.invoke(IPC.authSignUpEmail, email, password, displayName),
+  sendPasswordReset: (email) => ipcRenderer.invoke(IPC.authSendReset, email),
+  setNewPassword: (password) => ipcRenderer.invoke(IPC.authSetPassword, password),
+  cancelAuthFlow: () => ipcRenderer.invoke(IPC.authCancel),
+  dismissAuthMessage: () => ipcRenderer.invoke(IPC.authDismissMessage),
+  signOut: () => ipcRenderer.invoke(IPC.authSignOut),
+  linkAccount: (method) => ipcRenderer.invoke(IPC.authLink, method),
+  unlinkAccount: (method) => ipcRenderer.invoke(IPC.authUnlink, method),
+  updateProfile: (patch) => ipcRenderer.invoke(IPC.profileUpdate, patch),
+  refreshProfile: () => ipcRenderer.invoke(IPC.profileRefresh),
+  reportError: (message, stack) => ipcRenderer.send(IPC.crashReport, message, stack),
+
   enterApp: () => ipcRenderer.invoke(IPC.appEnter),
   openMainWindow: () => ipcRenderer.invoke(IPC.appOpenMain),
   windowControl: (action) => ipcRenderer.invoke(IPC.windowControl, action),

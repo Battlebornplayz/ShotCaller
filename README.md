@@ -23,6 +23,13 @@ skill-pick advisor, build tools and a round tracker.
   Alt+E end match, Alt+H hunt list. If another app already uses a combination (the NVIDIA overlay
   takes Alt+R, for example), Settings shows it as "In use by another app".
 
+## Accounts
+
+Sign in with **Steam, Discord, Google or email** (Profile, or Settings → Account). Your profile syncs to
+every PC you sign in on, and you can link more sign-in methods to the same account. ShotCaller only syncs
+profile data. There are no usage analytics, and crash reports stay off unless you turn them on
+(Settings → Privacy). How the cloud side works and how to set it up: [`supabase/README.md`](supabase/README.md).
+
 ## Install
 
 1. Open the [latest release](https://github.com/Battlebornplayz/ShotCaller/releases/latest).
@@ -73,6 +80,7 @@ Layout:
 | `src/` | React renderer: `splash/` (launcher) and `shell/` (main window) |
 | `games/` | Game modules, one folder per game (`games/<id>/`), plus `panels.tsx` (overlay panels) |
 | `resources/`, `build/` | App, tray and installer icons (regenerate with `node scripts/make-icons.cjs`) |
+| `supabase/` | Cloud: database schema with row-level security, Steam sign-in and Steam API Edge Functions |
 | `.github/workflows/` | CI checks and the tag-triggered release build |
 
 The update check only runs in installed builds. `npm run dev` shows "Development build — updates are

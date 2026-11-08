@@ -6,6 +6,7 @@ import { useDetection, useLibrary, useOverlayState } from '../hooks/useLive';
 import { gameColor, gameInitials } from './GameRail';
 
 export { SettingsPage } from './SettingsPage';
+export { ProfilePage } from './AccountPage';
 
 export function PageHeader({ title, subtitle, badge, actions }: { title: string; subtitle: string; badge?: string; actions?: ReactNode }) {
   return (
@@ -223,10 +224,6 @@ export function LibraryPage({ onOpenGame }: { onOpenGame: (key: string) => void 
       </div>
     </>
   );
-}
-
-export function ProfilePage() {
-  return <ComingSoon title="Profile" subtitle="Your banner, level and five-achievement showcase." phase="Phase 6" />;
 }
 
 export function FriendsPage() {

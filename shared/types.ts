@@ -47,8 +47,14 @@ export interface StartupSettings {
   closeToTray: boolean;
 }
 
+export interface PrivacySettings {
+  /** Send anonymous crash reports (error message + stack, app version, OS). Off by default. */
+  crashReports: boolean;
+}
+
 export interface Settings {
   channel: Channel;
+  privacy: PrivacySettings;
   overlay: OverlaySettings;
   /** Electron accelerators, e.g. "Alt+S". Empty string = unbound. */
   hotkeys: Record<HotkeyAction, string>;
@@ -63,7 +69,66 @@ export interface SettingsPatch {
   hotkeys?: Partial<Record<HotkeyAction, string>>;
   hotkeysOnlyInGame?: boolean;
   startup?: Partial<StartupSettings>;
+  privacy?: Partial<PrivacySettings>;
 }
+
+// ---------- Accounts and cloud ----------
+
+export type SignInMethod = 'steam' | 'discord' | 'google';
+export type AccountProvider = SignInMethod | 'email';
+export type ProfileVisibility = 'public' | 'friends' | 'private';
+
+/** The synced profile (Supabase `profiles` row). */
+export interface Profile {
+  id: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+  visibility: ProfileVisibility;
+  steamId: string | null;
+  steamName: string | null;
+  steamAvatarUrl: string | null;
+  xp: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProfilePatch {
+  username?: string;
+  displayName?: string;
+  bio?: string;
+  visibility?: ProfileVisibility;
+}
+
+export interface AccountUser {
+  id: string;
+  /** Null for Steam-only accounts. */
+  email: string | null;
+  /** Sign-in methods connected to this account. */
+  providers: AccountProvider[];
+}
+
+/** A sign-in step waiting on the browser or the user. */
+export type AuthFlow =
+  | { kind: 'browser'; method: SignInMethod; linking: boolean }
+  | { kind: 'email-confirm'; email: string }
+  | { kind: 'reset-sent'; email: string }
+  /** Signed in from a password-reset link: the user must choose a new password. */
+  | { kind: 'recovery' };
+
+export interface AuthState {
+  /** False when this build has no Supabase project configured. */
+  configured: boolean;
+  status: 'loading' | 'signed-out' | 'signed-in';
+  user: AccountUser | null;
+  profile: Profile | null;
+  flow: AuthFlow | null;
+  message: { kind: 'error' | 'info'; text: string } | null;
+}
+
+export type ActionResult = { ok: true } | { ok: false; error: string };
 
 // ---------- Library and detection ----------
 
@@ -216,6 +281,26 @@ export interface ShotCallerApi {
   setHotkeyCapture(capturing: boolean): Promise<void>;
 
   getDisplays(): Promise<DisplayInfo[]>;
+
+  getAuthState(): Promise<AuthState>;
+  onAuthState(callback: (state: AuthState) => void): Unsubscribe;
+  /** Opens the provider's sign-in page in the browser; resolves once signed in, cancelled or failed. */
+  signIn(method: SignInMethod): Promise<ActionResult>;
+  signInWithEmail(email: string, password: string): Promise<ActionResult>;
+  signUpWithEmail(email: string, password: string, displayName: string): Promise<ActionResult>;
+  sendPasswordReset(email: string): Promise<ActionResult>;
+  /** Only during the "recovery" flow, or to change the password while signed in. */
+  setNewPassword(password: string): Promise<ActionResult>;
+  cancelAuthFlow(): Promise<void>;
+  dismissAuthMessage(): Promise<void>;
+  signOut(): Promise<void>;
+  /** Connects another sign-in method to the signed-in account. */
+  linkAccount(method: SignInMethod): Promise<ActionResult>;
+  unlinkAccount(method: 'discord' | 'google'): Promise<ActionResult>;
+  updateProfile(patch: ProfilePatch): Promise<ActionResult>;
+  refreshProfile(): Promise<void>;
+  /** Renderer errors, forwarded to the opt-in crash reporter. */
+  reportError(message: string, stack?: string): void;
 
   enterApp(): Promise<void>;
   openMainWindow(): Promise<void>;

@@ -2,6 +2,8 @@ import { app, BrowserWindow } from 'electron';
 import { IPC } from '../shared/ipc';
 import type { RunningGame } from '../shared/types';
 import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
+import { disposeAuth, initAuth, onAuthStateChange, refreshProfile } from './auth';
+import { initCrashReports } from './crashReports';
 import { getDetectionState, onDetectionChange, startDetection, stopDetection } from './detection';
 import { disposeHotkeys, initHotkeys, refreshHotkeys, setHotkeysInGame } from './hotkeys';
 import { broadcast, registerIpc } from './ipc';
@@ -48,6 +50,8 @@ if (!app.requestSingleInstanceLock()) {
       return;
     }
     main = createMainWindow();
+    // Cheap fallback to realtime: re-read the synced profile whenever the window is focused.
+    main.on('focus', () => void refreshProfile());
     main.on('closed', () => {
       main = null;
       maybeQuit();
@@ -79,6 +83,9 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(async () => {
     app.setAppUserModelId(APP_ID);
     initUpdater();
+    initCrashReports();
+    initAuth();
+    onAuthStateChange((state) => broadcast(IPC.authState, state));
     registerIpc({ enterApp, openMain });
 
     createTray({
@@ -150,5 +157,6 @@ if (!app.requestSingleInstanceLock()) {
     disposeHotkeys();
     disposeAltHook();
     destroyTray();
+    disposeAuth();
   });
 }

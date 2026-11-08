@@ -14,6 +14,7 @@ import {
 import { acceleratorParts, HOTKEY_LABELS } from '../hotkeyLabels';
 import { useHotkeyStatus, useOverlayState, useSettings } from '../hooks/useLive';
 import { useUpdateState } from '../hooks/useUpdateState';
+import { AccountSection, PrivacySection } from './AccountPage';
 import { PageHeader } from './pages';
 
 const update = (patch: SettingsPatch) => void window.shotcaller.updateSettings(patch);
@@ -395,11 +396,13 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="Overlay, hotkeys, startup and updates. Changes save instantly." />
+      <PageHeader title="Settings" subtitle="Account, overlay, hotkeys, startup, privacy and updates. Changes save instantly." />
 
+      <AccountSection />
       <OverlaySection />
       <HotkeysSection />
       <StartupSection info={info} />
+      <PrivacySection delay={150} />
 
       <Section title="Update channel" subtitle="Which releases ShotCaller offers you." delay={180}>
         <ChoiceCards options={CHANNELS} value={settings?.channel} onPick={(channel) => update({ channel })} columns={2} />

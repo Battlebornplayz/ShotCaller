@@ -12,6 +12,7 @@ import {
 
 const DEFAULTS: Settings = {
   channel: 'stable',
+  privacy: { crashReports: false },
   overlay: { mode: 'always', idleOpacity: 0.7, position: null, monitorDisplayId: null, allGames: false },
   hotkeys: { ...DEFAULT_HOTKEYS },
   hotkeysOnlyInGame: true,
@@ -73,6 +74,7 @@ function sanitize(input: unknown): Settings {
   const raw = obj(input);
   const overlay = obj(raw.overlay);
   const startup = obj(raw.startup);
+  const privacy = obj(raw.privacy);
   const hotkeysRaw = obj(raw.hotkeys);
   const pos = obj(overlay.position);
 
@@ -95,6 +97,7 @@ function sanitize(input: unknown): Settings {
 
   return {
     channel: raw.channel === 'beta' ? 'beta' : 'stable',
+    privacy: { crashReports: bool(privacy.crashReports, DEFAULTS.privacy.crashReports) },
     overlay: {
       mode: oneOf<OverlayMode>(overlay.mode, ['always', 'popup', 'monitor'], DEFAULTS.overlay.mode),
       idleOpacity: Math.round(Math.min(1, Math.max(0.3, opacity)) * 100) / 100,
@@ -135,6 +138,7 @@ export function updateSettings(patch: SettingsPatch): Settings {
     overlay: { ...prev.overlay, ...obj(p.overlay) },
     hotkeys: { ...prev.hotkeys, ...obj(p.hotkeys) },
     startup: { ...prev.startup, ...obj(p.startup) },
+    privacy: { ...prev.privacy, ...obj(p.privacy) },
   };
   // Rebinding a combination another action already uses moves it: the old action is unbound.
   for (const [action, combo] of Object.entries(obj(p.hotkeys))) {

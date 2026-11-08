@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { DetectionState, HotkeyStatus, Library, OverlayState, Settings } from '../../shared/types';
+import type { AuthState, DetectionState, HotkeyStatus, Library, OverlayState, Settings } from '../../shared/types';
 
 /** Initial fetch plus live updates from the main process. */
 function useLive<T>(get: () => Promise<T>, subscribe: (cb: (v: T) => void) => () => void): T | null {
@@ -25,3 +25,4 @@ export const useLibrary = (): Library | null => useLive(() => api().getLibrary()
 export const useDetection = (): DetectionState | null => useLive(() => api().getDetection(), (cb) => api().onDetection(cb));
 export const useOverlayState = (): OverlayState | null => useLive(() => api().getOverlayState(), (cb) => api().onOverlayState(cb));
 export const useHotkeyStatus = (): HotkeyStatus | null => useLive(() => api().getHotkeyStatus(), (cb) => api().onHotkeyStatus(cb));
+export const useAuth = (): AuthState | null => useLive(() => api().getAuthState(), (cb) => api().onAuthState(cb));
