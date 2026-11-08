@@ -1,65 +1,63 @@
-PHASE HANDOFF — ShotCaller — Phase 5 → Phase 6
+PHASE HANDOFF — ShotCaller — Phase 6 Part 1 (in progress) → Phase 6 Part 1 (continue)
 
-Use the `phased-project` skill. You are starting Phase 6.
-At the end of this phase, write a new handoff in this same format for Phase 7
+Use the `phased-project` skill. You are continuing Phase 6 Part 1 (Skillshot City: skills, synergies, live match tracking).
+At the end of this phase, write a new handoff in this same format for the next phase
 (and tell that chat to do the same), so every phase hands off to the next.
 
 Project folder: D:\ShotCaller
-Read first: PROJECT_PLAN.md, DESIGN.md (incl. "Phase 5 decisions"), README.md (dev + release process), games/README.md
+Read first: PROJECT_PLAN.md (Phase 6 Part 1 / Part 2), DESIGN.md ("Phase 6 decisions" — P6-Q1…Q41 plus the notes after them), games/README.md
 
 ## Project in one paragraph
-ShotCaller is a polished, official-looking Electron desktop app: a cross-game achievement hub (Steam, Anker Games and local emulator files, plus hand-added games; real-time unlock popups, library, timeline) plus per-game overlay modules. The first game module is Skillshot City (Steam app 308600). Public MIT repo https://github.com/Battlebornplayz/ShotCaller, installed from GitHub Releases with a self-updating launcher splash. For now it's for the user's own PC. Stack: Electron 45 + TypeScript + React 19 + Vite 8 (electron-vite), electron-builder, electron-updater, uiohook-napi; Firebase JS SDK v12 (dormant).
+ShotCaller is a polished Electron desktop app: a cross-game achievement hub (Steam, Anker Games, emulator files, hand-added games; unlock popups, library, timeline) plus per-game overlay modules. First module: Skillshot City (Steam app 308600, installed at D:\SteamLibrary\steamapps\common\SkillshotCity). Public MIT repo Battlebornplayz/ShotCaller, installed from GitHub Releases with a self-updating launcher. For now it's for the user's own PC. Stack: Electron 45 + TypeScript + React 19 + electron-vite, electron-builder, electron-updater, uiohook-napi.
 
 ## Done so far
-- Phase 1: design interview → DESIGN.md + 12-phase PROJECT_PLAN.md.
-- Phase 2: app shell, launcher splash, stable/beta channels, CI + tag-triggered NSIS/AppImage releases.
-- Phase 3: games, detection, overlay, tray, hotkeys; released as v0.0.3.
-- Phase 4: accounts (Firebase, Google + email) built but DEFERRED and dormant.
-- Phase 5 (just finished, verified by the user in the dev build): achievement hub.
-  - Local-first, no Steam API key or proxy. `electron/binkv.ts` (binary KeyValues), `steamLocal.ts` (SteamID from loginusers.vdf, schema `appcache/stats/UserGameStatsSchema_<appid>.bin`, unlocks + times `UserGameStats_<accountid>_<appid>.bin`, progress stats, playtime from `userdata/<id>/config/localconfig.vdf`), `steamPublic.ts` (keyless: global rarity, public achievement page parse, store search, app names; cached in userData/cache/steam).
-  - User additions: `emulators.ts` (read-only GSE/Goldberg JSON, CODEX/RUNE and OnlineFix INI), `anker.ts` (Anker launcher `library.json` → games with install dir, exe, Steam app id). Hand-added/Anker games can link a Steam list or use custom achievements; non-Steam unlocks can be ticked.
-  - `achievements.ts` (hub: builds lists, fs.watch + 10 s mtime poll, diffs unlocks → popup, timeline, ticks/custom in achievements.json, background rarity), `sessions.ts` (sessions.json from detection), `popup.ts` + `windows.ts#createPopupWindow` (click-through, always-on-top card window).
-  - `library.ts` now also lists played-but-uninstalled Steam games, Anker games (`anker:<id>`), emulator-only games (`emu:<appid>`) and Steam links. `LibraryGame` gained `achievementAppId`, `poster`; sources `anker`, `emulator`.
-  - Renderer: `src/shell/hub/` (LibraryPage cover grid with rings / list with bars, GamePage, TimelinePage, art fallbacks), `src/popup/` (PopupApp card with tier animations, `sounds.ts` Web Audio tiers), `src/components/achievements.tsx`, Settings → Unlock popups (toggle, sound, volume, corner, per-tier test). New "Timeline" nav section.
+- Phases 1-3: design, app shell + auto-update + CI releases, games/detection/overlay/tray/hotkeys (v0.0.3).
+- Phase 4: Firebase accounts built but deferred/dormant.
+- Phase 5: achievement hub (committed as f9d8782, not released yet).
+- Phase 6 setup interview (this chat): 41 questions answered → DESIGN.md "Phase 6 decisions". Phase 6 split into Part 1 (skills/synergies/live tracking) and Part 2 (weapons/items/counters/library/achievements).
+- Phase 6 Part 1 so far (commits d949bbf, 4d88649; not pushed):
+  - `electron/skillshot/gamedata.ts`: reads the game's own files read-only — `data/translations/<lang>.csv` (54 skills: name, description, short, mutation; 8 classes), synergy list from the startup lines of `data/log*.txt` ("Prerequs For Synergy Challenge"; 80 synergies, tips from SYNERGYCHALLENGE_<i>_DESC), `config.ini` (version, language). Types in `shared/skillshot.ts`.
+  - `shared/skillshotLog.ts`: pure log parser + match reducer (joined, self, levelUp, draftStart, poolSlot, draft offers/selected, br round, round win/loss, kills with weapon, syringes, wanted, winner, final standings with skills/round wins). Splits matches on draft #1 / round going back / Game Joined. Tested on the real logs: 12 matches, 4 with full standings.
+  - `shared/skillshotAdvisor.ts`: scores offers (tier, official synergies with build + class, level-ups, goal build, your win rate per skill), reroll advice, active synergies, goal progress, suggested goal build.
+  - `electron/skillshot/tracker.ts`: imports all 4 logs on start into userData/skillshot/matches.json (logs rotate every game launch, only 4 kept), watches log.txt with fs.watch (+5 s fallback), live MatchState, manual offers/picks (pending until the log confirms), goal + class prefs, pushes `SkillshotLiveState` on every change.
+  - IPC wired: `shared/ipc.ts` skillshot:* channels, preload + `ShotCallerApi` (getSkillshot/onSkillshot/getSkillshotData/getSkillshotMatches/setSkillshotOffer/pickSkillshot/setSkillshotGoal/setSkillshotClass), main.ts init/dispose/broadcast, overlay.ts routes Alt+1/Alt+2/Alt+N/Alt+E to the tracker when the running game is skillshot-city. Typecheck clean. Not run in the app yet.
+  - `games/skillshot-city/tiers.json` exists but is empty `{}`.
 
-## Phase 6 goal
-The actual Skillshot City helper and everything for its overlay. (The user moved this ahead of the hub home/XP phase, which is now Phase 7; the plan was renumbered, see PROJECT_PLAN.md.)
-Deliverables, in priority order:
-- Data: JSON schema for skills, items, weapons, synergies, counters in `games/skillshot-city/`. Research the game (wiki, Steam guides, community) to draft the data and icons; the user verifies in-game. Quick lookup page.
-- Skill pick advisor in the overlay: side-by-side cards for the 2 offered skills, recommended one highlighted, short reason; manual pick via icon grid + type-to-search; Alt+1 / Alt+2 choose.
-- Build target mode (pick a goal build; offers that fit light up) and synergy alerts.
-- Round tracker panel: round X/3, build icons, synergy meter. Alt+N next round, Alt+E end match + recap.
-- Post-match recap, build win-rate stats, session goals.
-- Build library: saved builds, share codes, counter tips.
-- ShotCaller custom achievements for Skillshot City, driven by recaps (plug into the existing custom-achievement system from Phase 5).
-- Overlay fixes: default position must not cover Skillshot City's QUIT button; handle the game minimizing when it loses focus.
-- If time allows (otherwise carry to Phase 7): data packs updated separately from app updates + CONTRIBUTING guide for community data PRs.
+## Phase 6 Part 1 goal (remaining)
+Deliverables, in order:
+- Overlay UI (replace the placeholder `SkillshotRoundPanel` in `games/panels.tsx`): advice cards side by side (recommended highlighted, tier badge, one-line reason, synergy glow), reroll banner, soft sound cue on a new offer, last-3-picks strip; round strip during fights (R x/3, level, K/D, build chips) that expands to the full panel on level-up / between rounds / Alt held; build panel with rarity borders, level pips, synergy links; synergy meter (goal % + active count); goal build suggest/lock; class picker; lobby view = last match mini recap + session goals.
+- Manual pick: icon grid + type-to-search to set the 2 offered skills; Alt+1 / Alt+2 pick.
+- Second-monitor window: richer build-help layout (user request).
+- Recap: overlay card at match end + match history page in the app with pick review; stats per skill/synergy/build/class with trends; win % (1st) + average place + top-3; session goals (suggested + own).
+- Lookup page in the app + compact overlay search (filters by tree/tag/tier, synergy map, your stats per skill). Text follows the game's language.
+- Real skill icons: crop from the game's texture sheets (`data/textures/menuTextures*.png`, skill wheel) — figure out the atlas.
+- Tier list: research community guides to draft `tiers.json` (tier/role/tags per skill id), adjusted by the user's win rates.
+- Overlay fixes: default position top right but BELOW the game's QUIT button (1920×1080; QUIT is the top-right corner); Alt-click must not steal focus, restore the game if it minimizes.
+- Then (user's order: overlay first, memory next): read-only memory reader + Cheat-Engine-style scanner (own player only: level, XP, health + shield as numbers, offers, round, timer), behind a setting with a risk warning; screen reading of the 2 offers (icon match + OCR, offline) as the non-memory live source.
+- Release beta v0.0.4 at the end of Part 1.
 Done when:
-- A full 3-round match can be tracked end-to-end in the overlay with skill advice, the round/synergy panel and a saved recap.
+- A full 3-round match is tracked end-to-end with skill advice at each level-up, the round/synergy panel and a saved recap.
 
 ## Decisions & constraints to respect
-- Skillshot City design decisions: DESIGN.md batches 2 and 5 (advice = side-by-side cards with reason; round HUD = full panel with synergy meter; full animations; overlay top right, 70% idle opacity, click-through until Alt). Overlay only works in borderless/windowed mode. Screen-reading auto-detect is Phase 8 — build the manual pick so auto-detect can plug in later.
-- Data stays local (userData JSON), shaped to sync to Firestore later (`users/{uid}/unlocks`, unlock ids are "<gameKey>|<achievementId>"). `getTimeline()` / `getHubState()` in `electron/achievements.ts` are the hub's data source (Phase 7 Home/XP will use them); rarity tiers via `rarityTier()` in `shared/types.ts` (≤2 legendary, ≤10 epic, ≤25 rare, ≤50 uncommon).
-- No memory reading / injection. Never download games or write to Steam/emulator files. Emulator files are read-only (user changed Q23 in Phase 5). No Steam API key ships in the app.
-- Renderer talks to main only through `window.shotcaller` (contextIsolation + sandbox on). Add IPC names to `shared/ipc.ts`, types to `shared/types.ts`, settings fields to `electron/settings.ts` (keep `sanitize()` strict).
-- Look: navy (#0F1023 / #1A1C3A / #090A18), #4F8CFF accent, lavender #8F93C9; tier colors in `src/components/achievements.tsx`; reuse classes in `src/styles/global.css` (card, pill, btn, toggle, row, section-label, segmented, progress).
-- Image CSP allows `https://*.steamstatic.com` and `https://ankergames.net` (src/index.html).
-- Releasing: push an annotated tag (`git tag -a vX.Y.Z -m "notes"`); CI sets the version. Tag message = launcher patch notes.
-- The user does GUI testing themselves: give short checklists. The installed ShotCaller in the tray blocks `npm run dev` (single-instance lock); quit it first.
-- Shell note: in this environment, inline Python/heredoc scripts with quotes can break; write scripts to the scratchpad and run them.
+- Auto-detect everything possible (user rule). Game files are read-only. Log is written in BATCHES (up to ~2.5 min late) — verified live; every line carries its own unix time, so it's the confirming source; live comes from manual pick now, then memory / screen reading.
+- Memory reading: user accepted the ban risk (no client anti-cheat in the install today). Read-only, own player's state only, never other players' hidden info, switchable off. No packet sniffing for now (Npcap can't be bundled without an OEM license; ENet protocol is custom/compressed).
+- Push, not pull: main process pushes state to windows (user asked). Keep it that way.
+- One advice mode for everyone (P6-Q9 A). Class can't be read reliably yet (standings classID mapping unverified) → user picks class; memory reader can fill it later.
+- Renderer only talks through `window.shotcaller`; add IPC names to `shared/ipc.ts`, types to `shared/types.ts`/`shared/skillshot.ts`, settings to `electron/settings.ts` (keep `sanitize()` strict).
+- Look: navy (#0F1023 / #1A1C3A / #090A18), #4F8CFF accent, lavender #8F93C9; reuse classes in `src/styles/global.css`.
+- Some files have CRLF line endings: when patching with scripts, normalize line endings first.
+- Question widgets for the user: clickable buttons + "Send answers" (see memory).
+- The user does GUI testing themselves: give short checklists. Quit the installed ShotCaller (tray) before `npm run dev`.
 
 ## Loose ends / known issues
-- Phase 5 work is not released yet (no tag since v0.0.3). v0.0.4 would also be the first real test that updates install silently in place. Check whether Phase 5 was committed/pushed (`git status`).
-- Steam games never launched through Steam on this PC have no local schema; their list loads from the public page when you open the game page, but they don't appear in the library unless installed.
-- Emulator saves whose app id doesn't match an Anker/Steam entry show as separate `emu:<appid>` games (e.g. The Farmer Was Replaced: Anker says 2060160, GSE save is 1028310).
-- Prettier reports style drift in ~44 files (mostly pre-existing); run `npm run format` in its own commit if wanted.
-- Accounts (Phase 4) deferred: finish before Phase 9 (Social) per `docs/FIREBASE.md`.
-- Still untested from earlier phases: tray icon/"Start with your computer" in v0.0.3, second-monitor and hotkey-popup overlay modes, close-to-tray, onGameLaunch = "open ShotCaller", Linux (AppImage, /proc detection, Proton, X11 hook).
-- Skillshot City minimizes when another window takes focus; the default overlay position covers its QUIT button (fix in this phase).
-- Unsigned builds → SmartScreen warning (documented).
+- Nothing pushed to GitHub since v0.0.3; Phase 5 + Phase 6 commits are local only.
+- 5 skills have no `DESC_01` text (ASSASSINATE, CHARGEDSHOT, FORCEFIELD, SHOCKWAVE, SKILLSHOTS) — find their description key in en.csv.
+- Some imported matches have no round lines or standings (left early or other mode); recap must handle `place: null`.
+- Kill counts from "X killed Y" lines run slightly higher than the standings' kills; standings win when present.
+- Older loose ends from Phase 5 (Prettier drift, untested tray/second-monitor/Linux) still open.
 
 ## How to start
 (Shortcut: in a new chat in D:\ShotCaller, type `/handoff` — it reads this file.)
 1. Read the files above.
-2. Confirm the phase goal with the user in 1-2 lines.
-3. Begin.
+2. Confirm the goal with the user in 1-2 lines.
+3. Begin with the overlay UI.
