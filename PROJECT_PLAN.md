@@ -34,7 +34,7 @@ Deliverables:
 Done when: launching Skillshot City opens ShotCaller and shows a placeholder overlay panel over the game; hotkeys work; settings persist.
 
 ## Phase 4 — Accounts and cloud (Firebase) ⏸ Deferred
-**Deferred by the user (2026-11-07).** The code is built and committed but dormant: no Firebase project is connected, so the app hides all account UI. Pick it back up before Phase 10 (Social), which needs accounts. Setup steps: `docs/FIREBASE.md`.
+**Deferred by the user (2026-11-07).** The code is built and committed but dormant: no Firebase project is connected, so the app hides all account UI. Pick it back up before Phase 9 (Social), which needs accounts. Setup steps: `docs/FIREBASE.md`.
 Goal: sign in and sync.
 Deliverables:
 - Firebase project, Firestore data model (profiles, usernames, games, achievements cache, unlocks, proofs, friends, xp), security rules.
@@ -43,66 +43,75 @@ Deliverables:
 - Profile sync; privacy settings (synced profile data only; opt-in crash reports).
 Done when: user can sign in with each method on two PCs and see the same profile.
 
-## Phase 5 — Steam achievement hub (core)
+## Phase 5 — Steam achievement hub (core) ✅
 Goal: the main reason to download it.
 Deliverables:
-- Steam Web API proxy (key server-side; host decided at phase start). SteamID from local `loginusers.vdf`.
-- Pull owned games, achievements, global rarity for any Steam game (via proxy).
+- Local-first Steam data, no API key or proxy (decided at phase start, see DESIGN.md): SteamID from `loginusers.vdf`, achievement schema + unlocks from Steam's local stats cache, playtime from `localconfig.vdf`, global rarity from Steam's keyless endpoint.
 - Library: toggle cover grid (completion rings) / banner list (progress bars).
 - Game page: achievement list with progress bars, rarity %, completion %, secrets blurred until click, easiest-first sort, links to Steam guides/web; playtime + sessions.
 - Real-time unlock detection by watching Steam's local stats cache; corner-card popup (icon, name, rarity) with sound that gets fancier with rarity.
 - Unlock timeline.
-Done when: unlocking a real Steam achievement shows the popup within seconds and it appears in the timeline and game page.
+- Achievements for non-Steam games (added by user request): link a hand-added game to a Steam game's public achievement list, or make your own; tick to unlock.
+- Anker Games launcher: auto-import installed games from its library file, with their linked Steam achievement lists.
+Done when: unlocking a real Steam achievement shows the popup within seconds and it appears in the timeline and game page; an Anker game shows up automatically with its achievement list.
 
-## Phase 6 — Hub home, XP, profile, extra sources
+## Phase 6 — Skillshot City helper and overlay (two parts)
+Moved up by the user (2026-11-07). Split into two parts by the user in the Phase 6 setup interview (decisions P6-Q1…Q41 in DESIGN.md). Core idea: auto-detect everything possible from the game's own files (read-only): `data/translations/<lang>.csv` (skill names/text), `data/log.txt` (drafts, picks, rounds, standings), `data/profiles/<name>.guy`, texture sheets (icons).
+
+### Phase 6 Part 1 — Skills, synergies, live match tracking
+Deliverables:
+- Skill + synergy data extracted from the game files (names, descriptions, trees, synergies, real icons), plus tier/role/tags (community-drafted, adjusted by your stats). JSON in `games/skillshot-city/`; re-extract after game updates.
+- Live log tailer: level-ups, offers, picks, build, BR round 1-3/final, match stats, final standings. Import past matches from old logs on first run.
+- Screen reading of the 2 offered skills (icon match + OCR, offline); manual icon grid/search + Alt+1/Alt+2 fallback.
+- Advisor cards (tier + synergy + build + class + your history), reroll advice, soft sound cue, last-3-picks strip.
+- Goal build suggested from early picks (lock/change), synergy glow + toast, synergy meter (goal % + active synergies), build panel with rarity borders/level pips/synergy links.
+- Round panel: thin strip in fights, full on level-up/between rounds/Alt; live stats; Alt+N/Alt+E overrides.
+- Recap (overlay card + app match history) with pick review; stats per skill/synergy/build/class with trends; win % + average place + top-3; session goals (suggested + your own); lobby view.
+- Lookup page in the app + compact overlay search (filters, synergy map, your stats per skill). Text follows the game's language.
+- Overlay fixes: default top right below QUIT; Alt-click without stealing focus, restore the game if it minimizes.
+- Release beta v0.0.4.
+Done when: a full 3-round match is tracked end-to-end automatically, with skill advice at each level-up, the round/synergy panel and a saved recap.
+
+### Phase 6 Part 2 — Weapons, items, counters, library, achievements
+Deliverables:
+- Weapons (`data/weapons.ini`), items and counters data; counter tips in the recap and live (if the log records who hit you).
+- Build library: auto-saved match builds, favorites, import of in-game skill builds, share codes + image cards.
+- 50+ ShotCaller achievements for Skillshot City (mastery, feats, helper), driven by recaps.
+- Data packs from GitHub separate from app updates + CONTRIBUTING guide.
+Done when: weapons/items/counters show in lookup and recaps, builds can be shared by code, and Skillshot achievements unlock from real matches.
+
+## Phase 7 — Hub home, XP, profile, extra sources
 Deliverables:
 - Until accounts are live (Phase 4 deferred), XP, level and profile are stored locally on this PC; they sync once accounts go live.
-- Home widgets: playing now, closest to unlock, recent unlocks, friends feed (placeholder until Phase 10), stats summary, weekly challenge.
+- Home widgets: playing now, closest to unlock, recent unlocks, friends feed (placeholder until Phase 9), stats summary, weekly challenge.
 - ShotCaller XP (scales with rarity) + levels; profile page (banner, level ring, 5-achievement showcase).
 - Hunt list pinned to overlay.
 - Bugged achievements: "mark as earned" with screenshot/clip proof (proof badge, ShotCaller-only) + community known-bugged list with workarounds.
 - Manual checklists for games without an API; RetroAchievements integration.
+- Any Skillshot data-pack / CONTRIBUTING work left over from Phase 6.
 Done when: home screen is fully populated from real data and XP/level updates after an unlock.
 
-## Phase 7 — Skillshot City database
-Deliverables:
-- JSON schema for skills, items, weapons, synergies, counters.
-- Research-drafted data (user verifies in-game), icons.
-- Data updates shipped separately from app updates (versioned data pack fetched from repo/Releases).
-- CONTRIBUTING guide for community data PRs.
-- Build library: saved builds, share codes, counter tips, quick lookup.
-Done when: the database covers every skill the user can find in-game and a data-only update reaches an installed app without reinstalling.
-
-## Phase 8 — Skillshot City overlay
-Deliverables:
-- Skill pick advisor: side-by-side cards, recommended highlighted, short reason; manual pick via icon grid + search (fallback).
-- Build target mode, synergy alerts.
-- Round tracker panel: round X/3, build icons, synergy meter.
-- Post-match recap, build win-rate stats, session goals.
-- ShotCaller custom achievements for Skillshot City (driven by recaps).
-Done when: a full 3-round match can be tracked end-to-end with advice and a saved recap.
-
-## Phase 9 — Screen-reading auto-detect
+## Phase 8 — Screen-reading auto-detect
 Deliverables:
 - Capture the game window region; template/OCR match the 2 offered skills; confidence threshold with manual fallback.
 - Calibration screen for resolution/UI scale.
 Done when: auto-detect picks the right two skills in most level-ups across a few matches at the user's resolution.
 
-## Phase 10 — Social
+## Phase 9 — Social
 Needs accounts: finish the deferred Phase 4 first (Firebase project, config values, rules deploy, two-PC sign-in test).
 Deliverables:
 - Friends list, friend activity feed, leaderboards, shared hunt lists, friends comparison, "friends who play it".
 - Discord rich presence.
 Done when: two accounts can friend each other and see each other's unlocks live.
 
-## Phase 11 — Stream overlay, extra platforms, polish
+## Phase 10 — Stream overlay, extra platforms, polish
 Deliverables:
 - OBS browser-source stream overlay (current build / recent unlock).
 - Investigate + add Xbox (e.g. OpenXBL) if workable; document Epic limits.
 - Final logo (megaphone mark), custom sound pack, animation polish, accessibility pass.
 Done when: polish checklist complete and stream overlay works in OBS.
 
-## Phase 12 — v0.1 release
+## Phase 11 — v0.1 release
 Deliverables:
 - QA pass on Windows + Linux, crash-report opt-in check, README with screenshots, install guide, privacy note.
 - Tag v0.1.0 stable; send to friends.
