@@ -1,36 +1,60 @@
-// Accounts: Supabase auth and the synced profile, all in the main process.
+// Accounts: Firebase Auth and the synced Firestore profile, all in the main process.
 // The renderer never sees tokens; it gets an AuthState snapshot and calls actions over IPC.
 //
-// Sign-in flows open the system browser and catch the redirect on a loopback port (see loopback.ts):
-//   Discord / Google: Supabase OAuth with PKCE → ?code → exchangeCodeForSession.
-//   Steam: the steam-auth Edge Function does OpenID → ?token_hash → verifyOtp.
-//   Email: password sign-in directly; sign-up confirmation and password-reset links also land on loopback.
+// Google: OAuth 2.0 "installed app" flow with PKCE in the system browser, caught on a loopback port
+// (loopback.ts), then the Google ID token signs in to Firebase with signInWithCredential.
+// Email: Firebase email/password. Verification and password-reset links open Firebase's own pages.
 
-import { createClient, type Session, type SupabaseClient, type User, type RealtimeChannel } from '@supabase/supabase-js';
+import { initializeApp, type FirebaseApp } from 'firebase/app';
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  initializeAuth,
+  linkWithCredential,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signOut as fbSignOut,
+  unlink,
+  updateProfile as fbUpdateAuthProfile,
+  type Auth,
+  type Persistence,
+  type User,
+} from 'firebase/auth';
+import {
+  doc,
+  getDoc,
+  getFirestore,
+  onSnapshot,
+  runTransaction,
+  serverTimestamp,
+  Timestamp,
+  type DocumentData,
+  type Firestore,
+  type Unsubscribe,
+} from 'firebase/firestore';
 import { app, safeStorage, shell } from 'electron';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { AccountProvider, AccountUser, ActionResult, AuthFlow, AuthState, Profile, ProfilePatch, SignInMethod } from '../shared/types';
-import { cloudConfigured, SUPABASE_ANON_KEY, SUPABASE_URL } from './cloudConfig';
+import type { AccountProvider, AccountUser, ActionResult, AuthState, Profile, ProfilePatch, SignInMethod } from '../shared/types';
+import { cloudConfigured, FIREBASE_CONFIG, GOOGLE_OAUTH, googleConfigured } from './cloudConfig';
 import { waitForCallback, type LoopbackWait } from './loopback';
 
 const BROWSER_TIMEOUT = 10 * 60_000;
-const EMAIL_TIMEOUT = 30 * 60_000;
 
-let client: SupabaseClient | null = null;
-let profileChannel: RealtimeChannel | null = null;
+let fbApp: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let profileUnsub: Unsubscribe | null = null;
 let pending: LoopbackWait | null = null;
+/** Display name typed at sign-up, used when the profile is first created. */
+let signUpName: string | null = null;
 const listeners = new Set<(s: AuthState) => void>();
 
-let state: AuthState = {
-  configured: false,
-  status: 'loading',
-  user: null,
-  profile: null,
-  flow: null,
-  message: null,
-};
+let state: AuthState = { configured: false, status: 'loading', user: null, profile: null, flow: null, message: null };
 
 function setState(patch: Partial<AuthState>): void {
   state = { ...state, ...patch };
@@ -44,16 +68,18 @@ export function onAuthStateChange(fn: (s: AuthState) => void): () => void {
   return () => listeners.delete(fn);
 }
 
-/** For other cloud features (crash reports, later the Steam proxy). Null when not configured. */
-export const getCloudClient = (): SupabaseClient | null => client;
+/** For other cloud features (crash reports). Null when not configured. */
+export const getDb = (): Firestore | null => db;
 
-// ---------------------------------------------------------------- session storage
-// Tokens are stored in userData/auth.json, encrypted with the OS keychain (safeStorage) where available.
+// ---------------------------------------------------------------- session persistence
+// Firebase Auth has no Node persistence, so this is a file-backed one: userData/auth.json,
+// encrypted with the OS keychain (safeStorage) where available. Implements Firebase's
+// persistence interface (the same shape its browser persistences use).
 
 const storeFile = () => path.join(app.getPath('userData'), 'auth.json');
-let store: Record<string, string> | null = null;
+let store: Record<string, unknown> | null = null;
 
-function loadStore(): Record<string, string> {
+function loadStore(): Record<string, unknown> {
   if (store) return store;
   try {
     const raw = fs.readFileSync(storeFile());
@@ -77,93 +103,127 @@ function saveStore(): void {
   }
 }
 
-const storage = {
-  getItem: (key: string) => loadStore()[key] ?? null,
-  setItem: (key: string, value: string) => {
+class FilePersistence {
+  static type = 'LOCAL' as const;
+  readonly type = 'LOCAL' as const;
+  async _isAvailable(): Promise<boolean> {
+    return true;
+  }
+  async _set(key: string, value: unknown): Promise<void> {
     loadStore()[key] = value;
     saveStore();
-  },
-  removeItem: (key: string) => {
+  }
+  async _get<T>(key: string): Promise<T | null> {
+    return (loadStore()[key] as T) ?? null;
+  }
+  async _remove(key: string): Promise<void> {
     delete loadStore()[key];
     saveStore();
-  },
-};
+  }
+  _addListener(): void {}
+  _removeListener(): void {}
+}
 
 // ---------------------------------------------------------------- profile
 
-type Row = Record<string, unknown>;
+const ts = (v: unknown): string => (v instanceof Timestamp ? v.toDate().toISOString() : '');
 
-function toProfile(r: Row): Profile {
-  const s = (v: unknown) => (typeof v === 'string' ? v : null);
+function toProfile(id: string, d: DocumentData): Profile {
   return {
-    id: String(r.id),
-    username: String(r.username ?? ''),
-    displayName: String(r.display_name ?? ''),
-    bio: String(r.bio ?? ''),
-    avatarUrl: s(r.avatar_url),
-    bannerUrl: s(r.banner_url),
-    visibility: r.visibility === 'friends' || r.visibility === 'private' ? r.visibility : 'public',
-    steamId: s(r.steam_id),
-    steamName: s(r.steam_name),
-    steamAvatarUrl: s(r.steam_avatar_url),
-    xp: Number(r.xp ?? 0),
-    createdAt: String(r.created_at ?? ''),
-    updatedAt: String(r.updated_at ?? ''),
+    id,
+    username: String(d.username ?? ''),
+    displayName: String(d.displayName ?? ''),
+    bio: String(d.bio ?? ''),
+    avatarUrl: typeof d.avatarUrl === 'string' ? d.avatarUrl : null,
+    visibility: d.visibility === 'friends' || d.visibility === 'private' ? d.visibility : 'public',
+    steamId: typeof d.steamId === 'string' ? d.steamId : null,
+    xp: Number(d.xp ?? 0),
+    createdAt: ts(d.createdAt),
+    updatedAt: ts(d.updatedAt),
   };
 }
 
-function toUser(u: User, profile: Profile | null): AccountUser {
+function toUser(u: User): AccountUser {
   const providers = new Set<AccountProvider>();
-  for (const i of u.identities ?? []) {
-    if (i.provider === 'discord' || i.provider === 'google' || i.provider === 'email') providers.add(i.provider);
+  for (const p of u.providerData) {
+    if (p.providerId === 'google.com') providers.add('google');
+    if (p.providerId === 'password') providers.add('email');
   }
-  const steamOnly = (u.email ?? '').endsWith('.invalid');
-  if (steamOnly) providers.delete('email');
-  if (profile?.steamId) providers.add('steam');
-  return { id: u.id, email: steamOnly ? null : (u.email ?? null), providers: [...providers] };
+  return { id: u.uid, email: u.email, emailVerified: u.emailVerified, providers: [...providers] };
 }
 
-async function loadProfile(): Promise<void> {
-  if (!client) return;
-  const { data: userData } = await client.auth.getUser();
-  const user = userData.user;
-  if (!user) return;
-  const { data, error } = await client.from('profiles').select('*').eq('id', user.id).maybeSingle();
-  if (error) {
-    setState({ message: { kind: 'error', text: `Couldn’t load your profile: ${error.message}` } });
-    return;
+function slug(text: string): string {
+  const s = text
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '')
+    .slice(0, 15);
+  return s.length >= 3 ? s : 'player';
+}
+
+/** First sign-in: create users/{uid} and reserve a unique username in one transaction. */
+async function ensureProfile(u: User): Promise<void> {
+  const d = db!;
+  const ref = doc(d, 'users', u.uid);
+  if ((await getDoc(ref)).exists()) return;
+  const shown = signUpName || u.displayName || u.email?.split('@')[0] || '';
+  const displayName = (shown || 'Player').slice(0, 32);
+  const base = slug(shown);
+  const avatar = u.photoURL?.startsWith('https://') && u.photoURL.length <= 500 ? u.photoURL : null;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const username = attempt === 0 ? base : `${base}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+    const created = await runTransaction(d, async (tx) => {
+      const nameRef = doc(d, 'usernames', username);
+      if ((await tx.get(nameRef)).exists()) return false;
+      if ((await tx.get(ref)).exists()) return true;
+      tx.set(nameRef, { uid: u.uid });
+      tx.set(ref, {
+        username,
+        displayName,
+        bio: '',
+        avatarUrl: avatar,
+        visibility: 'public',
+        steamId: null,
+        xp: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      return true;
+    });
+    if (created) {
+      signUpName = null;
+      return;
+    }
   }
-  const profile = data ? toProfile(data) : null;
-  setState({ status: 'signed-in', user: toUser(user, profile), profile });
-  subscribeProfile(user.id);
+  throw new Error('Couldn’t pick a username. Try again.');
 }
 
-/** Live updates: an edit on another PC shows up here without a refresh. */
-function subscribeProfile(userId: string): void {
-  if (!client || profileChannel?.topic === `realtime:profile:${userId}`) return;
-  void profileChannel?.unsubscribe();
-  profileChannel = client
-    .channel(`profile:${userId}`)
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, (payload) => {
-      const profile = toProfile(payload.new as Row);
-      setState({ profile, user: state.user ? { ...state.user, providers: withSteam(state.user.providers, profile) } : null });
-    })
-    .subscribe();
+/** Live profile: an edit on another PC shows up here straight away. */
+function watchProfile(uid: string): void {
+  profileUnsub?.();
+  profileUnsub = onSnapshot(
+    doc(db!, 'users', uid),
+    (snap) => {
+      if (snap.exists()) setState({ profile: toProfile(uid, snap.data()) });
+    },
+    (err) => setState({ message: { kind: 'error', text: `Profile sync stopped: ${friendly(err)}` } }),
+  );
 }
 
-function withSteam(providers: AccountProvider[], profile: Profile): AccountProvider[] {
-  const rest = providers.filter((p) => p !== 'steam');
-  return profile.steamId ? [...rest, 'steam'] : rest;
-}
-
-function onSession(session: Session | null): void {
-  if (!session) {
-    void profileChannel?.unsubscribe();
-    profileChannel = null;
+async function onUser(u: User | null): Promise<void> {
+  if (!u) {
+    profileUnsub?.();
+    profileUnsub = null;
     setState({ status: 'signed-out', user: null, profile: null });
     return;
   }
-  void loadProfile();
+  setState({ status: 'signed-in', user: toUser(u) });
+  try {
+    await ensureProfile(u);
+    watchProfile(u.uid);
+  } catch (err) {
+    setState({ message: { kind: 'error', text: `Couldn’t load your profile: ${friendly(err)}` } });
+  }
 }
 
 // ---------------------------------------------------------------- init
@@ -173,17 +233,11 @@ export function initAuth(): void {
     setState({ configured: false, status: 'signed-out' });
     return;
   }
-  client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { flowType: 'pkce', storage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-  });
+  fbApp = initializeApp(FIREBASE_CONFIG);
+  auth = initializeAuth(fbApp, { persistence: FilePersistence as unknown as Persistence });
+  db = getFirestore(fbApp);
   setState({ configured: true });
-  client.auth.onAuthStateChange((event, session) => {
-    // Don't call other Supabase methods inside this callback (it can deadlock); defer.
-    setTimeout(() => {
-      if (event === 'PASSWORD_RECOVERY') setState({ flow: { kind: 'recovery' } });
-      onSession(session);
-    }, 0);
-  });
+  onAuthStateChanged(auth, (u) => void onUser(u));
 }
 
 // ---------------------------------------------------------------- helpers
@@ -192,29 +246,30 @@ const ok: ActionResult = { ok: true };
 const fail = (error: string): ActionResult => ({ ok: false, error });
 
 function friendly(err: unknown): string {
+  const code = (err as { code?: string })?.code ?? '';
   const msg = err instanceof Error ? err.message : String(err);
-  if (/invalid login credentials/i.test(msg)) return 'Wrong email or password.';
-  if (/email not confirmed/i.test(msg)) return 'Confirm your email first: check your inbox for the link.';
-  if (/user already registered/i.test(msg)) return 'There’s already an account with that email. Sign in instead.';
-  if (/identity is already linked/i.test(msg)) return 'That account is already linked to a different ShotCaller account.';
-  if (/manual linking is disabled/i.test(msg)) return 'Account linking isn’t switched on for this ShotCaller server yet.';
-  if (/provider is not enabled/i.test(msg)) return 'That sign-in method isn’t switched on for this ShotCaller server yet.';
-  if (/fetch failed|network/i.test(msg)) return 'Couldn’t reach the ShotCaller server. Check your connection.';
-  return msg;
+  const byCode: Record<string, string> = {
+    'auth/invalid-credential': 'Wrong email or password.',
+    'auth/wrong-password': 'Wrong email or password.',
+    'auth/user-not-found': 'Wrong email or password.',
+    'auth/invalid-email': 'Enter a valid email address.',
+    'auth/email-already-in-use': 'There’s already an account with that email. Sign in instead.',
+    'auth/weak-password': 'Use at least 8 characters for your password.',
+    'auth/too-many-requests': 'Too many attempts. Wait a minute and try again.',
+    'auth/network-request-failed': 'Couldn’t reach the ShotCaller server. Check your connection.',
+    'auth/credential-already-in-use': 'That Google account is already linked to a different ShotCaller account.',
+    'auth/account-exists-with-different-credential': 'This email already has an account. Sign in with your password, then link Google in Settings.',
+    'auth/operation-not-allowed': 'That sign-in method isn’t switched on for this ShotCaller server yet.',
+    'auth/requires-recent-login': 'Sign out and back in, then try again.',
+    'permission-denied': 'The server refused that change.',
+    unavailable: 'Couldn’t reach the ShotCaller server. Check your connection.',
+  };
+  return byCode[code] ?? msg;
 }
 
-const STEAM_ERRORS: Record<string, string> = {
-  cancelled: 'Steam sign-in was cancelled.',
-  steam_verify_failed: 'Steam couldn’t confirm the sign-in. Try again.',
-  steam_in_use: 'That Steam account is already linked to a different ShotCaller account.',
-  link_expired: 'The link request expired. Try again.',
-  no_email: 'This account can’t sign in with Steam.',
-  server_error: 'The ShotCaller server hit an error. Try again in a minute.',
-};
-
-function requireClient(): SupabaseClient {
-  if (!client) throw new Error('This build isn’t connected to a ShotCaller server.');
-  return client;
+function requireAuth(): Auth {
+  if (!auth) throw new Error('This build isn’t connected to a ShotCaller server.');
+  return auth;
 }
 
 function stopPending(): void {
@@ -222,31 +277,67 @@ function stopPending(): void {
   pending = null;
 }
 
-/** Opens `url` in the browser and waits for the loopback callback. Handles cancel and flow state. */
-async function browserFlow(
-  method: SignInMethod,
-  linking: boolean,
-  callbackPath: string,
-  buildUrl: (redirect: string, port: number) => Promise<string>,
-  finish: (q: URLSearchParams) => Promise<void>,
-): Promise<ActionResult> {
+const b64url = (buf: Buffer) => buf.toString('base64url');
+
+/** Google OAuth (installed-app flow with PKCE) → Firebase credential. */
+async function googleCredential(linking: boolean) {
+  if (!googleConfigured()) throw new Error('Google sign-in isn’t set up in this build.');
   stopPending();
-  setState({ flow: { kind: 'browser', method, linking }, message: null });
+  setState({ flow: { kind: 'browser', method: 'google', linking }, message: null });
+  pending = await waitForCallback('/auth/callback', BROWSER_TIMEOUT);
+  const wait = pending;
+  const redirectUri = `http://127.0.0.1:${wait.port}/auth/callback`;
+  const verifier = b64url(randomBytes(48));
+  const challenge = b64url(createHash('sha256').update(verifier).digest());
+  const oauthState = b64url(randomBytes(24));
+
+  const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  url.search = new URLSearchParams({
+    client_id: GOOGLE_OAUTH.clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    state: oauthState,
+    prompt: 'select_account',
+  }).toString();
+  await shell.openExternal(url.toString());
+
+  const q = await wait.result;
+  const error = q.get('error');
+  if (error) throw new Error(error === 'access_denied' ? 'cancelled' : `Google said: ${error}`);
+  if (q.get('state') !== oauthState) throw new Error('Sign-in response didn’t match. Try again.');
+  const code = q.get('code');
+  if (!code) throw new Error('Google didn’t return a code.');
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id: GOOGLE_OAUTH.clientId,
+      client_secret: GOOGLE_OAUTH.clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+      code_verifier: verifier,
+    }),
+  });
+  const body = (await res.json().catch(() => ({}))) as { id_token?: string; access_token?: string; error_description?: string };
+  if (!res.ok || !body.id_token) throw new Error(body.error_description ?? 'Google sign-in failed.');
+  return GoogleAuthProvider.credential(body.id_token, body.access_token);
+}
+
+async function browserAction(linking: boolean, act: (cred: ReturnType<typeof GoogleAuthProvider.credential>) => Promise<unknown>): Promise<ActionResult> {
   try {
-    pending = await waitForCallback(callbackPath, BROWSER_TIMEOUT);
-    const wait = pending;
-    const url = await buildUrl(`http://127.0.0.1:${wait.port}${callbackPath}`, wait.port);
-    await shell.openExternal(url);
-    const q = await wait.result;
-    const error = q.get('error_description') ?? q.get('error');
-    if (error) throw new Error(STEAM_ERRORS[error] ?? error.replace(/\+/g, ' '));
-    await finish(q);
+    const cred = await googleCredential(linking);
+    await act(cred);
     setState({ flow: null });
-    if (linking) await loadProfile();
     return ok;
   } catch (err) {
     const msg = friendly(err);
     if (msg === 'cancelled') {
+      setState({ flow: null });
       return fail('cancelled');
     }
     setState({ flow: null, message: { kind: 'error', text: msg } });
@@ -256,117 +347,32 @@ async function browserFlow(
   }
 }
 
-async function exchangeCode(q: URLSearchParams): Promise<void> {
-  const code = q.get('code');
-  if (!code) throw new Error('The sign-in page didn’t return a code.');
-  const { error } = await requireClient().auth.exchangeCodeForSession(code);
-  if (error) throw error;
-}
-
-function steamStartUrl(port: number, stateToken: string, ticket?: string): string {
-  const q = new URLSearchParams({ port: String(port), state: stateToken });
-  if (ticket) q.set('ticket', ticket);
-  return `${SUPABASE_URL}/functions/v1/steam-auth/start?${q}`;
-}
-
-function newState(): string {
-  return randomBytes(24).toString('base64url');
-}
-
 // ---------------------------------------------------------------- actions
 
 export async function signIn(method: SignInMethod): Promise<ActionResult> {
-  try {
-    const c = requireClient();
-    if (method === 'steam') {
-      const st = newState();
-      return await browserFlow(
-        'steam',
-        false,
-        '/auth/steam',
-        async (_redirect, port) => steamStartUrl(port, st),
-        async (q) => {
-          if (q.get('state') !== st) throw new Error('Sign-in response didn’t match. Try again.');
-          const tokenHash = q.get('token_hash');
-          if (!tokenHash) throw new Error('Steam sign-in didn’t return a token.');
-          let { error } = await c.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
-          if (error) ({ error } = await c.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' }));
-          if (error) throw error;
-        },
-      );
-    }
-    return await browserFlow(
-      method,
-      false,
-      '/auth/callback',
-      async (redirectTo) => {
-        const { data, error } = await c.auth.signInWithOAuth({
-          provider: method,
-          options: { redirectTo, skipBrowserRedirect: true, scopes: method === 'discord' ? 'identify email' : undefined },
-        });
-        if (error || !data.url) throw error ?? new Error('No sign-in URL.');
-        return data.url;
-      },
-      exchangeCode,
-    );
-  } catch (err) {
-    return fail(friendly(err));
-  }
+  if (method !== 'google') return fail('Unknown sign-in method.');
+  return browserAction(false, (cred) => signInWithCredential(requireAuth(), cred));
 }
 
 export async function linkAccount(method: SignInMethod): Promise<ActionResult> {
-  try {
-    const c = requireClient();
-    const { data: s } = await c.auth.getSession();
-    if (!s.session) return fail('Sign in first.');
-    if (method === 'steam') {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/steam-auth/link-ticket`, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${s.session.access_token}`, apikey: SUPABASE_ANON_KEY },
-      });
-      const body = (await res.json().catch(() => ({}))) as { ticket?: string; error?: string };
-      if (!res.ok || !body.ticket) return fail(STEAM_ERRORS[body.error ?? ''] ?? 'Couldn’t start Steam linking.');
-      const st = newState();
-      const ticket = body.ticket;
-      return await browserFlow(
-        'steam',
-        true,
-        '/auth/steam',
-        async (_r, port) => steamStartUrl(port, st, ticket),
-        async (q) => {
-          if (q.get('state') !== st || q.get('linked') !== '1') throw new Error('Steam linking didn’t finish.');
-        },
-      );
-    }
-    return await browserFlow(
-      method,
-      true,
-      '/auth/callback',
-      async (redirectTo) => {
-        const { data, error } = await c.auth.linkIdentity({ provider: method, options: { redirectTo, skipBrowserRedirect: true } });
-        if (error || !data.url) throw error ?? new Error('No link URL.');
-        return data.url;
-      },
-      exchangeCode,
-    );
-  } catch (err) {
-    return fail(friendly(err));
-  }
+  const u = auth?.currentUser;
+  if (!u) return fail('Sign in first.');
+  if (method !== 'google') return fail('Unknown sign-in method.');
+  return browserAction(true, async (cred) => {
+    await linkWithCredential(u, cred);
+    await u.reload();
+    setState({ user: toUser(u) });
+  });
 }
 
-export async function unlinkAccount(method: 'discord' | 'google'): Promise<ActionResult> {
+export async function unlinkAccount(method: SignInMethod): Promise<ActionResult> {
   try {
-    const c = requireClient();
-    const { data } = await c.auth.getUserIdentities();
-    const identities = data?.identities ?? [];
-    const identity = identities.find((i) => i.provider === method);
-    if (!identity) return fail('That account isn’t linked.');
-    const others = (state.user?.providers ?? []).filter((p) => p !== method);
-    if (others.length === 0) return fail('You need at least one other way to sign in first.');
-    const { error } = await c.auth.unlinkIdentity(identity);
-    if (error) return fail(friendly(error));
-    await c.auth.refreshSession();
-    await loadProfile();
+    const u = auth?.currentUser;
+    if (!u) return fail('Sign in first.');
+    if (method !== 'google') return fail('Unknown sign-in method.');
+    if (u.providerData.length < 2) return fail('You need at least one other way to sign in first.');
+    await unlink(u, 'google.com');
+    setState({ user: toUser(u) });
     return ok;
   } catch (err) {
     return fail(friendly(err));
@@ -377,65 +383,26 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function signInWithEmail(email: string, password: string): Promise<ActionResult> {
   try {
-    if (!EMAIL.test(email)) return fail('Enter a valid email address.');
-    const { error } = await requireClient().auth.signInWithPassword({ email: email.trim(), password });
-    return error ? fail(friendly(error)) : ok;
+    if (!EMAIL.test(email.trim())) return fail('Enter a valid email address.');
+    await signInWithEmailAndPassword(requireAuth(), email.trim(), password);
+    return ok;
   } catch (err) {
     return fail(friendly(err));
   }
 }
 
-/** Waits (in the background) for an emailed link to land on the loopback port. */
-async function awaitEmailLink(flow: AuthFlow): Promise<string> {
-  stopPending();
-  pending = await waitForCallback('/auth/callback', EMAIL_TIMEOUT);
-  const wait = pending;
-  setState({ flow, message: null });
-  wait.result
-    .then(async (q) => {
-      const error = q.get('error_description') ?? q.get('error');
-      if (error) throw new Error(error.replace(/\+/g, ' '));
-      await exchangeCode(q);
-      // A reset link signs the user in; they still have to pick the new password.
-      setState({ flow: flow.kind === 'reset-sent' ? { kind: 'recovery' } : null });
-    })
-    .catch((err) => {
-      const msg = friendly(err);
-      if (msg !== 'cancelled' && state.flow === flow) setState({ flow: null, message: { kind: 'error', text: msg } });
-    })
-    .finally(() => {
-      if (pending === wait) pending = null;
-    });
-  return `http://127.0.0.1:${wait.port}/auth/callback`;
-}
-
 export async function signUpWithEmail(email: string, password: string, displayName: string): Promise<ActionResult> {
   try {
-    const c = requireClient();
     email = email.trim();
     if (!EMAIL.test(email)) return fail('Enter a valid email address.');
     if (password.length < 8) return fail('Use at least 8 characters for your password.');
-    const name = displayName.trim().slice(0, 32);
-    const redirect = await awaitEmailLink({ kind: 'email-confirm', email });
-    const { data, error } = await c.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirect, data: name ? { display_name: name } : undefined },
-    });
-    if (error) {
-      stopPending();
-      setState({ flow: null });
-      return fail(friendly(error));
-    }
-    if (data.session) {
-      // Email confirmation is off on this server: signed in straight away.
-      stopPending();
-      setState({ flow: null });
-    }
+    signUpName = displayName.trim().slice(0, 32) || null;
+    const cred = await createUserWithEmailAndPassword(requireAuth(), email, password);
+    if (signUpName) await fbUpdateAuthProfile(cred.user, { displayName: signUpName }).catch(() => undefined);
+    await sendEmailVerification(cred.user).catch(() => undefined);
+    setState({ message: { kind: 'info', text: `Welcome! We sent a verification link to ${email}.` } });
     return ok;
   } catch (err) {
-    stopPending();
-    setState({ flow: null });
     return fail(friendly(err));
   }
 }
@@ -444,27 +411,20 @@ export async function sendPasswordReset(email: string): Promise<ActionResult> {
   try {
     email = email.trim();
     if (!EMAIL.test(email)) return fail('Enter a valid email address.');
-    const redirectTo = await awaitEmailLink({ kind: 'reset-sent', email });
-    const { error } = await requireClient().auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) {
-      stopPending();
-      setState({ flow: null });
-      return fail(friendly(error));
-    }
+    await sendPasswordResetEmail(requireAuth(), email);
+    setState({ message: { kind: 'info', text: `If ${email} has an account, a reset link is on its way.` } });
     return ok;
   } catch (err) {
-    stopPending();
-    setState({ flow: null });
     return fail(friendly(err));
   }
 }
 
-export async function setNewPassword(password: string): Promise<ActionResult> {
+export async function resendVerification(): Promise<ActionResult> {
   try {
-    if (password.length < 8) return fail('Use at least 8 characters for your password.');
-    const { error } = await requireClient().auth.updateUser({ password });
-    if (error) return fail(friendly(error));
-    setState({ flow: null, message: { kind: 'info', text: 'Password updated.' } });
+    const u = auth?.currentUser;
+    if (!u) return fail('Sign in first.');
+    await sendEmailVerification(u);
+    setState({ message: { kind: 'info', text: `Verification link sent to ${u.email}.` } });
     return ok;
   } catch (err) {
     return fail(friendly(err));
@@ -483,57 +443,75 @@ export function dismissAuthMessage(): void {
 export async function signOut(): Promise<void> {
   stopPending();
   setState({ flow: null, message: null });
-  // Local scope: only this PC signs out; the other PCs stay signed in.
-  await client?.auth.signOut({ scope: 'local' });
-  onSession(null);
+  if (auth) await fbSignOut(auth);
 }
 
 const USERNAME = /^[a-z0-9_]{3,20}$/;
 
 export async function updateProfile(patch: ProfilePatch): Promise<ActionResult> {
   try {
-    const c = requireClient();
-    if (!state.profile) return fail('Sign in first.');
-    const row: Row = {};
+    const u = auth?.currentUser;
+    if (!u || !db) return fail('Sign in first.');
+    const d = db;
+    const changes: Record<string, unknown> = {};
+    let newName: string | null = null;
     if (patch.username !== undefined) {
-      const u = String(patch.username).trim().toLowerCase();
-      if (!USERNAME.test(u)) return fail('Usernames are 3-20 characters: letters, numbers and _.');
-      row.username = u;
+      const name = String(patch.username).trim().toLowerCase();
+      if (!USERNAME.test(name)) return fail('Usernames are 3-20 characters: letters, numbers and _.');
+      newName = name;
     }
     if (patch.displayName !== undefined) {
-      const d = String(patch.displayName).trim();
-      if (d.length < 1 || d.length > 32) return fail('Display names are 1-32 characters.');
-      row.display_name = d;
+      const v = String(patch.displayName).trim();
+      if (v.length < 1 || v.length > 32) return fail('Display names are 1-32 characters.');
+      changes.displayName = v;
     }
     if (patch.bio !== undefined) {
-      const b = String(patch.bio).trim();
-      if (b.length > 160) return fail('Keep your bio to 160 characters.');
-      row.bio = b;
+      const v = String(patch.bio).trim();
+      if (v.length > 160) return fail('Keep your bio to 160 characters.');
+      changes.bio = v;
     }
     if (patch.visibility !== undefined) {
       if (!['public', 'friends', 'private'].includes(patch.visibility)) return fail('Unknown visibility.');
-      row.visibility = patch.visibility;
+      changes.visibility = patch.visibility;
     }
-    if (Object.keys(row).length === 0) return ok;
-    const { data, error } = await c.from('profiles').update(row).eq('id', state.profile.id).select('*').single();
-    if (error) return fail(error.code === '23505' ? 'That username is taken.' : friendly(error));
-    setState({ profile: toProfile(data) });
-    return ok;
+
+    const ref = doc(d, 'users', u.uid);
+    const taken = await runTransaction(d, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) throw new Error('Your profile isn’t ready yet. Try again in a moment.');
+      const current = String(snap.data().username);
+      if (newName && newName !== current) {
+        const nameRef = doc(d, 'usernames', newName);
+        if ((await tx.get(nameRef)).exists()) return true;
+        tx.set(nameRef, { uid: u.uid });
+        tx.delete(doc(d, 'usernames', current));
+        changes.username = newName;
+      }
+      if (Object.keys(changes).length === 0) return false;
+      tx.update(ref, { ...changes, updatedAt: serverTimestamp() });
+      return false;
+    });
+    return taken ? fail('That username is taken.') : ok;
   } catch (err) {
     return fail(friendly(err));
   }
 }
 
+/** Reloads the account (e.g. to pick up email verification done in the browser). Throttled. */
 let lastRefresh = 0;
-
-/** Re-reads the profile; called on window focus, so it's throttled to once every 30 s. */
 export async function refreshProfile(): Promise<void> {
-  if (state.status !== 'signed-in' || Date.now() - lastRefresh < 30_000) return;
+  const u = auth?.currentUser;
+  if (!u || Date.now() - lastRefresh < 30_000) return;
   lastRefresh = Date.now();
-  await loadProfile();
+  try {
+    await u.reload();
+    setState({ user: toUser(u) });
+  } catch {
+    // Offline: keep the cached state.
+  }
 }
 
 export function disposeAuth(): void {
   stopPending();
-  void profileChannel?.unsubscribe();
+  profileUnsub?.();
 }

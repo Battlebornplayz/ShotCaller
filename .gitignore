@@ -20,3 +20,8 @@ Thumbs.db
 .env.*
 !.env.example
 *.pem
+
+# Firebase CLI
+.firebase/
+firebase-debug.log
+firestore-debug.log

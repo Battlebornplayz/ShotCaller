@@ -8,7 +8,7 @@ import {
   linkAccount,
   refreshProfile,
   sendPasswordReset,
-  setNewPassword,
+  resendVerification,
   signIn,
   signInWithEmail,
   signOut,
@@ -99,7 +99,7 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.hotkeysSetCapture, (_e, on: boolean) => setHotkeyCapture(!!on));
 
   // Accounts. Every argument is coerced here; auth.ts validates the values.
-  const METHODS: SignInMethod[] = ['steam', 'discord', 'google'];
+  const METHODS: SignInMethod[] = ['google'];
   const method = (m: unknown): SignInMethod | null => (METHODS.includes(m as SignInMethod) ? (m as SignInMethod) : null);
   const str = (v: unknown, max = 500) => String(v ?? '').slice(0, max);
   const bad = { ok: false as const, error: 'Unknown sign-in method.' };
@@ -109,12 +109,12 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.authSignInEmail, (_e, email: unknown, pw: unknown) => signInWithEmail(str(email, 320), str(pw, 200)));
   ipcMain.handle(IPC.authSignUpEmail, (_e, email: unknown, pw: unknown, name: unknown) => signUpWithEmail(str(email, 320), str(pw, 200), str(name, 64)));
   ipcMain.handle(IPC.authSendReset, (_e, email: unknown) => sendPasswordReset(str(email, 320)));
-  ipcMain.handle(IPC.authSetPassword, (_e, pw: unknown) => setNewPassword(str(pw, 200)));
+  ipcMain.handle(IPC.authResendVerification, () => resendVerification());
   ipcMain.handle(IPC.authCancel, () => cancelAuthFlow());
   ipcMain.handle(IPC.authDismissMessage, () => dismissAuthMessage());
   ipcMain.handle(IPC.authSignOut, () => signOut());
   ipcMain.handle(IPC.authLink, (_e, m: unknown) => (method(m) ? linkAccount(method(m)!) : bad));
-  ipcMain.handle(IPC.authUnlink, (_e, m: unknown) => (m === 'discord' || m === 'google' ? unlinkAccount(m) : bad));
+  ipcMain.handle(IPC.authUnlink, (_e, m: unknown) => (method(m) ? unlinkAccount(method(m)!) : bad));
   ipcMain.handle(IPC.profileUpdate, (_e, patch: unknown) => {
     const p = patch && typeof patch === 'object' ? (patch as Record<string, unknown>) : {};
     const clean: ProfilePatch = {};

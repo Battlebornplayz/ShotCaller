@@ -74,22 +74,21 @@ export interface SettingsPatch {
 
 // ---------- Accounts and cloud ----------
 
-export type SignInMethod = 'steam' | 'discord' | 'google';
+/** Steam and Discord sign-in were dropped when the backend moved to Firebase (Phase 4). */
+export type SignInMethod = 'google';
 export type AccountProvider = SignInMethod | 'email';
 export type ProfileVisibility = 'public' | 'friends' | 'private';
 
-/** The synced profile (Supabase `profiles` row). */
+/** The synced profile (Firestore `users/{uid}`). */
 export interface Profile {
   id: string;
   username: string;
   displayName: string;
   bio: string;
   avatarUrl: string | null;
-  bannerUrl: string | null;
   visibility: ProfileVisibility;
+  /** Linked Steam account; set by a server once Steam linking exists (Phase 5). */
   steamId: string | null;
-  steamName: string | null;
-  steamAvatarUrl: string | null;
   xp: number;
   createdAt: string;
   updatedAt: string;
@@ -104,22 +103,17 @@ export interface ProfilePatch {
 
 export interface AccountUser {
   id: string;
-  /** Null for Steam-only accounts. */
   email: string | null;
+  emailVerified: boolean;
   /** Sign-in methods connected to this account. */
   providers: AccountProvider[];
 }
 
-/** A sign-in step waiting on the browser or the user. */
-export type AuthFlow =
-  | { kind: 'browser'; method: SignInMethod; linking: boolean }
-  | { kind: 'email-confirm'; email: string }
-  | { kind: 'reset-sent'; email: string }
-  /** Signed in from a password-reset link: the user must choose a new password. */
-  | { kind: 'recovery' };
+/** A sign-in step waiting on the browser. */
+export type AuthFlow = { kind: 'browser'; method: SignInMethod; linking: boolean };
 
 export interface AuthState {
-  /** False when this build has no Supabase project configured. */
+  /** False when this build has no Firebase project configured. */
   configured: boolean;
   status: 'loading' | 'signed-out' | 'signed-in';
   user: AccountUser | null;
@@ -289,14 +283,14 @@ export interface ShotCallerApi {
   signInWithEmail(email: string, password: string): Promise<ActionResult>;
   signUpWithEmail(email: string, password: string, displayName: string): Promise<ActionResult>;
   sendPasswordReset(email: string): Promise<ActionResult>;
-  /** Only during the "recovery" flow, or to change the password while signed in. */
-  setNewPassword(password: string): Promise<ActionResult>;
+  resendVerification(): Promise<ActionResult>;
+
   cancelAuthFlow(): Promise<void>;
   dismissAuthMessage(): Promise<void>;
   signOut(): Promise<void>;
   /** Connects another sign-in method to the signed-in account. */
   linkAccount(method: SignInMethod): Promise<ActionResult>;
-  unlinkAccount(method: 'discord' | 'google'): Promise<ActionResult>;
+  unlinkAccount(method: SignInMethod): Promise<ActionResult>;
   updateProfile(patch: ProfilePatch): Promise<ActionResult>;
   refreshProfile(): Promise<void>;
   /** Renderer errors, forwarded to the opt-in crash reporter. */

@@ -1,0 +1,136 @@
+rules_version = '2';
+
+// ShotCaller Firestore security rules. Deploy: npx firebase deploy --only firestore
+//
+// users/{uid}                 profile (one per account; created by the app on first sign-in)
+// usernames/{username}        { uid } — reserves a username so two accounts can't share one
+// users/{uid}/unlocks/{id}    achievement unlocks (Phase 5+)
+// users/{uid}/proofs/{id}     "mark as earned" proofs (Phase 6)
+// friends/{a_b}               friendship between two uids, a < b (Phase 10)
+// games/{id}[/achievements]   public achievements cache, written by a server later (read-only here)
+// crashReports/{id}           opt-in anonymous crash reports, create-only
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+
+    function pairId(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
+    function areFriends(uid) {
+      let path = /databases/$(database)/documents/friends/$(pairId(uid, request.auth.uid));
+      return exists(path) && get(path).data.status == 'accepted';
+    }
+    // Whether the signed-in user may see this user's profile and activity.
+    function visibleTo(vis, uid) { return vis == 'public' || (vis == 'friends' && areFriends(uid)); }
+    function canView(uid) {
+      return isMe(uid) || (signedIn() && visibleTo(get(/databases/$(database)/documents/users/$(uid)).data.visibility, uid));
+    }
+
+    function validUsername(u) { return u is string && u.matches('^[a-z0-9_]{3,20}$'); }
+    function validProfileFields(d) {
+      return validUsername(d.username)
+        && d.displayName is string && d.displayName.size() >= 1 && d.displayName.size() <= 32
+        && d.bio is string && d.bio.size() <= 160
+        && (d.avatarUrl == null || (d.avatarUrl is string && d.avatarUrl.matches('^https://.*') && d.avatarUrl.size() <= 500))
+        && d.visibility in ['public', 'friends', 'private']
+        && d.updatedAt == request.time;
+    }
+    function ownsUsername(uid, name) {
+      return getAfter(/databases/$(database)/documents/usernames/$(name)).data.uid == uid;
+    }
+
+    // ---------------------------------------------------------------- profiles
+
+    match /users/{uid} {
+      allow read: if canView(uid);
+
+      allow create: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['username', 'displayName', 'bio', 'avatarUrl', 'visibility', 'steamId', 'xp', 'createdAt', 'updatedAt'])
+        && validProfileFields(request.resource.data)
+        && request.resource.data.steamId == null   // set by a server once Steam linking exists
+        && request.resource.data.xp == 0           // XP is server-side only
+        && request.resource.data.createdAt == request.time
+        && ownsUsername(uid, request.resource.data.username);
+
+      allow update: if isMe(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'displayName', 'bio', 'avatarUrl', 'visibility', 'updatedAt'])
+        && validProfileFields(request.resource.data)
+        && (request.resource.data.username == resource.data.username
+            || (ownsUsername(uid, request.resource.data.username)
+                && !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.username))));
+
+      match /unlocks/{id} {
+        allow read: if canView(uid);
+        allow create, update: if isMe(uid)
+          && request.resource.data.keys().hasOnly(['gameId', 'apiName', 'unlockedAt', 'source'])
+          && request.resource.data.gameId is string && request.resource.data.gameId.size() <= 100
+          && request.resource.data.apiName is string && request.resource.data.apiName.size() <= 200
+          && request.resource.data.unlockedAt is timestamp
+          && request.resource.data.source in ['steam', 'proof', 'manual', 'custom', 'retro'];
+        allow delete: if isMe(uid);
+      }
+
+      match /proofs/{id} {
+        allow read: if canView(uid);
+        allow create, update: if isMe(uid)
+          && request.resource.data.keys().hasOnly(['gameId', 'apiName', 'mediaPath', 'note', 'createdAt'])
+          && request.resource.data.note is string && request.resource.data.note.size() <= 500;
+        allow delete: if isMe(uid);
+      }
+    }
+
+    match /usernames/{name} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validUsername(name)
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == name;
+      // Released when the owner renames.
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.username != name;
+    }
+
+    // ---------------------------------------------------------------- friends (Phase 10)
+
+    match /friends/{pair} {
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['members', 'requester', 'addressee', 'status', 'createdAt'])
+        && request.resource.data.requester == request.auth.uid
+        && request.resource.data.addressee != request.auth.uid
+        && request.resource.data.status == 'pending'
+        && pair == pairId(request.resource.data.requester, request.resource.data.addressee)
+        && request.resource.data.members.hasOnly([request.resource.data.requester, request.resource.data.addressee])
+        && request.resource.data.members.size() == 2;
+      allow update: if signedIn() && resource.data.addressee == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'accepted';
+      allow delete: if signedIn() && request.auth.uid in resource.data.members;
+    }
+
+    // ---------------------------------------------------------------- public cache
+
+    match /games/{id} {
+      allow read: if true;
+      allow write: if false;
+      match /achievements/{a} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // ---------------------------------------------------------------- crash reports (opt-in)
+
+    match /crashReports/{id} {
+      allow read, update, delete: if false;
+      allow create: if request.resource.data.keys().hasOnly(['appVersion', 'platform', 'process', 'message', 'stack', 'createdAt'])
+        && request.resource.data.appVersion is string && request.resource.data.appVersion.size() <= 40
+        && request.resource.data.platform is string && request.resource.data.platform.size() <= 20
+        && request.resource.data.process in ['main', 'renderer']
+        && request.resource.data.message is string && request.resource.data.message.size() <= 1000
+        && (request.resource.data.stack == null || (request.resource.data.stack is string && request.resource.data.stack.size() <= 8000))
+        && request.resource.data.createdAt == request.time;
+    }
+  }
+}

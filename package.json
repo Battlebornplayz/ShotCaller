@@ -73,8 +73,8 @@
     "npmRebuild": false
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.119.0",
     "electron-updater": "^6.8.11",
+    "firebase": "^12.19.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "uiohook-napi": "^1.5.5"
@@ -90,9 +90,9 @@
     "electron-vite": "^6.0.0",
     "eslint": "^10.14.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "firebase-tools": "^15.35.0",
     "globals": "^17.14.0",
     "prettier": "^3.9.10",
-    "supabase": "^2.122.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
     "vite": "^8.3.6"

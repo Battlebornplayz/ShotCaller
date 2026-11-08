@@ -6,17 +6,15 @@ import { PageHeader } from './pages';
 const api = () => window.shotcaller;
 
 const METHOD_STYLE: Record<SignInMethod, { label: string; bg: string; fg: string; mark: string }> = {
-  steam: { label: 'Steam', bg: '#171A21', fg: '#FFFFFF', mark: 'S' },
-  discord: { label: 'Discord', bg: '#5865F2', fg: '#FFFFFF', mark: 'D' },
   google: { label: 'Google', bg: '#FFFFFF', fg: '#1F1F1F', mark: 'G' },
 };
 
-const PROVIDER_LABEL: Record<AccountProvider, string> = { steam: 'Steam', discord: 'Discord', google: 'Google', email: 'Email' };
+const PROVIDER_LABEL: Record<AccountProvider, string> = { google: 'Google', email: 'Email' };
 
 // ---------------------------------------------------------------- small pieces
 
 export function Avatar({ profile, size = 40 }: { profile: Profile | null; size?: number }) {
-  const url = profile?.avatarUrl ?? profile?.steamAvatarUrl ?? null;
+  const url = profile?.avatarUrl ?? null;
   const [broken, setBroken] = useState(false);
   const initial = (profile?.displayName ?? '?').trim().charAt(0).toUpperCase() || '?';
   const style: CSSProperties = { width: size, height: size, borderRadius: '50%', flex: 'none', objectFit: 'cover' };
@@ -70,16 +68,11 @@ function Message({ auth }: { auth: AuthState }) {
   );
 }
 
-/** Shown while a browser step or an email link is outstanding. */
+/** Shown while the browser sign-in step is outstanding. */
 function FlowBanner({ auth }: { auth: AuthState }) {
   const f = auth.flow;
-  if (!f || f.kind === 'recovery') return null;
-  const text =
-    f.kind === 'browser'
-      ? `Finish ${f.linking ? 'linking' : 'signing in with'} ${METHOD_STYLE[f.method].label} in your browser…`
-      : f.kind === 'email-confirm'
-        ? `We sent a confirmation link to ${f.email}. Open it on this PC to sign in straight away, or confirm anywhere and then sign in with your password.`
-        : `We sent a password-reset link to ${f.email}. Open it on this PC to choose a new password.`;
+  if (!f) return null;
+  const text = `Finish ${f.linking ? 'linking' : 'signing in with'} ${METHOD_STYLE[f.method].label} in your browser…`;
   return (
     <div className="card fade" style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--accent-soft)' }}>
       <span className="spinner" />
@@ -215,11 +208,9 @@ export function SignInPanel({ auth }: { auth: AuthState }) {
           <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
             Your profile syncs to every PC you sign in on. Opens in your browser.
           </div>
-          {(['steam', 'discord', 'google'] as SignInMethod[]).map((m) => (
-            <MethodButton key={m} method={m} disabled={busy} onClick={() => void api().signIn(m)} />
-          ))}
+          <MethodButton method="google" disabled={busy} onClick={() => void api().signIn('google')} />
           <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-            Steam sign-in also lets ShotCaller read your Steam achievements (Phase 5). We never see your Steam password.
+            Or use an email and password. You can link Google to the same account later in Settings.
           </div>
         </div>
         <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 28 }}>
@@ -230,30 +221,20 @@ export function SignInPanel({ auth }: { auth: AuthState }) {
   );
 }
 
-function NewPasswordCard() {
-  const [pw, setPw] = useState('');
-  const [error, setError] = useState<string | null>(null);
+/** Email accounts: nudge to verify (the link opens Firebase's page; focusing ShotCaller re-checks). */
+function VerifyBanner({ auth }: { auth: AuthState }) {
+  const u = auth.user;
+  if (!u || u.emailVerified || !u.providers.includes('email')) return null;
   return (
-    <form
-      className="card enter"
-      style={{ display: 'grid', gap: 12, maxWidth: 760 }}
-      onSubmit={async (e) => {
-        e.preventDefault();
-        const res = await api().setNewPassword(pw);
-        if (!res.ok) setError(res.error);
-      }}
-    >
-      <div style={{ fontWeight: 700, fontSize: 16 }}>Choose a new password</div>
-      <Field label="New password">
-        <input style={input} type="password" value={pw} onChange={(e) => setPw(e.target.value)} minLength={8} autoComplete="new-password" required />
-      </Field>
-      {error && <div style={{ color: 'var(--red)', fontSize: 13 }}>{error}</div>}
-      <div>
-        <button className="btn primary" type="submit">
-          Save password
-        </button>
+    <div className="card fade" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <span className="pill gold">Email not verified</span>
+      <div className="muted" style={{ flex: 1, fontSize: 13 }}>
+        Open the link we sent to {u.email}. You can keep using ShotCaller meanwhile.
       </div>
-    </form>
+      <button className="btn" onClick={() => void api().resendVerification()}>
+        Resend link
+      </button>
+    </div>
   );
 }
 
@@ -331,7 +312,7 @@ export function ProfilePage() {
       <PageHeader title="Profile" subtitle="Synced to your ShotCaller account." badge="Level, banner and showcase: Phase 6" />
       <div style={{ display: 'grid', gap: 14, maxWidth: 760 }}>
         <Message auth={auth} />
-        {auth.flow?.kind === 'recovery' && <NewPasswordCard />}
+        <VerifyBanner auth={auth} />
         <div className="card enter" style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           <Avatar profile={p} size={72} />
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -341,7 +322,6 @@ export function ProfilePage() {
           </div>
           <div style={{ display: 'grid', gap: 6, justifyItems: 'end' }}>
             <span className="pill">{(p?.xp ?? 0).toLocaleString()} XP</span>
-            {p?.steamName && <span className="pill muted">Steam · {p.steamName}</span>}
           </div>
         </div>
         {p && <ProfileEditor profile={p} />}
@@ -396,7 +376,7 @@ export function AccountSection({ delay = 0 }: { delay?: number }) {
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 700 }}>{auth.profile?.displayName}</div>
             <div className="muted" style={{ fontSize: 12 }}>
-              {user.email ?? 'Signed in with Steam'}
+              {user.email ?? 'Signed in'}
             </div>
           </div>
         </div>
@@ -407,22 +387,18 @@ export function AccountSection({ delay = 0 }: { delay?: number }) {
 
       <div className="section-label">Sign-in methods</div>
       <div style={{ display: 'grid', gap: 10 }}>
-        {(['steam', 'discord', 'google'] as SignInMethod[]).map((m) => (
+        {(['google'] as SignInMethod[]).map((m) => (
           <div key={m} className="row">
             <div>
               <div style={{ fontWeight: 600 }}>{PROVIDER_LABEL[m]}</div>
               <div className="muted" style={{ fontSize: 12 }}>
-                {has(m) ? (m === 'steam' && auth.profile?.steamName ? `Linked as ${auth.profile.steamName}` : 'Linked') : 'Not linked'}
+                {has(m) ? 'Linked' : 'Not linked'}
               </div>
             </div>
             {has(m) ? (
-              m === 'steam' ? (
-                <span className="pill green">Linked</span>
-              ) : (
-                <button className="btn" disabled={busy || user.providers.length < 2} onClick={() => void run(() => api().unlinkAccount(m))}>
-                  Unlink
-                </button>
-              )
+              <button className="btn" disabled={busy || user.providers.length < 2} onClick={() => void run(() => api().unlinkAccount(m))}>
+                Unlink
+              </button>
             ) : (
               <MethodButton method={m} disabled={busy} onClick={() => void run(() => api().linkAccount(m))}>
                 Link {PROVIDER_LABEL[m]}
@@ -510,7 +486,7 @@ export function PrivacySection({ delay = 0 }: { delay?: number }) {
         />
       </div>
       <div className="muted" style={{ fontSize: 12 }}>
-        Synced: your display name, username, bio, avatar, linked Steam ID and (from Phase 5) your achievements. Your settings, game library and
+        Synced: your display name, username, bio, avatar and (from Phase 5) your achievements. Your settings, game library and
         hotkeys stay on this PC.
       </div>
     </SettingsCard>

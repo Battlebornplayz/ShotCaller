@@ -3,7 +3,7 @@
 One phase per chat, using the `phased-project` skill. Each phase ends with a handoff (`HANDOFF.md`) for the next.
 Target: **v0.1** = everything below, released to friends via GitHub Releases. Decisions live in `DESIGN.md`.
 
-Stack: Electron + TypeScript + React + Vite, electron-builder (NSIS .exe + AppImage), electron-updater (GitHub Releases, stable + beta channels), Supabase (auth, Postgres, Edge Functions).
+Stack: Electron + TypeScript + React + Vite, electron-builder (NSIS .exe + AppImage), electron-updater (GitHub Releases, stable + beta channels), Firebase (Auth + Firestore, free Spark plan).
 
 ---
 
@@ -33,18 +33,19 @@ Deliverables:
 - Settings page (overlay, hotkeys, startup, channel).
 Done when: launching Skillshot City opens ShotCaller and shows a placeholder overlay panel over the game; hotkeys work; settings persist.
 
-## Phase 4 — Accounts and cloud (Supabase)
+## Phase 4 — Accounts and cloud (Firebase)
 Goal: sign in and sync.
 Deliverables:
-- Supabase project, schema (profiles, games, achievements cache, unlocks, proofs, friends, xp), row-level security.
-- Sign-in: Steam (OpenID via Edge Function), Discord, Google, email/password. Deep-link/loopback callback into Electron.
-- Edge Function proxy for Steam Web API (key stays server-side).
+- Firebase project, Firestore data model (profiles, usernames, games, achievements cache, unlocks, proofs, friends, xp), security rules.
+- Sign-in: Google (loopback callback into Electron) and email/password. (Steam and Discord sign-in dropped when the backend changed to Firebase.)
+- Steam Web API proxy: moved to Phase 5, once its host is chosen (Cloudflare Worker or Firebase Blaze).
 - Profile sync; privacy settings (synced profile data only; opt-in crash reports).
 Done when: user can sign in with each method on two PCs and see the same profile.
 
 ## Phase 5 — Steam achievement hub (core)
 Goal: the main reason to download it.
 Deliverables:
+- Steam Web API proxy (key server-side; host decided at phase start). SteamID from local `loginusers.vdf`.
 - Pull owned games, achievements, global rarity for any Steam game (via proxy).
 - Library: toggle cover grid (completion rings) / banner list (progress bars).
 - Game page: achievement list with progress bars, rarity %, completion %, secrets blurred until click, easiest-first sort, links to Steam guides/web; playtime + sessions.

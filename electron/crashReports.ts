@@ -1,10 +1,11 @@
 // Opt-in, anonymous crash reports (Settings → Privacy). Off by default.
 // A report is the error message and stack, the app version and the OS: no user id, no game data.
-// Stored insert-only in Supabase `crash_reports`; nobody can read them back through the app's key.
+// Stored create-only in Firestore `crashReports`; the rules let nobody read them back through the app.
 
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { app } from 'electron';
 import os from 'node:os';
-import { getCloudClient } from './auth';
+import { getDb } from './auth';
 import { getSettings } from './settings';
 
 const MAX_PER_SESSION = 5;
@@ -19,24 +20,20 @@ function scrub(text: string): string {
 
 export function reportCrash(processName: 'main' | 'renderer', message: string, stack?: string): void {
   if (!getSettings().privacy.crashReports) return;
-  const client = getCloudClient();
-  if (!client || sent >= MAX_PER_SESSION) return;
+  const db = getDb();
+  if (!db || sent >= MAX_PER_SESSION) return;
   const key = `${processName}:${message}`;
   if (seen.has(key)) return;
   seen.add(key);
   sent += 1;
-  void client
-    .from('crash_reports')
-    .insert({
-      app_version: app.getVersion().slice(0, 40),
-      platform: process.platform.slice(0, 20),
-      process: processName,
-      message: scrub(String(message)).slice(0, 1000),
-      stack: stack ? scrub(String(stack)).slice(0, 8000) : null,
-    })
-    .then(({ error }) => {
-      if (error) console.warn('Crash report not sent:', error.message);
-    });
+  addDoc(collection(db, 'crashReports'), {
+    appVersion: app.getVersion().slice(0, 40),
+    platform: process.platform.slice(0, 20),
+    process: processName,
+    message: scrub(String(message)).slice(0, 1000),
+    stack: stack ? scrub(String(stack)).slice(0, 8000) : null,
+    createdAt: serverTimestamp(),
+  }).catch((err) => console.warn('Crash report not sent:', err?.message ?? err));
 }
 
 export function initCrashReports(): void {

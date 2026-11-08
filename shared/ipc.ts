@@ -46,7 +46,7 @@ export const IPC = {
   authSignInEmail: 'auth:sign-in-email',
   authSignUpEmail: 'auth:sign-up-email',
   authSendReset: 'auth:send-reset',
-  authSetPassword: 'auth:set-password',
+  authResendVerification: 'auth:resend-verification',
   authCancel: 'auth:cancel',
   authDismissMessage: 'auth:dismiss-message',
   authSignOut: 'auth:sign-out',
