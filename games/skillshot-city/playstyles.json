@@ -1,0 +1,471 @@
+{
+ "_about": "Playstyle presets for the ShotCaller builder (2026-11-07), built around the game's official synergy pairs. Sliders are 0-100: aggression, range (0 close \u2026 100 long), survival, spice (0 meta \u2026 100 wild). Class ids: STRIKER = Marksman.",
+ "styles": [
+  {
+   "id": "tank",
+   "name": "Unkillable tank",
+   "pitch": "Soak everything, win the long fights.",
+   "core": [
+    "BEEFCAKE",
+    "FORCEFIELD",
+    "AUTOMATICARMOR",
+    "MANASHIELD",
+    "REGENERATION"
+   ],
+   "flex": [
+    "VAMPIRISM",
+    "SELFREPAIR",
+    "ENERGYVORTEX",
+    "TELEPORTATION",
+    "REVENGEROCKET"
+   ],
+   "classes": [
+    "HEAVY",
+    "CASTER"
+   ],
+   "sliders": {
+    "aggression": 35,
+    "range": 40,
+    "survival": 95,
+    "spice": 15
+   }
+  },
+  {
+   "id": "clones",
+   "name": "Clone army",
+   "pitch": "Mirror Image copies your active skills: cast first, then clone.",
+   "core": [
+    "MIRRORIMAGE",
+    "SELFREPAIR",
+    "FORCEFIELD",
+    "BLADEFURY"
+   ],
+   "flex": [
+    "TELEPORTATION",
+    "POISONTRAIL",
+    "KILLERCOOLDOWNS",
+    "INVISIBILITY",
+    "AUTOMATICARMOR"
+   ],
+   "classes": [
+    "ASSASSIN",
+    "CASTER",
+    "HEAVY"
+   ],
+   "sliders": {
+    "aggression": 60,
+    "range": 50,
+    "survival": 60,
+    "spice": 55
+   }
+  },
+  {
+   "id": "caster",
+   "name": "Nuke caster",
+   "pitch": "Big active skills on short cooldowns.",
+   "core": [
+    "RADIATE",
+    "FIRESTORM",
+    "VENOMSHOT",
+    "SKILLSHOTS",
+    "KILLERCOOLDOWNS"
+   ],
+   "flex": [
+    "SHOCKWAVE",
+    "MANASHIELD",
+    "CLUSTERBOMB",
+    "XRAYVISION",
+    "CHARGEDSHOT"
+   ],
+   "classes": [
+    "CASTER",
+    "SCIENTIST"
+   ],
+   "sliders": {
+    "aggression": 70,
+    "range": 75,
+    "survival": 40,
+    "spice": 30
+   }
+  },
+  {
+   "id": "sniper",
+   "name": "One-shot sniper",
+   "pitch": "Long-range picks with bouncing, fast bullets.",
+   "core": [
+    "BOUNCINGBULLETS",
+    "LASERSCOPE",
+    "CHARGEDSHOT",
+    "EXECUTIONER"
+   ],
+   "flex": [
+    "FLYINGDAGGER",
+    "XRAYVISION",
+    "GUNSLINGER",
+    "SHRAPNEL",
+    "SELFREPAIR"
+   ],
+   "classes": [
+    "STRIKER"
+   ],
+   "sliders": {
+    "aggression": 75,
+    "range": 95,
+    "survival": 30,
+    "spice": 20
+   }
+  },
+  {
+   "id": "bullethose",
+   "name": "Bullet hose",
+   "pitch": "Max fire rate and ammo, never stop shooting.",
+   "core": [
+    "FRENZY",
+    "CLIPMAGNET",
+    "PROXIMITYROUNDS",
+    "GUNSLINGER"
+   ],
+   "flex": [
+    "BOUNCINGBULLETS",
+    "FLAMINGBULLETS",
+    "PHASEDRIFTING",
+    "MANASHIELD",
+    "AUTOMATICARMOR"
+   ],
+   "classes": [
+    "ASSAULT",
+    "CRIMINAL"
+   ],
+   "sliders": {
+    "aggression": 85,
+    "range": 45,
+    "survival": 45,
+    "spice": 20
+   }
+  },
+  {
+   "id": "assassin",
+   "name": "Shadow assassin",
+   "pitch": "Vanish, strike from behind, finish the low ones.",
+   "core": [
+    "INVISIBILITY",
+    "SMOKEBOMB",
+    "SHIFTATTACK",
+    "EXECUTIONER"
+   ],
+   "flex": [
+    "BLADEFURY",
+    "XRAYVISION",
+    "COMBOKILLER",
+    "TELEPORTATION",
+    "SHIFTSUPPLY"
+   ],
+   "classes": [
+    "ASSASSIN",
+    "SCAVENGER"
+   ],
+   "sliders": {
+    "aggression": 90,
+    "range": 20,
+    "survival": 35,
+    "spice": 40
+   }
+  },
+  {
+   "id": "pyro",
+   "name": "Pyromaniac",
+   "pitch": "Set the whole block on fire.",
+   "core": [
+    "FLAMINGBULLETS",
+    "FIRESTORM",
+    "FALLINGINFERNO"
+   ],
+   "flex": [
+    "SOULDROP",
+    "SHRAPNEL",
+    "SKILLSHOTS",
+    "CLUSTERBOMB",
+    "REGENERATION"
+   ],
+   "classes": [
+    "STRIKER",
+    "CASTER",
+    "HEAVY"
+   ],
+   "sliders": {
+    "aggression": 70,
+    "range": 55,
+    "survival": 40,
+    "spice": 45
+   }
+  },
+  {
+   "id": "plague",
+   "name": "Plague doctor",
+   "pitch": "Poison everything and kite while it ticks.",
+   "core": [
+    "VENOMSHOT",
+    "POISONTRAIL",
+    "TOXICBLOOD"
+   ],
+   "flex": [
+    "SKILLSHOTS",
+    "ENERGYVORTEX",
+    "CRITICALRAGE",
+    "BOOTSOFTRAVEL",
+    "REGENERATION"
+   ],
+   "classes": [
+    "SCIENTIST",
+    "CASTER",
+    "ASSAULT"
+   ],
+   "sliders": {
+    "aggression": 55,
+    "range": 60,
+    "survival": 50,
+    "spice": 50
+   }
+  },
+  {
+   "id": "demolition",
+   "name": "Demolition expert",
+   "pitch": "Explosives on explosives.",
+   "core": [
+    "CLUSTERBOMB",
+    "REVENGEROCKET",
+    "SHRAPNEL"
+   ],
+   "flex": [
+    "FALLINGINFERNO",
+    "GUNSLINGER",
+    "CHARGEDSHOT",
+    "MEDICALSUPPLIES",
+    "SKILLSHOTS"
+   ],
+   "classes": [
+    "HEAVY",
+    "STRIKER"
+   ],
+   "sliders": {
+    "aggression": 70,
+    "range": 60,
+    "survival": 45,
+    "spice": 50
+   }
+  },
+  {
+   "id": "blades",
+   "name": "Blade dancer",
+   "pitch": "Spin into the crowd and keep healing.",
+   "core": [
+    "BLADEFURY",
+    "BLADEMAIL",
+    "VAMPIRISM"
+   ],
+   "flex": [
+    "SHIFTATTACK",
+    "SHIFTSUPPLY",
+    "STIMPACKS",
+    "INVISIBILITY",
+    "SMOKEBOMB"
+   ],
+   "classes": [
+    "ASSAULT",
+    "ASSASSIN"
+   ],
+   "sliders": {
+    "aggression": 95,
+    "range": 10,
+    "survival": 60,
+    "spice": 55
+   }
+  },
+  {
+   "id": "speed",
+   "name": "Speed demon",
+   "pitch": "Always first to loot, never caught.",
+   "core": [
+    "BOOTSOFTRAVEL",
+    "PHASEDRIFTING",
+    "SHIFTSUPPLY",
+    "STIMPACKS"
+   ],
+   "flex": [
+    "SHIFTATTACK",
+    "TELEPORTATION",
+    "SOULDROP",
+    "CLIPMAGNET"
+   ],
+   "classes": [
+    "SCIENTIST",
+    "SCAVENGER"
+   ],
+   "sliders": {
+    "aggression": 60,
+    "range": 40,
+    "survival": 55,
+    "spice": 60
+   }
+  },
+  {
+   "id": "kingpin",
+   "name": "Kingpin",
+   "pitch": "Farm cash and XP faster than everyone, then cash out.",
+   "core": [
+    "ILLICITINCOME",
+    "ARMEDROBBERY",
+    "CRITICALRAGE",
+    "COMBOKILLER"
+   ],
+   "flex": [
+    "MANICMECHANIC",
+    "MEDICALSUPPLIES",
+    "EXECUTIONER",
+    "PROXIMITYROUNDS"
+   ],
+   "classes": [
+    "CRIMINAL",
+    "HEAVY",
+    "ASSASSIN"
+   ],
+   "sliders": {
+    "aggression": 50,
+    "range": 50,
+    "survival": 55,
+    "spice": 45
+   }
+  },
+  {
+   "id": "roadrage",
+   "name": "Road rage",
+   "pitch": "Live in a car and run people over.",
+   "core": [
+    "RAMBULANCE",
+    "MANICMECHANIC",
+    "BEEFCAKE"
+   ],
+   "flex": [
+    "REVENGEROCKET",
+    "ILLICITINCOME",
+    "AUTOMATICARMOR",
+    "COMBOKILLER"
+   ],
+   "classes": [
+    "CRIMINAL",
+    "HEAVY"
+   ],
+   "sliders": {
+    "aggression": 75,
+    "range": 30,
+    "survival": 70,
+    "spice": 85
+   }
+  },
+  {
+   "id": "vampire",
+   "name": "Vampire lord",
+   "pitch": "Drain health from everything near you.",
+   "core": [
+    "VAMPIRISM",
+    "ENERGYVORTEX",
+    "SOULDROP"
+   ],
+   "flex": [
+    "BLADEFURY",
+    "PROXIMITYROUNDS",
+    "FORCEFIELD",
+    "REGENERATION"
+   ],
+   "classes": [
+    "CRIMINAL",
+    "ASSAULT"
+   ],
+   "sliders": {
+    "aggression": 80,
+    "range": 25,
+    "survival": 80,
+    "spice": 45
+   }
+  },
+  {
+   "id": "cooldowns",
+   "name": "Cooldown machine",
+   "pitch": "Kills reset everything: chain active skills.",
+   "core": [
+    "KILLERCOOLDOWNS",
+    "MANASHIELD",
+    "SKILLSHOTS",
+    "SHOCKWAVE"
+   ],
+   "flex": [
+    "RADIATE",
+    "VENOMSHOT",
+    "FRENZY",
+    "TELEPORTATION"
+   ],
+   "classes": [
+    "CASTER",
+    "SCIENTIST"
+   ],
+   "sliders": {
+    "aggression": 70,
+    "range": 60,
+    "survival": 50,
+    "spice": 35
+   }
+  },
+  {
+   "id": "scout",
+   "name": "Recon",
+   "pitch": "See everyone through walls and pick your fights.",
+   "core": [
+    "XRAYVISION",
+    "RADIATE",
+    "SMOKEBOMB"
+   ],
+   "flex": [
+    "INVISIBILITY",
+    "MEDICALSUPPLIES",
+    "COMBOKILLER",
+    "BOOTSOFTRAVEL"
+   ],
+   "classes": [
+    "SCAVENGER"
+   ],
+   "sliders": {
+    "aggression": 55,
+    "range": 65,
+    "survival": 55,
+    "spice": 30
+   }
+  },
+  {
+   "id": "gremlin",
+   "name": "Chaos gremlin",
+   "pitch": "Traps, cops on your side, frozen bullets. Pure mayhem.",
+   "core": [
+    "HYPNOTICARMY",
+    "SPIKETRAP",
+    "BULLETTIME",
+    "SHOCKWAVE"
+   ],
+   "flex": [
+    "MIRRORIMAGE",
+    "SOULDROP",
+    "EXECUTIONER",
+    "CLUSTERBOMB"
+   ],
+   "classes": [
+    "ASSAULT",
+    "CRIMINAL"
+   ],
+   "sliders": {
+    "aggression": 65,
+    "range": 40,
+    "survival": 45,
+    "spice": 100
+   }
+  }
+ ]
+}

@@ -66,7 +66,7 @@ Moved up by the user (2026-11-07). Split into two parts by the user in the Phase
 
 Deliverables:
 - Skill collection: owned skills + rarity per class, auto-detected (log builds + profile now; memory reader for the full list and instant unlock / rarity changes), change notices. ✅ file-based part done
-- Skill builder page in the app: pick class + goal skills from what you own, synergy map, suggested builds; the goal drives the advisor.
+- Advanced skill builder page (P6-Q42–48): playstyle card + sliders (aggression, range, survival, spice) + surprise me; owned skills only; top 3 builds with pros/cons; each with skills, what to max first, backups and reroll targets, and the in-game slots to equip; scored from synergy results, offer odds, tiers/notes, skill numbers, K/D per build. The chosen build becomes the goal the advisor follows.
 - Skill + synergy data extracted from the game files (names, descriptions, trees, synergies, real icons), plus tier/role/tags (community-drafted, adjusted by your stats). JSON in `games/skillshot-city/`; re-extract after game updates.
 - Live log tailer: level-ups, offers, picks, build, BR round 1-3/final, match stats, final standings. Import past matches from old logs on first run.
 - Screen reading of the 2 offered skills (icon match + OCR, offline); manual icon grid/search + Alt+1/Alt+2 fallback.
