@@ -34,7 +34,7 @@ export interface OwnedSkill {
   rarity: number;
   /** Every rarity this skill was seen at in your builds. */
   rarities: number[];
-  /** Entries in your profile's owned-skill list. */
+  /** Entries in your profile's ::IMPS list (looks like draft impressions, not ownership). */
   copies: number;
   /** Classes whose build used it. */
   classes: string[];
@@ -54,6 +54,8 @@ export interface SkillCollection {
   classBuilds: ClassBuild[];
   /** Class read from your newest finished match. */
   detectedClass: string | null;
+  /** Skills unlocked on your account, as the game logs it at each draft ("Enabled: n"). */
+  ownedCount: number | null;
   updatedAt: number;
 }
 
@@ -68,6 +70,8 @@ export interface CollectionStore {
   profile: Record<number, number>;
   detectedClass: string | null;
   detectedAt: number;
+  ownedCount?: number;
+  ownedCountAt?: number;
 }
 
 export function emptyStore(): CollectionStore {
@@ -96,6 +100,13 @@ export function setDetectedClass(store: CollectionStore, classId: string | null,
     store.detectedClass = classId;
     store.detectedAt = at;
   }
+}
+
+export function setOwnedCount(store: CollectionStore, n: number, at: number): boolean {
+  if (at < (store.ownedCountAt ?? 0) || n === store.ownedCount) return false;
+  store.ownedCount = n;
+  store.ownedCountAt = at;
+  return true;
 }
 
 /** Pulls the owned-skill numbers out of the profile text. Reads only the `::IMPS` section. */
@@ -138,5 +149,5 @@ export function toCollection(store: CollectionStore, idOf: (name: string) => str
       slots: b.slots.map((s) => ({ ...s, skillId: s.name ? idOf(s.name) : null })),
     }))
     .sort((a, b) => b.seenAt - a.seenAt);
-  return { owned, classBuilds, detectedClass: store.detectedClass, updatedAt: Math.max(store.detectedAt, ...classBuilds.map((b) => b.seenAt), 0) };
+  return { owned, classBuilds, detectedClass: store.detectedClass, ownedCount: store.ownedCount ?? null, updatedAt: Math.max(store.detectedAt, ...classBuilds.map((b) => b.seenAt), 0) };
 }

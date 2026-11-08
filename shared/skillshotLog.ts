@@ -16,6 +16,8 @@ export type LogEvent =
   | { t: 'levelUp'; player: string; level: number }
   | { t: 'draftStart'; level: number; rerolls: number }
   | { t: 'buildStart' }
+  /** "Draft Impressions: n Ideal: n Enabled: n": Enabled = skills unlocked on your account. */
+  | { t: 'draftInfo'; enabled: number }
   /** One equipped build slot; num -1 / name null = empty slot. */
   | { t: 'poolSlot'; num: number; name: string | null; rarity: number }
   | { t: 'draft'; n: number; offers: DraftOffer[]; selected: DraftOffer | null }
@@ -107,6 +109,7 @@ export function parseMessage(msg: string): LogEvent | null {
   if ((m = /^Generating New Draft With Game Seed:.*?reroll counter: (\d+).*?player level: (\d+)/.exec(msg)))
     return { t: 'draftStart', rerolls: Number(m[1]), level: Number(m[2]) };
   if (msg.startsWith('Skill Build Below')) return { t: 'buildStart' };
+  if ((m = /^Draft Impressions: \d+ Ideal: \d+ Enabled: (\d+)/.exec(msg))) return { t: 'draftInfo', enabled: Number(m[1]) };
   if ((m = /^Build Slot \(Rarity=(\d+)\): ID=(-?\d+)(?: Name=(.+))?$/.exec(msg)))
     return { t: 'poolSlot', rarity: Number(m[1]), num: Number(m[2]), name: m[3]?.trim() || null };
   if ((m = /^SKILL DRAFT (\d+) \(current draft point = \d+\): (.*?), SELECTED: (.*)$/.exec(msg))) {

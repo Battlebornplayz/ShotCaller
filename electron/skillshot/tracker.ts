@@ -18,6 +18,7 @@ import {
   parseProfileSkills,
   recordBuild,
   setDetectedClass,
+  setOwnedCount,
   toCollection,
   type CollectionStore,
   type SkillCollection,
@@ -223,6 +224,7 @@ function skillStats(): { stats: Record<string, SkillStat>; overall: number | nul
 
 function feed(e: TimedEvent): void {
   lastLogTime = e.at;
+  if (e.ev.t === 'draftInfo' && setOwnedCount(collection, e.ev.enabled, e.at)) collectionChanged();
   if (e.ev.t === 'self') profileName ??= e.ev.name;
   if (startsNewMatch(live, e)) {
     archive(live);

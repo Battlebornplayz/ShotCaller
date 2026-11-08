@@ -48,10 +48,15 @@ export function SkillCollectionCard() {
         </p>
       ) : (
         <>
+          {collection.ownedCount !== null && (
+            <div style={{ marginTop: 10, fontSize: 13 }}>
+              <b style={{ fontSize: 18 }}>{collection.ownedCount}</b> <span className="muted">skills unlocked on your account (from your last match)</span>
+            </div>
+          )}
           <RarityLegend owned={collection.owned} />
           <div className="segmented" style={{ marginTop: 12, flexWrap: 'wrap' }}>
             <button aria-pressed={tab === 'owned'} onClick={() => setTab('owned')}>
-              All owned ({collection.owned.length})
+              Known skills ({collection.owned.length})
             </button>
             {collection.classBuilds.map((b) => (
               <button key={b.classId} aria-pressed={tab === b.classId} onClick={() => setTab(b.classId)}>
@@ -64,9 +69,9 @@ export function SkillCollectionCard() {
       )}
 
       <p className="muted" style={{ fontSize: 11.5, margin: '12px 0 0' }}>
-        Read-only from the game's files: each match's equipped build (with rarity and class) from <code>log.txt</code>, and your owned-skill list
-        from your profile. The full collection is kept on the game's server, so a skill you've never equipped shows as a number until the game
-        names it. The memory reader (coming later) fills in the rest.
+        Read-only from the game's files: each match's equipped build (with rarity and class) and your unlocked-skill count from{' '}
+        <code>log.txt</code>, plus the draft history in your profile. New unlocks (flasks) are only kept on the game's server, so skills you
+        haven't equipped yet show up once you equip them, or once the memory reader (coming later) reads your collection.
       </p>
     </section>
   );
@@ -128,7 +133,7 @@ function RarityLegend({ owned }: { owned: OwnedSkill[] }) {
       ))}
       {owned.length > named.length && (
         <span className="muted">
-          + {owned.length - named.length} owned, rarity not seen yet
+          + {owned.length - named.length} seen in drafts, rarity not known yet
         </span>
       )}
     </div>
@@ -168,9 +173,9 @@ function OwnedGrid({ owned, data }: { owned: OwnedSkill[]; data: SkillshotData |
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
                 {known ? <RarityPill rarity={o.rarity} /> : <span className="muted" style={{ fontSize: 11 }}>{skill ? 'Rarity not seen yet' : 'Name not seen yet'}</span>}
-                {o.copies > 1 && (
-                  <span className="muted" style={{ fontSize: 11 }} title="Entries in your profile's owned-skill list">
-                    ×{o.copies}
+                {o.copies > 0 && (
+                  <span className="muted" style={{ fontSize: 11 }} title="Times the game recorded this skill in your profile's draft history">
+                    seen ×{o.copies}
                   </span>
                 )}
               </div>
