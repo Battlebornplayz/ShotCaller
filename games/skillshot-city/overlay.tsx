@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MatchRecord, SkillshotData, SkillshotLiveState, SkillshotSkill } from '../../shared/skillshot';
 import { SKILL_TREES } from '../../shared/skillshot';
 import type { SkillAdvice } from '../../shared/skillshotAdvisor';
+import { reviewMatch, suggestSessionGoals } from '../../shared/skillshotStats';
 import type { Settings } from '../../shared/types';
 import { useOverlayState, useSettings, useSkillshot, useSkillshotData } from '../../src/hooks/useLive';
 import { SkillIcon, skillById, TierBadge, TREE_COLORS } from './ui';
@@ -428,40 +429,64 @@ function ManualPick({ s, data, onClose }: { s: SkillshotLiveState; data: Skillsh
   );
 }
 
-function LobbyView({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotData | null; wide: boolean }) {
+function LobbyView({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotData; wide: boolean }) {
   const [matches, setMatches] = useState<MatchRecord[]>([]);
-  const lastId = s.lastMatch?.id;
+  const lastId = `${s.lastMatch?.id ?? ''}:${s.lastMatch?.endedAt ?? ''}`;
   useEffect(() => {
     void window.shotcaller.getSkillshotMatches().then(setMatches);
   }, [lastId]);
-  const today = new Date().toDateString();
-  const session = matches.filter((m) => new Date(m.startedAt).toDateString() === today && m.place !== null);
-  const wins = session.filter((m) => m.won).length;
-  const top3 = session.filter((m) => (m.place ?? 99) <= 3).length;
-  const avg = session.length ? session.reduce((n, m) => n + (m.place ?? 0), 0) / session.length : null;
   const m = s.lastMatch;
+  const review = useMemo(() => (m ? reviewMatch(data, m) : null), [data, m]);
+  const goals = useMemo(() => suggestSessionGoals(matches), [matches]);
+  const nm = (id: string | null) => (id && skillById(data, id)?.name) || id || '';
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
       <div>
         <div className="section-label">Last match</div>
         {m ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: m.won ? 'var(--gold)' : undefined }}>{m.place ? `#${m.place}` : '—'}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12 }}>
-                <b>{m.kills}</b>
-                <span className="muted"> kills · </span>
-                <b>{m.deaths}</b>
-                <span className="muted"> deaths · lv </span>
-                <b>{m.level}</b>
-              </div>
-              <div style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap' }}>
-                {Object.entries(m.build).map(([id]) => (
-                  <SkillIcon key={id} skill={skillById(data, id)} size={wide ? 26 : 20} />
-                ))}
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: m.won ? 'var(--gold)' : undefined, minWidth: 44 }}>{m.place ? `#${m.place}` : '—'}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12 }}>
+                  <b>{m.kills}</b>
+                  <span className="muted"> kills · </span>
+                  <b>{m.deaths}</b>
+                  <span className="muted"> deaths · lv </span>
+                  <b>{m.level}</b>
+                  {!m.place && <span className="muted"> · {m.complete ? '' : 'unfinished'}</span>}
+                </div>
+                <div style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap' }}>
+                  {Object.entries(m.build).map(([id]) => (
+                    <SkillIcon key={id} skill={skillById(data, id)} size={wide ? 26 : 20} />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+            {review && review.choices > 0 && (
+              <div style={{ display: 'grid', gap: 3, marginTop: 8, fontSize: 11.5 }}>
+                <span>
+                  <span className="muted">Advice followed </span>
+                  <b>
+                    {review.followed}/{review.choices}
+                  </b>
+                </span>
+                {review.best && (
+                  <span>
+                    <span className="muted">Best pick </span>
+                    <b style={{ color: 'var(--green)' }}>{nm(review.best.picked)}</b>
+                  </span>
+                )}
+                {review.worst && (
+                  <span>
+                    <span className="muted">Weakest </span>
+                    <b style={{ color: 'var(--red)' }}>{nm(review.worst.picked)}</b>
+                    <span className="muted"> → {nm(review.worst.advised)} was better</span>
+                  </span>
+                )}
+              </div>
+            )}
+          </>
         ) : (
           <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
             No matches tracked yet.
@@ -469,15 +494,15 @@ function LobbyView({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotDa
         )}
       </div>
       <div>
-        <div className="section-label">Today</div>
-        <div style={{ display: 'flex', gap: 14, marginTop: 4 }}>
-          <Stat label="matches" value={session.length} />
-          <Stat label="wins" value={wins} color={wins ? 'var(--gold)' : undefined} />
-          <Stat label="top 3" value={top3} />
-          <Stat label="avg place" value={avg !== null ? avg.toFixed(1) : '—'} />
-        </div>
-        <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>
-          {session.length === 0 ? 'Goal: finish top 3 in your first match.' : wins === 0 ? 'Goal: grab a win today.' : `Goal: ${top3 + 1} top-3 finishes.`}
+        <div className="section-label">Today's goals</div>
+        <div style={{ display: 'grid', gap: 3, marginTop: 5 }}>
+          {goals.slice(0, wide ? 4 : 3).map((g) => (
+            <div key={g.id} style={{ display: 'flex', gap: 7, fontSize: 11.5 }}>
+              <span style={{ color: g.done ? 'var(--green)' : 'var(--muted)' }}>{g.done ? '✓' : '○'}</span>
+              <span style={{ flex: 1, opacity: g.done ? 0.65 : 1 }}>{g.text}</span>
+              <span className="muted">{g.progress}</span>
+            </div>
+          ))}
         </div>
       </div>
       {s.classId && (
