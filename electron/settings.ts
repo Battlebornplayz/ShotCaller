@@ -21,6 +21,7 @@ const DEFAULTS: Settings = {
   hotkeys: { ...DEFAULT_HOTKEYS },
   hotkeysOnlyInGame: true,
   startup: { launchAtLogin: true, onGameLaunch: 'overlay', closeToTray: true },
+  skillshot: { offerSound: true, memoryReader: false },
 };
 
 let cache: Settings | null = null;
@@ -79,6 +80,7 @@ function sanitize(input: unknown): Settings {
   const overlay = obj(raw.overlay);
   const startup = obj(raw.startup);
   const privacy = obj(raw.privacy);
+  const skillshot = obj(raw.skillshot);
   const hotkeysRaw = obj(raw.hotkeys);
   const popups = obj(raw.popups);
   const volume = finite(popups.volume) ? popups.volume : DEFAULTS.popups.volume;
@@ -125,6 +127,10 @@ function sanitize(input: unknown): Settings {
       onGameLaunch: oneOf<GameLaunchAction>(startup.onGameLaunch, ['overlay', 'window', 'nothing'], DEFAULTS.startup.onGameLaunch),
       closeToTray: bool(startup.closeToTray, DEFAULTS.startup.closeToTray),
     },
+    skillshot: {
+      offerSound: bool(skillshot.offerSound, DEFAULTS.skillshot.offerSound),
+      memoryReader: bool(skillshot.memoryReader, DEFAULTS.skillshot.memoryReader),
+    },
   };
 }
 
@@ -154,6 +160,7 @@ export function updateSettings(patch: SettingsPatch): Settings {
     hotkeys: { ...prev.hotkeys, ...obj(p.hotkeys) },
     startup: { ...prev.startup, ...obj(p.startup) },
     privacy: { ...prev.privacy, ...obj(p.privacy) },
+    skillshot: { ...prev.skillshot, ...obj(p.skillshot) },
   };
   // Rebinding a combination another action already uses moves it: the old action is unbound.
   for (const [action, combo] of Object.entries(obj(p.hotkeys))) {

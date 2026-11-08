@@ -2,7 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import { IPC } from '../shared/ipc';
 import type { RunningGame } from '../shared/types';
 import { disposeHub, initHub, onHubChange } from './achievements';
-import { disposeSkillshot, initSkillshot, onSkillshotChange } from './skillshot/tracker';
+import { disposeSkillshot, initSkillshot, onCollectionChange, onSkillshotChange } from './skillshot/tracker';
 import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
 import { disposeAuth, initAuth, onAuthStateChange, refreshProfile } from './auth';
 import { initCrashReports } from './crashReports';
@@ -134,6 +134,7 @@ if (!app.requestSingleInstanceLock()) {
     startDetection();
     onHubChange((state) => broadcast(IPC.hubChanged, state));
     onSkillshotChange((state) => broadcast(IPC.skillshotChanged, state));
+    onCollectionChange((c) => broadcast(IPC.skillshotCollectionChanged, c));
     void importSteamLibrary().then(() => Promise.all([initHub(), initSkillshot()]));
 
     if (startedHidden()) {

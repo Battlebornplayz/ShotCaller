@@ -5,6 +5,7 @@ import { useDetection, useHubQuery, useOverlayState } from '../../hooks/useLive'
 import { GameTile, since } from '../pages';
 import { Art, bannerSources } from './art';
 import { SOURCE_LABEL } from './LibraryPage';
+import { SkillCollectionCard } from '../../../games/skillshot-city/SkillCollectionCard';
 
 type Filter = 'all' | 'unlocked' | 'locked';
 type Sort = 'easiest' | 'rarest' | 'recent' | 'name';
@@ -86,6 +87,8 @@ export function GamePage({ game }: { game: LibraryGame }) {
           </div>
         )}
       </div>
+
+      {game.moduleId === 'skillshot-city' && <SkillCollectionCard />}
 
       {data?.tracking !== 'steam' && data && <ListSourceCard game={game} data={data} />}
 

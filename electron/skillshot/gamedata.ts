@@ -154,13 +154,16 @@ export async function extractSkillshotData(installDir: string): Promise<Skillsho
     if (s && !NOT_SKILLS.has(s[1])) {
       const id = s[1];
       const t = text.get(key)!;
+      // A few skills keep their text under DESC_02 or a plural key (FORCEFIELD → FORCEFIELDS_DESC_01).
+      const desc = (suffix: string) =>
+        [id, `${id}S`].map((k) => text.get(`SKILL_${k}_${suffix}`)?.text).find((v) => v) ?? '';
       skills.push({
         id,
         name: t.text,
         nameEn: t.en,
-        description: text.get(`SKILL_${id}_DESC_01`)?.text ?? '',
-        short: text.get(`SKILL_${id}_DESC_SHORT`)?.text ?? '',
-        mutation: text.get(`SKILL_${id}_DESC_MUTATION`)?.text ?? '',
+        description: desc('DESC_01') || desc('DESC_02'),
+        short: desc('DESC_SHORT'),
+        mutation: desc('DESC_MUTATION'),
       });
     }
     const c = /^CLASS_([A-Z]+)$/.exec(key);

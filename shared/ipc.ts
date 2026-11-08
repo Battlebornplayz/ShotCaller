@@ -79,4 +79,6 @@ export const IPC = {
   skillshotPick: 'skillshot:pick',
   skillshotSetGoal: 'skillshot:set-goal',
   skillshotSetClass: 'skillshot:set-class',
+  skillshotCollection: 'skillshot:collection',
+  skillshotCollectionChanged: 'skillshot:collection-changed',
 } as const;

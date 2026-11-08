@@ -1,6 +1,7 @@
 // Types shared by the Electron main process, the preload script and the renderer.
 
 import type { MatchRecord, SkillshotData, SkillshotLiveState } from './skillshot';
+import type { SkillCollection } from './skillshotCollection';
 
 export type Channel = 'stable' | 'beta';
 
@@ -49,6 +50,13 @@ export interface StartupSettings {
   closeToTray: boolean;
 }
 
+export interface SkillshotSettings {
+  /** Soft sound cue when skill advice appears. */
+  offerSound: boolean;
+  /** Read-only memory reader for live values (own player only). Off by default: ban risk. */
+  memoryReader: boolean;
+}
+
 export interface PrivacySettings {
   /** Send anonymous crash reports (error message + stack, app version, OS). Off by default. */
   crashReports: boolean;
@@ -78,6 +86,7 @@ export interface Settings {
   /** Only register the global hotkeys while a game is running or the overlay is showing. */
   hotkeysOnlyInGame: boolean;
   startup: StartupSettings;
+  skillshot: SkillshotSettings;
 }
 
 export interface SettingsPatch {
@@ -89,6 +98,7 @@ export interface SettingsPatch {
   hotkeysOnlyInGame?: boolean;
   startup?: Partial<StartupSettings>;
   privacy?: Partial<PrivacySettings>;
+  skillshot?: Partial<SkillshotSettings>;
 }
 
 // ---------- Accounts and cloud ----------
@@ -433,6 +443,9 @@ export interface ShotCallerApi {
   onSkillshot(callback: (state: SkillshotLiveState) => void): Unsubscribe;
   getSkillshotData(): Promise<SkillshotData | null>;
   getSkillshotMatches(): Promise<MatchRecord[]>;
+  /** Your owned skills with rarity and the build you equip on each class, read from the game's files. Pushed on change. */
+  getSkillCollection(): Promise<SkillCollection>;
+  onSkillCollection(callback: (collection: SkillCollection) => void): Unsubscribe;
   /** Sets the offered skills (manual grid, screen reader). Empty clears the offer. */
   setSkillshotOffer(skillIds: string[]): Promise<void>;
   /** Picks offer #index (0 or 1) or a skill id. */

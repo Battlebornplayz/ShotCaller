@@ -135,6 +135,9 @@ Numbered P6-Q1… to avoid clashing with the Phase 1 numbers.
 - P6-Q38: **C** — counter tips (Part 2) in the recap and live on the overlay, if the log records who hit/killed you.
 - P6-Q39: **A** — soft sound cue when the advice cards appear.
 - P6-Q40: **A** — tag beta v0.0.4 after Part 1 (also the first test of silent in-place updates).
+- **Skill collection reader (user, 2026-11-07, Part 1):** auto-read owned skills per class with rarity colors (Common grey / Rare blue / Epic purple / Legendary gold). Sources: each match's equipped build (`Build Slot` lines) under the class from your standing (classID follows the game's class order: 1 Assault, 2 Marksman, 3 Heavy, 4 Caster, 5 Scavenger, 6 Criminal, 7 Scientist, 8 Assassin; unverified beyond 1) and the profile's `::IMPS` owned list (skill numbers, names learned from the log). Full collection is server-side (HTTPS) → memory reader fills the rest. Flask results are not logged; the profile is saved on game exit. Network interception rejected (HTTPS + root cert/proxy, injection rule).
+- **ShotCaller MCP (user, 2026-11-07):** localhost MCP server so Claude can assist players; goes in Phase 6 Part 2 (see PROJECT_PLAN).
+- **Built-in Ask engine (user, 2026-11-07):** the main assistant is ShotCaller's own offline engine that answers from overlay/app data (no API key, no cost, no account). The Claude MCP is an optional add-on on top. Not using the Claude API inside the app: it bills per use and needs a key.
 - P6-Q41: **B** — ShotCaller's Skillshot text follows the game's language setting (game ships de/es/fr/pt_BR/ru/zh_Hans translations).
 
 ## Technical notes

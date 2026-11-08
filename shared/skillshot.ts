@@ -16,9 +16,17 @@ export interface SkillshotSkill {
   short: string;
   mutation: string;
   tier?: SkillTier;
+  /** Skill tree (Healing, Defense, Weaponry, Damage, DOT, Utility), from tiers.json. */
+  tree?: SkillTree;
   role?: string;
+  /** "active" / "passive" plus themes (fire, poison, economy, …). */
   tags?: string[];
+  /** Community tip, from tiers.json. */
+  note?: string;
 }
+
+export const SKILL_TREES = ['Healing', 'Defense', 'Weaponry', 'Damage', 'DOT', 'Utility'] as const;
+export type SkillTree = (typeof SKILL_TREES)[number];
 
 export interface SkillshotClass {
   id: string;
@@ -85,6 +93,8 @@ export interface SkillshotLiveState {
   syringes: number;
   wanted: number;
   classId: string | null;
+  /** Where the class came from: picked in ShotCaller, or read from your last finished match. */
+  classSource: 'manual' | 'auto' | null;
   /** Skill id → level: log-confirmed picks plus manual picks the log hasn't written yet. */
   build: Record<string, number>;
   /** Skill id → rarity (0 common … 3 legendary) from your in-game pool. */

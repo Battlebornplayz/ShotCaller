@@ -1,1 +1,477 @@
-{}
+{
+ "_about": "Draft tiers by ShotCaller (2026-11-07): survival first (community \"How to win\" guide), plus notes from the Steam guides \"TL;DR pvp guide\" and \"How to Mirror Image\". No full community tier list exists; your own win rates adjust these in the advisor.",
+ "skills": {
+  "ARMEDROBBERY": {
+   "tier": "C",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "passive",
+    "economy"
+   ]
+  },
+  "ASSASSINATE": {
+   "tier": "C",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "passive"
+   ]
+  },
+  "AUTOMATICARMOR": {
+   "tier": "A",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "passive"
+   ],
+   "note": "Defensive shields stack multiplicatively: two or three of them overlap."
+  },
+  "BEEFCAKE": {
+   "tier": "A",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "passive"
+   ],
+   "note": "Flat health: safe, but low impact late."
+  },
+  "BLADEFURY": {
+   "tier": "A",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "active"
+   ]
+  },
+  "BLADEMAIL": {
+   "tier": "C",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "passive"
+   ],
+   "note": "Defensive shields stack multiplicatively: two or three of them overlap."
+  },
+  "BOOTSOFTRAVEL": {
+   "tier": "C",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "passive",
+    "mobility"
+   ]
+  },
+  "BOUNCINGBULLETS": {
+   "tier": "S",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive"
+   ],
+   "note": "Brutal with a stacked sniper (Barret)."
+  },
+  "BULLETTIME": {
+   "tier": "B",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "active"
+   ],
+   "note": "Gives your own bullets an auto-aim effect."
+  },
+  "CHARGEDSHOT": {
+   "tier": "A",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive"
+   ]
+  },
+  "CLIPMAGNET": {
+   "tier": "B",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive"
+   ]
+  },
+  "CLUSTERBOMB": {
+   "tier": "B",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "active",
+    "explosives"
+   ]
+  },
+  "COMBOKILLER": {
+   "tier": "C",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "passive"
+   ]
+  },
+  "CRITICALRAGE": {
+   "tier": "C",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "passive",
+    "economy"
+   ]
+  },
+  "ENERGYVORTEX": {
+   "tier": "B",
+   "tree": "Healing",
+   "role": "Sustain",
+   "tags": [
+    "active"
+   ]
+  },
+  "EXECUTIONER": {
+   "tier": "B",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive"
+   ]
+  },
+  "FALLINGINFERNO": {
+   "tier": "B",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "passive",
+    "explosives",
+    "fire"
+   ]
+  },
+  "FIRESTORM": {
+   "tier": "B",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "active",
+    "fire"
+   ]
+  },
+  "FLAMINGBULLETS": {
+   "tier": "B",
+   "tree": "DOT",
+   "role": "Damage over time",
+   "tags": [
+    "passive",
+    "fire"
+   ]
+  },
+  "FLYINGDAGGER": {
+   "tier": "B",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive"
+   ],
+   "note": "At max level it acts like a sniper rifle."
+  },
+  "FORCEFIELD": {
+   "tier": "S",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "active"
+   ],
+   "note": "Reflects bullets. Flamethrowers ignore it."
+  },
+  "FRENZY": {
+   "tier": "S",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "active"
+   ]
+  },
+  "GUNSLINGER": {
+   "tier": "B",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive"
+   ]
+  },
+  "HYPNOTICARMY": {
+   "tier": "B",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "active"
+   ]
+  },
+  "ILLICITINCOME": {
+   "tier": "B",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "passive",
+    "economy"
+   ]
+  },
+  "INVISIBILITY": {
+   "tier": "A",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "active",
+    "stealth"
+   ]
+  },
+  "KILLERCOOLDOWNS": {
+   "tier": "A",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "passive",
+    "cooldowns"
+   ]
+  },
+  "LASERSCOPE": {
+   "tier": "A",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive"
+   ]
+  },
+  "MANASHIELD": {
+   "tier": "A",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "passive",
+    "cooldowns"
+   ],
+   "note": "Defensive shields stack multiplicatively: two or three of them overlap."
+  },
+  "MANICMECHANIC": {
+   "tier": "C",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "passive",
+    "economy",
+    "cars"
+   ]
+  },
+  "MEDICALSUPPLIES": {
+   "tier": "B",
+   "tree": "Healing",
+   "role": "Sustain",
+   "tags": [
+    "passive"
+   ]
+  },
+  "MIRRORIMAGE": {
+   "tier": "S",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "active"
+   ],
+   "note": "Weak at low levels, strong at 6-7. Cast another active first so the clones copy it."
+  },
+  "PHASEDRIFTING": {
+   "tier": "C",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "active",
+    "mobility"
+   ],
+   "note": "Cancels the movement penalty of machine guns."
+  },
+  "POISONTRAIL": {
+   "tier": "A",
+   "tree": "DOT",
+   "role": "Damage over time",
+   "tags": [
+    "passive",
+    "poison"
+   ]
+  },
+  "PROXIMITYROUNDS": {
+   "tier": "B",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive"
+   ]
+  },
+  "RADIATE": {
+   "tier": "A",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "active"
+   ]
+  },
+  "RAMBULANCE": {
+   "tier": "C",
+   "tree": "Healing",
+   "role": "Sustain",
+   "tags": [
+    "passive",
+    "cars"
+   ]
+  },
+  "REGENERATION": {
+   "tier": "A",
+   "tree": "Healing",
+   "role": "Sustain",
+   "tags": [
+    "passive"
+   ]
+  },
+  "REVENGEROCKET": {
+   "tier": "A",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "passive",
+    "explosives"
+   ]
+  },
+  "SELFREPAIR": {
+   "tier": "S",
+   "tree": "Healing",
+   "role": "Sustain",
+   "tags": [
+    "active"
+   ]
+  },
+  "SHIFTATTACK": {
+   "tier": "B",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive",
+    "dash"
+   ]
+  },
+  "SHIFTSUPPLY": {
+   "tier": "C",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "passive",
+    "mobility",
+    "dash"
+   ]
+  },
+  "SHOCKWAVE": {
+   "tier": "B",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "active"
+   ],
+   "note": "Also boosts Fire Storm and Venom Shot."
+  },
+  "SHRAPNEL": {
+   "tier": "C",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "passive",
+    "explosives"
+   ]
+  },
+  "SKILLSHOTS": {
+   "tier": "B",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "passive",
+    "skill damage"
+   ],
+   "note": "Makes active skills hit much harder."
+  },
+  "SMOKEBOMB": {
+   "tier": "A",
+   "tree": "Defense",
+   "role": "Tank",
+   "tags": [
+    "active",
+    "stealth"
+   ]
+  },
+  "SOULDROP": {
+   "tier": "C",
+   "tree": "Healing",
+   "role": "Sustain",
+   "tags": [
+    "passive"
+   ]
+  },
+  "SPIKETRAP": {
+   "tier": "C",
+   "tree": "Damage",
+   "role": "Burst",
+   "tags": [
+    "active"
+   ]
+  },
+  "STIMPACKS": {
+   "tier": "C",
+   "tree": "Healing",
+   "role": "Sustain",
+   "tags": [
+    "passive",
+    "dash"
+   ]
+  },
+  "TELEPORTATION": {
+   "tier": "A",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "active"
+   ]
+  },
+  "TOXICBLOOD": {
+   "tier": "C",
+   "tree": "DOT",
+   "role": "Damage over time",
+   "tags": [
+    "passive",
+    "poison"
+   ]
+  },
+  "VAMPIRISM": {
+   "tier": "S",
+   "tree": "Healing",
+   "role": "Sustain",
+   "tags": [
+    "passive"
+   ]
+  },
+  "VENOMSHOT": {
+   "tier": "B",
+   "tree": "DOT",
+   "role": "Damage over time",
+   "tags": [
+    "active",
+    "poison"
+   ]
+  },
+  "XRAYVISION": {
+   "tier": "B",
+   "tree": "Utility",
+   "role": "Utility",
+   "tags": [
+    "passive",
+    "vision"
+   ]
+  }
+ }
+}

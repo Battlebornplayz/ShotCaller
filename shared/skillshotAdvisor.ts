@@ -23,6 +23,8 @@ export interface AdvisorInput {
   goal: string[];
   /** Skill ids that can still be offered (your in-game pool); empty = unknown. */
   pool: string[];
+  /** Skill id → your rarity for it (0 common … 3 legendary), from your build and collection. */
+  rarity?: Record<string, number>;
   round: number;
   /** Your history per skill id. */
   stats: Record<string, SkillStat>;
@@ -52,6 +54,9 @@ export interface Advice {
 }
 
 const TIER_SCORE: Record<SkillTier, number> = { S: 40, A: 30, B: 20, C: 10 };
+/** Higher rarity = higher max level and stronger syringe mutations (the game's own help text). */
+const RARITY_SCORE = [0, 5, 10, 15];
+const RARITY_LABEL = ['Common', 'Rare', 'Epic', 'Legendary'];
 const REROLL_BELOW = 24;
 
 function synergyPartner(parts: [string, string], id: string): string | null {
@@ -89,6 +94,12 @@ export function adviseSkill(input: AdvisorInput, skill: SkillshotSkill): SkillAd
       score += 6;
       reasons.push({ w: 6, text: `Sets up ${partnerName(partner)} synergy` });
     }
+  }
+
+  const rarity = input.rarity?.[skill.id] ?? 0;
+  if (rarity > 0) {
+    score += RARITY_SCORE[rarity] ?? 0;
+    reasons.push({ w: RARITY_SCORE[rarity] ?? 0, text: `Your ${RARITY_LABEL[rarity]}: higher max level, stronger mutation` });
   }
 
   if (level > 0) {

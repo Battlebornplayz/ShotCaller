@@ -15,7 +15,9 @@ export type LogEvent =
   | { t: 'self'; name: string }
   | { t: 'levelUp'; player: string; level: number }
   | { t: 'draftStart'; level: number; rerolls: number }
-  | { t: 'poolSlot'; num: number; name: string; rarity: number }
+  | { t: 'buildStart' }
+  /** One equipped build slot; num -1 / name null = empty slot. */
+  | { t: 'poolSlot'; num: number; name: string | null; rarity: number }
   | { t: 'draft'; n: number; offers: DraftOffer[]; selected: DraftOffer | null }
   | { t: 'round'; round: number; final: boolean; showdown: boolean }
   | { t: 'roundResult'; player: string; win: boolean }
@@ -104,8 +106,9 @@ export function parseMessage(msg: string): LogEvent | null {
   if ((m = /^Player leveled up: (.+) \(\d+\) is now level (\d+)/.exec(msg))) return { t: 'levelUp', player: m[1], level: Number(m[2]) };
   if ((m = /^Generating New Draft With Game Seed:.*?reroll counter: (\d+).*?player level: (\d+)/.exec(msg)))
     return { t: 'draftStart', rerolls: Number(m[1]), level: Number(m[2]) };
-  if ((m = /^Build Slot \(Rarity=(\d+)\): ID=(\d+) Name=(.+)$/.exec(msg)))
-    return { t: 'poolSlot', rarity: Number(m[1]), num: Number(m[2]), name: m[3].trim() };
+  if (msg.startsWith('Skill Build Below')) return { t: 'buildStart' };
+  if ((m = /^Build Slot \(Rarity=(\d+)\): ID=(-?\d+)(?: Name=(.+))?$/.exec(msg)))
+    return { t: 'poolSlot', rarity: Number(m[1]), num: Number(m[2]), name: m[3]?.trim() || null };
   if ((m = /^SKILL DRAFT (\d+) \(current draft point = \d+\): (.*?), SELECTED: (.*)$/.exec(msg))) {
     const offers = m[2].split(/,\s*/).map(parseOffer).filter((o): o is DraftOffer => !!o);
     return { t: 'draft', n: Number(m[1]), offers, selected: parseOffer(m[3]) };
@@ -157,6 +160,8 @@ export interface MatchState {
   pool: Record<string, number>;
   /** numeric skill id → upper-case name, learned from pool lines. */
   skillNums: Record<number, string>;
+  /** Your equipped skill build this match, in slot order (empty slots included). */
+  slots: { num: number; name: string | null; rarity: number }[];
   picks: PickRecord[];
   roundResults: (boolean | null)[];
   killedBy: Record<string, number>;
@@ -183,6 +188,7 @@ export function newMatch(at: number, self: string | null): MatchState {
     build: {},
     pool: {},
     skillNums: {},
+    slots: [],
     picks: [],
     roundResults: [null, null, null],
     killedBy: {},
@@ -213,8 +219,13 @@ export function applyEvent(state: MatchState, e: TimedEvent): void {
       state.rerolls = ev.rerolls;
       state.pool = {};
       break;
+    case 'buildStart':
+      state.slots = [];
+      break;
     case 'poolSlot': {
-      const name = ev.name.toUpperCase();
+      const name = ev.name?.toUpperCase() ?? null;
+      state.slots.push({ num: ev.num, name, rarity: ev.rarity });
+      if (!name) break;
       state.pool[name] = ev.rarity;
       state.skillNums[ev.num] = name;
       break;

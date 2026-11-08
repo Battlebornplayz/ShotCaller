@@ -24,6 +24,7 @@ import {
   getMatches,
   getSkillshotData,
   getSkillshotState,
+  getSkillCollection,
   pickOffer,
   setClass,
   setGoal,
@@ -188,6 +189,7 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.skillshotGet, () => getSkillshotState());
   ipcMain.handle(IPC.skillshotData, () => getSkillshotData());
   ipcMain.handle(IPC.skillshotMatches, () => getMatches());
+  ipcMain.handle(IPC.skillshotCollection, () => getSkillCollection());
   ipcMain.handle(IPC.skillshotSetOffer, (_e, v: unknown) => setOffer(ids(v), 'manual'));
   ipcMain.handle(IPC.skillshotPick, (_e, which: unknown) => {
     if (which === 0 || which === 1 || which === 2) pickOffer(which);

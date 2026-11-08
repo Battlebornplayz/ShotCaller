@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import type { SkillshotData, SkillshotLiveState } from '../../shared/skillshot';
+import type { SkillCollection } from '../../shared/skillshotCollection';
 import type { AuthState, DetectionState, HotkeyStatus, HubState, Library, OverlayState, Settings } from '../../shared/types';
 
 /** Initial fetch plus live updates from the main process. */
@@ -26,6 +28,12 @@ export const useDetection = (): DetectionState | null => useLive(() => api().get
 export const useOverlayState = (): OverlayState | null => useLive(() => api().getOverlayState(), (cb) => api().onOverlayState(cb));
 export const useHotkeyStatus = (): HotkeyStatus | null => useLive(() => api().getHotkeyStatus(), (cb) => api().onHotkeyStatus(cb));
 export const useAuth = (): AuthState | null => useLive(() => api().getAuthState(), (cb) => api().onAuthState(cb));
+
+export const useSkillshot = (): SkillshotLiveState | null => useLive(() => api().getSkillshot(), (cb) => api().onSkillshot(cb));
+export const useSkillCollection = (): SkillCollection | null =>
+  useLive(() => api().getSkillCollection(), (cb) => api().onSkillCollection(cb));
+/** Skill data changes only when the game updates; fetched once per window. */
+export const useSkillshotData = (): SkillshotData | null => useLive(() => api().getSkillshotData(), () => () => undefined);
 
 export const useHub = (): HubState | null => useLive(() => api().getHub(), (cb) => api().onHub(cb));
 
