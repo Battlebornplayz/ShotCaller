@@ -70,6 +70,32 @@ if (!app.requestSingleInstanceLock()) {
     splash = null;
   }
 
+  /**
+   * What opening ShotCaller shows: the launcher, then Play goes on to the app. If a window is already up, it
+   * just comes to the front. Starting with the OS stays in the tray, and in-game shortcuts go straight to the app.
+   */
+  function showLauncher(): void {
+    if (splash && !splash.isDestroyed()) {
+      if (splash.isMinimized()) splash.restore();
+      splash.show();
+      splash.focus();
+      return;
+    }
+    if (main && !main.isDestroyed()) {
+      openMain();
+      return;
+    }
+    splash = createSplashWindow();
+    splash.on('closed', () => {
+      splash = null;
+      maybeQuit();
+    });
+    // Check once the launcher has loaded, so its first render gets the state updates.
+    splash.webContents.once('did-finish-load', () => {
+      void checkForUpdates();
+    });
+  }
+
   function overlayGameFrom(running: RunningGame[]): RunningGame | null {
     // Prefer games with a dedicated module, then the most recently started.
     const eligible = running.filter(wantsOverlay).sort((a, b) => Number(!!b.moduleId) - Number(!!a.moduleId) || b.since - a.since);
@@ -81,10 +107,7 @@ if (!app.requestSingleInstanceLock()) {
     updateTray({ playing: playing[0]?.name ?? null, previewOn: getOverlayState().preview });
   }
 
-  app.on('second-instance', () => {
-    if (splash && !splash.isDestroyed()) splash.focus();
-    else openMain();
-  });
+  app.on('second-instance', () => showLauncher());
 
   app.whenReady().then(async () => {
     app.setAppUserModelId(APP_ID);
@@ -95,7 +118,7 @@ if (!app.requestSingleInstanceLock()) {
     registerIpc({ enterApp, openMain });
 
     createTray({
-      openMain: () => (splash && !splash.isDestroyed() ? splash.focus() : openMain()),
+      openMain: showLauncher,
       togglePreview: () => setOverlayPreview(!getOverlayState().preview),
       quit: () => app.quit(),
     });
@@ -158,18 +181,10 @@ if (!app.requestSingleInstanceLock()) {
       // Started with the OS: stay in the tray until a game launches or the user opens it.
       void checkForUpdates();
     } else {
-      splash = createSplashWindow();
-      splash.on('closed', () => {
-        splash = null;
-        maybeQuit();
-      });
-      // Check once the splash has loaded, so its first render gets the state updates.
-      splash.webContents.once('did-finish-load', () => {
-        void checkForUpdates();
-      });
+      showLauncher();
     }
 
-    app.on('activate', () => openMain());
+    app.on('activate', () => showLauncher());
   });
 
   // The tray keeps ShotCaller alive with no windows open (see maybeQuit for the opt-out).

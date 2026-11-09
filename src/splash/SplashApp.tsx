@@ -3,7 +3,8 @@ import { Logo } from '../components/Logo';
 import { PatchNotesBody } from '../components/PatchNotes';
 import { TitleBar } from '../components/TitleBar';
 import { useUpdateState } from '../hooks/useUpdateState';
-import type { AppInfo, PatchNote, Settings, UpdateState } from '../../shared/types';
+import { useSettings } from '../hooks/useLive';
+import type { AppInfo, PatchNote, UpdateState } from '../../shared/types';
 
 function shortError(message: string): string {
   return message.length > 140 ? `${message.slice(0, 140)}…` : message;
@@ -56,14 +57,13 @@ function StatusLine({ state }: { state: UpdateState }) {
 export function SplashApp() {
   const update = useUpdateState();
   const [info, setInfo] = useState<AppInfo | null>(null);
-  const [settings, setSettings] = useState<Settings | null>(null);
+  const settings = useSettings();
   const [notes, setNotes] = useState<PatchNote[] | null>(null);
   const [notesError, setNotesError] = useState<string | null>(null);
   const [selected, setSelected] = useState(0);
 
   useEffect(() => {
     void window.shotcaller.getAppInfo().then(setInfo);
-    void window.shotcaller.getSettings().then(setSettings);
     void window.shotcaller.getPatchNotes().then((result) => {
       if (result.ok) setNotes(result.notes);
       else setNotesError(result.error);
@@ -73,7 +73,14 @@ export function SplashApp() {
   const updateAvailable = update.status === 'available';
   const downloading = update.status === 'downloading';
   const downloaded = update.status === 'downloaded';
-  const channelLabel = settings?.channel === 'beta' ? 'Beta channel' : 'Stable';
+  const channel = settings?.channel;
+  // Moving a beta install to Stable can't step back: it waits for the next stable release.
+  const channelHint =
+    channel === 'beta'
+      ? 'Get new features first. They may have rough edges.'
+      : info?.version.includes('-')
+        ? 'You’re on a beta, so you’ll move over when the next stable release comes out.'
+        : 'Full releases only.';
   const current = notes?.[selected];
 
   return (
@@ -104,9 +111,34 @@ export function SplashApp() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
+          <div style={{ marginTop: 18 }}>
             <span className="pill">v{info?.version ?? '…'}</span>
-            <span className="pill muted">{channelLabel}</span>
+          </div>
+
+          <div style={{ marginTop: 18 }}>
+            <div className="eyebrow">Update channel</div>
+            <div className="segmented" role="group" aria-label="Update channel" style={{ display: 'flex', marginTop: 6 }}>
+              {(
+                [
+                  ['stable', 'Stable'],
+                  ['beta', 'Beta'],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  aria-pressed={channel === id}
+                  disabled={downloading || downloaded}
+                  title={downloading || downloaded ? 'Finish this update first' : undefined}
+                  style={{ flex: 1 }}
+                  onClick={() => void window.shotcaller.updateSettings({ channel: id })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="muted" style={{ fontSize: 12, marginTop: 6, minHeight: 34 }}>
+              {channelHint}
+            </div>
           </div>
 
           <div style={{ marginTop: 'auto', display: 'grid', gap: 12 }}>

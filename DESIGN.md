@@ -165,6 +165,9 @@ Full report with sources: `reports/Skillshot City game knowledge.md`; notes in `
 - **skillshotcity.gg API** (`/api/draft` has per-offer scores) is disallowed by its robots.txt with no terms: ask the operator before using it. Public pages only until then.
 - **Open questions to test in game:** reroll per draft or per match, which level maps to which draft step, whether the "weekly skill rotation" text is live (hover a top build slot), class number mapping beyond 1.
 
+### Launcher flow (user, 2026-11-09)
+Opening ShotCaller yourself (shortcut or tray) always goes launcher, then Play, then the app, even if it's already running in the tray. If a window is already up, that window comes to the front instead. Starting with Windows stays hidden in the tray, and in-game shortcuts (overlay "Open app", game launch set to open the window) go straight to the app. The launcher has a Stable/Beta picker that checks that channel straight away. Picking older versions was left out: it means installing old releases and stopping the update offer, and older versions may not read newer data.
+
 ### Look: the unlock card is the model (user, 2026-11-09)
 The user finds the achievement popup the cleanest GUI in the app, so everything follows it (`src/styles/global.css`): a diagonal navy gradient, a thin border tinted by a `--tier` colour, a coloured bar down the left edge, a soft glow, and a coloured uppercase line above a bold title with quiet detail below. Set `--tier` on a panel to give it a meaning (rarity on skill rows, accent on the recommended pick). `.card` / `.overlay-panel` / `.ss-card` are panels, `.tier-row` is a list row, `.tile` is a flat block inside a panel, `.eyebrow` / `.section-label` are the coloured line.
 - **Changes P6-Q8:** advice cards are stacked rows shaped like the unlock card, in the order the game offers them, instead of side by side. This applies to the second-monitor view too: side by side cut off the skill names there.

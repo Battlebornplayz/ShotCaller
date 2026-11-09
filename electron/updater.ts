@@ -6,6 +6,8 @@ import { getSettings } from './settings';
 
 let state: UpdateState = { status: 'idle' };
 let latestVersion = '';
+let checking = false;
+let checkAgain = false;
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
@@ -66,11 +68,24 @@ export async function checkForUpdates(): Promise<void> {
     broadcast({ status: 'dev' });
     return;
   }
-  applyChannel();
+  // Reopening the launcher checks again: that mustn't wipe a download in progress or one that's ready.
+  if (state.status === 'downloading' || state.status === 'downloaded') return;
+  // The updater reuses a check already running, so a channel switch mid-check needs its own check after it.
+  if (checking) {
+    checkAgain = true;
+    return;
+  }
+  checking = true;
   try {
-    await autoUpdater.checkForUpdates();
+    do {
+      checkAgain = false;
+      applyChannel();
+      await autoUpdater.checkForUpdates();
+    } while (checkAgain);
   } catch (err) {
     broadcast({ status: 'error', message: errorMessage(err) });
+  } finally {
+    checking = false;
   }
 }
 
