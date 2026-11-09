@@ -1,7 +1,8 @@
 import { promises as fs, existsSync } from 'node:fs';
 import path from 'node:path';
-import { app } from 'electron';
+import { app, nativeImage } from 'electron';
 import { getLibrary } from '../library';
+import iconMap from '../../games/skillshot-city/icons.json';
 import type {
   SkillshotClass,
   SkillshotData,
@@ -21,6 +22,24 @@ const STEAM_APP_ID = 308600;
 
 /** Skill keys in the CSV that are categories, not skills. */
 const NOT_SKILLS = new Set(['PHYSICALBIG', 'PHYSICALSMALL', 'MENTALBIG', 'MENTALSMALL', 'CYBERNETICBIG', 'CYBERNETICSMALL']);
+
+/** Skills whose text sits under a different key than their name (including the game's own typo). */
+const TEXT_KEY_ALIASES: Record<string, string[]> = {
+  ASSASSINATE: ['ASSASSIN'],
+  CHARGEDSHOT: ['ARCANEPOWER'],
+  TELEPORTATION: ['TELEPORATION'],
+};
+
+/**
+ * Tidies the game's text for display: `{{%cyan:word%}}` keeps the word, and number placeholders
+ * (filled in by the game at runtime, absent from the CSV) become "X".
+ */
+export function cleanGameText(text: string): string {
+  let out = text;
+  // Colour tags can wrap a placeholder, so unwrap from the inside out.
+  for (let i = 0; i < 3; i++) out = out.replace(/\{\{%[a-z]+:((?:(?!\{\{%|%\}\}).|\{\{%\d+%\}\})*)%\}\}/g, '$1');
+  return out.replace(/\{\{%\d+%\}\}/g, 'X').replace(/\s+/g, ' ').trim();
+}
 
 /** config.ini language name → translation file. */
 const LANGUAGE_FILES: Record<string, string> = {
@@ -142,6 +161,27 @@ async function readSynergyPrereqs(dataDir: string): Promise<[string, string][]> 
   }
 }
 
+/**
+ * Crops each skill's icon out of the game's own sprite sheet, so the art is never shipped with the app.
+ * A blank cell or unreadable sheet leaves the skill without an icon, and the UI falls back to a monogram.
+ */
+function loadSkillIcons(installDir: string, skills: SkillshotSkill[]): void {
+  const map = iconMap as { sheet: string; cell: number; skills: Record<string, { num: number; x: number; y: number }> };
+  const sheet = nativeImage.createFromPath(path.join(installDir, 'data', 'textures', map.sheet));
+  const size = sheet.getSize();
+  for (const s of skills) {
+    const at = map.skills[s.id];
+    if (!at) continue;
+    s.num = at.num;
+    if (at.x + map.cell > size.width || at.y + map.cell > size.height) continue;
+    const icon = sheet.crop({ x: at.x, y: at.y, width: map.cell, height: map.cell });
+    const pixels = icon.toBitmap();
+    let drawn = 0;
+    for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 40) drawn++;
+    if (drawn >= 40) s.icon = icon.toDataURL();
+  }
+}
+
 export async function extractSkillshotData(installDir: string): Promise<SkillshotData> {
   const dataDir = path.join(installDir, 'data');
   const { version, language } = await readConfig(dataDir);
@@ -154,9 +194,9 @@ export async function extractSkillshotData(installDir: string): Promise<Skillsho
     if (s && !NOT_SKILLS.has(s[1])) {
       const id = s[1];
       const t = text.get(key)!;
-      // A few skills keep their text under DESC_02 or a plural key (FORCEFIELD → FORCEFIELDS_DESC_01).
+      // A few skills keep their text under DESC_02, a plural key (FORCEFIELD → FORCEFIELDS_DESC_01) or an alias.
       const desc = (suffix: string) =>
-        [id, `${id}S`].map((k) => text.get(`SKILL_${k}_${suffix}`)?.text).find((v) => v) ?? '';
+        cleanGameText([id, `${id}S`, ...(TEXT_KEY_ALIASES[id] ?? [])].map((k) => text.get(`SKILL_${k}_${suffix}`)?.text).find((v) => v) ?? '');
       skills.push({
         id,
         name: t.text,
@@ -169,7 +209,9 @@ export async function extractSkillshotData(installDir: string): Promise<Skillsho
     const c = /^CLASS_([A-Z]+)$/.exec(key);
     if (c && c[1] !== 'RANDOM') {
       const t = text.get(key)!;
-      classes.push({ id: c[1], name: t.text, nameEn: t.en });
+      // Marksman's internal name is STRIKER, but its description is still filed under SNIPER.
+      const about = text.get(`CLASS_${c[1] === 'STRIKER' ? 'SNIPER' : c[1]}_DESC`)?.text;
+      classes.push({ id: c[1], name: t.text, nameEn: t.en, description: about ? cleanGameText(about) : undefined });
     }
   }
 
@@ -194,6 +236,13 @@ export async function extractSkillshotData(installDir: string): Promise<Skillsho
     });
   });
 
+  loadSkillIcons(installDir, skills);
+
+  const tips: string[] = [];
+  for (const key of text.keys()) {
+    if (/^LOADINGTIP_\d+$/.test(key)) tips.push(cleanGameText(text.get(key)!.text).replace(/^[^:]{1,12}:\s*/, ''));
+  }
+
   skills.sort((a, b) => a.name.localeCompare(b.name));
-  return { installDir, language, gameVersion: version, skills, classes, synergies, extractedAt: Date.now() };
+  return { installDir, language, gameVersion: version, skills, classes, synergies, tips, extractedAt: Date.now() };
 }

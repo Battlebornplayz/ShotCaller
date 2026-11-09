@@ -1,22 +1,55 @@
 {
- "_about": "Draft tiers by ShotCaller (2026-11-07): survival first (community \"How to win\" guide), plus notes from the Steam guides \"TL;DR pvp guide\" and \"How to Mirror Image\". No full community tier list exists; your own win rates adjust these in the advisor.",
+ "_about": "Tiers by ShotCaller, computed from skillshotcity.gg public ranked stats (community site, not official; current month, read 2026-11-08, game version 1992). Tier = win rate vs the average at all ranks plus at top 100: S 6+ points above, A 1.5+, C 6+ below. Provisional: the site does not define win rate or show sample sizes, and gaps under about 3 points are noise. stats = [usage %, win %, average trophies]. Your own win rates adjust these in the advisor.",
+ "version": "1992",
+ "read": "2026-11-08",
+ "baseline": {
+  "all": 42.2,
+  "top": 54.1
+ },
  "skills": {
   "ARMEDROBBERY": {
-   "tier": "C",
+   "tier": "A",
    "tree": "Utility",
    "role": "Utility",
    "tags": [
     "passive",
     "economy"
-   ]
+   ],
+   "how": "Automatic. Shoot vendors for bonus cash, XP and health. A way to get rich, not a fighting skill.",
+   "stats": {
+    "all": [
+     6.6,
+     45.1,
+     8.69
+    ],
+    "top": [
+     8.3,
+     53.1,
+     9.75
+    ]
+   }
   },
   "ASSASSINATE": {
-   "tier": "C",
+   "tier": "B",
    "tree": "Damage",
    "role": "Burst",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. One random enemy is marked: they take more damage from you and drop extra loot. Hunt the mark when it is safe.",
+   "stats": {
+    "all": [
+     11,
+     42.5,
+     8.54
+    ],
+    "top": [
+     11,
+     52.8,
+     9.78
+    ]
+   },
+   "note": "The developer has buffed this repeatedly in 2026, so it may keep improving."
   },
   "AUTOMATICARMOR": {
    "tier": "A",
@@ -25,7 +58,20 @@
    "tags": [
     "passive"
    ],
-   "note": "Defensive shields stack multiplicatively: two or three of them overlap."
+   "how": "Automatic. When you get hit it blocks damage for a moment, then recharges. Nothing to press.",
+   "stats": {
+    "all": [
+     11.2,
+     41.9,
+     8.33
+    ],
+    "top": [
+     10.6,
+     56.4,
+     9.65
+    ]
+   },
+   "note": "Defensive shields multiply rather than add, so two or three of them overlap (Mirror Image guide)."
   },
   "BEEFCAKE": {
    "tier": "A",
@@ -34,67 +80,170 @@
    "tags": [
     "passive"
    ],
-   "note": "Flat health: safe, but low impact late."
+   "how": "Automatic. More max health but a bigger body to hit. The simplest way to survive more fights.",
+   "stats": {
+    "all": [
+     13,
+     44.2,
+     8.47
+    ],
+    "top": [
+     12.6,
+     56.1,
+     9.8
+    ]
+   }
   },
   "BLADEFURY": {
-   "tier": "A",
+   "tier": "C",
    "tree": "Damage",
    "role": "Burst",
    "tags": [
     "active"
-   ]
+   ],
+   "how": "Press to spin blades around you, then press again to fire them outward. Only works up close.",
+   "stats": {
+    "all": [
+     6.6,
+     40.1,
+     8.54
+    ],
+    "top": [
+     7.6,
+     45.1,
+     9.46
+    ]
+   }
   },
   "BLADEMAIL": {
-   "tier": "C",
+   "tier": "S",
    "tree": "Defense",
    "role": "Tank",
    "tags": [
     "passive"
    ],
-   "note": "Defensive shields stack multiplicatively: two or three of them overlap."
+   "how": "Automatic. Protects you at low health and drops a med kit that boosts damage. Grab the kit to turn the fight around.",
+   "stats": {
+    "all": [
+     6.7,
+     49.6,
+     8.96
+    ],
+    "top": [
+     8.1,
+     57.2,
+     9.98
+    ]
+   },
+   "note": "Best all-rank results of any skill, yet few people take it. Defensive shields overlap, so don’t stack them."
   },
   "BOOTSOFTRAVEL": {
-   "tier": "C",
+   "tier": "A",
    "tree": "Utility",
    "role": "Utility",
    "tags": [
     "passive",
     "mobility"
-   ]
+   ],
+   "how": "Automatic. You run faster while you are not shooting. Great for looting and escaping.",
+   "stats": {
+    "all": [
+     12.1,
+     44.5,
+     8.52
+    ],
+    "top": [
+     13.1,
+     54.8,
+     9.64
+    ]
+   }
   },
   "BOUNCINGBULLETS": {
-   "tier": "S",
+   "tier": "C",
    "tree": "Weaponry",
    "role": "Gun damage",
    "tags": [
     "passive"
    ],
-   "note": "Brutal with a stacked sniper (Barret)."
+   "how": "Automatic. Your bullets bounce off walls. It looks strong but results are poor, so don’t prioritize it.",
+   "stats": {
+    "all": [
+     14.5,
+     40.4,
+     8.22
+    ],
+    "top": [
+     9.4,
+     48.6,
+     9.35
+    ]
+   },
+   "note": "A trap: popular with most players, but much less used by the top 100, with poor results at both levels."
   },
   "BULLETTIME": {
-   "tier": "B",
+   "tier": "A",
    "tree": "Defense",
    "role": "Tank",
    "tags": [
     "active"
    ],
-   "note": "Gives your own bullets an auto-aim effect."
+   "how": "Press to slow all bullets in a circle around you. Bullets you fire inside it steer toward enemies.",
+   "stats": {
+    "all": [
+     7,
+     45.8,
+     8.58
+    ],
+    "top": [
+     6.6,
+     54.1,
+     9.53
+    ]
+   }
   },
   "CHARGEDSHOT": {
-   "tier": "A",
-   "tree": "Weaponry",
-   "role": "Gun damage",
-   "tags": [
-    "passive"
-   ]
-  },
-  "CLIPMAGNET": {
    "tier": "B",
    "tree": "Weaponry",
    "role": "Gun damage",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. After you cast a skill or throw a grenade, your next bullet hits harder. Cast, then shoot.",
+   "stats": {
+    "all": [
+     7.7,
+     42.6,
+     8.49
+    ],
+    "top": [
+     7.6,
+     52.1,
+     9.75
+    ]
+   }
+  },
+  "CLIPMAGNET": {
+   "tier": "A",
+   "tree": "Weaponry",
+   "role": "Gun damage",
+   "tags": [
+    "passive"
+   ],
+   "how": "Automatic. Your guns slowly gain seeking bullets that curve toward enemies and pierce them. Forgiving if your aim is shaky.",
+   "stats": {
+    "all": [
+     10.6,
+     46.7,
+     8.71
+    ],
+    "top": [
+     11.9,
+     54.6,
+     9.77
+    ]
+   },
+   "note": "Under-picked for how well it does."
   },
   "CLUSTERBOMB": {
    "tier": "B",
@@ -103,24 +252,63 @@
    "tags": [
     "active",
     "explosives"
-   ]
+   ],
+   "how": "Press to spin grenades around you. They throw themselves at nearby enemies.",
+   "stats": {
+    "all": [
+     14.5,
+     41.7,
+     8.37
+    ],
+    "top": [
+     14.8,
+     53,
+     9.58
+    ]
+   }
   },
   "COMBOKILLER": {
-   "tier": "C",
+   "tier": "A",
    "tree": "Utility",
    "role": "Utility",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. Gives you longer to chain kills, and double kills drop bonus loot.",
+   "stats": {
+    "all": [
+     7,
+     44.9,
+     8.65
+    ],
+    "top": [
+     9,
+     53,
+     9.7
+    ]
+   }
   },
   "CRITICALRAGE": {
-   "tier": "C",
+   "tier": "B",
    "tree": "Utility",
    "role": "Utility",
    "tags": [
     "passive",
     "economy"
-   ]
+   ],
+   "how": "Automatic. Damage enemies enough and they drop double-damage loot. Pick it up before you keep fighting.",
+   "stats": {
+    "all": [
+     8.8,
+     43.8,
+     8.66
+    ],
+    "top": [
+     8.6,
+     53.4,
+     9.88
+    ]
+   }
   },
   "ENERGYVORTEX": {
    "tier": "B",
@@ -128,7 +316,20 @@
    "role": "Sustain",
    "tags": [
     "active"
-   ]
+   ],
+   "how": "Press to place a spinning vortex on the ground. It hurts enemies inside it and heals you by the damage it deals.",
+   "stats": {
+    "all": [
+     7.1,
+     44,
+     8.69
+    ],
+    "top": [
+     9.3,
+     52.7,
+     9.94
+    ]
+   }
   },
   "EXECUTIONER": {
    "tier": "B",
@@ -136,7 +337,20 @@
    "role": "Gun damage",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. Extra damage against low-health enemies, so it helps you finish fights.",
+   "stats": {
+    "all": [
+     16.9,
+     44.3,
+     8.47
+    ],
+    "top": [
+     17.2,
+     53.5,
+     9.78
+    ]
+   }
   },
   "FALLINGINFERNO": {
    "tier": "B",
@@ -146,16 +360,42 @@
     "passive",
     "explosives",
     "fire"
-   ]
+   ],
+   "how": "Automatic. Throws a free molotov when you cast a skill or empty your clip.",
+   "stats": {
+    "all": [
+     9.2,
+     41.9,
+     8.4
+    ],
+    "top": [
+     8.3,
+     54.1,
+     9.53
+    ]
+   }
   },
   "FIRESTORM": {
-   "tier": "B",
+   "tier": "S",
    "tree": "Damage",
    "role": "Burst",
    "tags": [
     "active",
     "fire"
-   ]
+   ],
+   "how": "Press to launch fireballs that get stronger the further they fly. Use it from a distance.",
+   "stats": {
+    "all": [
+     11.6,
+     45.4,
+     8.35
+    ],
+    "top": [
+     12.4,
+     58.6,
+     9.55
+    ]
+   }
   },
   "FLAMINGBULLETS": {
    "tier": "B",
@@ -164,33 +404,83 @@
    "tags": [
     "passive",
     "fire"
-   ]
+   ],
+   "how": "Automatic. Your bullets set enemies on fire.",
+   "stats": {
+    "all": [
+     13.5,
+     42.1,
+     8.46
+    ],
+    "top": [
+     12.9,
+     51.5,
+     9.74
+    ]
+   }
   },
   "FLYINGDAGGER": {
-   "tier": "B",
+   "tier": "C",
    "tree": "Weaponry",
    "role": "Gun damage",
    "tags": [
     "passive"
    ],
-   "note": "At max level it acts like a sniper rifle."
+   "how": "Automatic. Reloading throws your knife. The emptier your clip, the harder it hits.",
+   "stats": {
+    "all": [
+     5.3,
+     38.7,
+     8.44
+    ],
+    "top": [
+     4.8,
+     45.4,
+     9.32
+    ]
+   }
   },
   "FORCEFIELD": {
-   "tier": "S",
+   "tier": "B",
    "tree": "Defense",
    "role": "Tank",
    "tags": [
     "active"
    ],
-   "note": "Reflects bullets. Flamethrowers ignore it."
+   "how": "Press to create a shield that blocks bullets and bounces them back. Stand behind it, and cast it before you are hurt.",
+   "stats": {
+    "all": [
+     9.3,
+     41.3,
+     8.49
+    ],
+    "top": [
+     10.1,
+     49.3,
+     9.67
+    ]
+   }
   },
   "FRENZY": {
-   "tier": "S",
+   "tier": "B",
    "tree": "Weaponry",
    "role": "Gun damage",
    "tags": [
     "active"
-   ]
+   ],
+   "how": "Press before a fight to shoot and move faster for a short time. Also boosts nearby allies.",
+   "stats": {
+    "all": [
+     12.3,
+     42.6,
+     8.26
+    ],
+    "top": [
+     11.2,
+     54,
+     9.49
+    ]
+   }
   },
   "GUNSLINGER": {
    "tier": "B",
@@ -198,7 +488,20 @@
    "role": "Gun damage",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. Reload and swap guns faster, carry more explosives, and buy them cheaper.",
+   "stats": {
+    "all": [
+     8.3,
+     43.1,
+     8.62
+    ],
+    "top": [
+     8.7,
+     50.4,
+     9.7
+    ]
+   }
   },
   "HYPNOTICARMY": {
    "tier": "B",
@@ -206,25 +509,65 @@
    "role": "Burst",
    "tags": [
     "active"
-   ]
+   ],
+   "how": "Press to recruit nearby civilians and cops. Press again to send them to your crosshair. They can’t kill players, only bring them down to 1 health.",
+   "stats": {
+    "all": [
+     5.2,
+     41.9,
+     8.26
+    ],
+    "top": [
+     3.8,
+     52.5,
+     9.34
+    ]
+   },
+   "note": "The developer has buffed this repeatedly in 2026, so it may keep improving."
   },
   "ILLICITINCOME": {
-   "tier": "B",
+   "tier": "C",
    "tree": "Utility",
    "role": "Utility",
    "tags": [
     "passive",
     "economy"
-   ]
+   ],
+   "how": "Automatic. More cash and XP from kills, especially at high wanted levels. You attract cops faster, which is risky while learning.",
+   "stats": {
+    "all": [
+     7.5,
+     39.2,
+     8.29
+    ],
+    "top": [
+     6.8,
+     48.2,
+     9.31
+    ]
+   }
   },
   "INVISIBILITY": {
-   "tier": "A",
+   "tier": "C",
    "tree": "Defense",
    "role": "Tank",
    "tags": [
     "active",
     "stealth"
-   ]
+   ],
+   "how": "Press to turn invisible, as long as you stay away from enemies. Good for escaping or sneaking.",
+   "stats": {
+    "all": [
+     9.5,
+     40.9,
+     8.53
+    ],
+    "top": [
+     9.4,
+     46.8,
+     9.65
+    ]
+   }
   },
   "KILLERCOOLDOWNS": {
    "tier": "A",
@@ -233,7 +576,20 @@
    "tags": [
     "passive",
     "cooldowns"
-   ]
+   ],
+   "how": "Automatic. Kills speed up your skill cooldowns and refill your ammo. Better the more active skills you have.",
+   "stats": {
+    "all": [
+     9.8,
+     45.6,
+     8.69
+    ],
+    "top": [
+     13.1,
+     54.3,
+     9.67
+    ]
+   }
   },
   "LASERSCOPE": {
    "tier": "A",
@@ -241,7 +597,20 @@
    "role": "Gun damage",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. Faster, more accurate bullets, so shots land more easily. The most-used skill in the game.",
+   "stats": {
+    "all": [
+     18,
+     44.7,
+     8.46
+    ],
+    "top": [
+     19.2,
+     55.9,
+     9.71
+    ]
+   }
   },
   "MANASHIELD": {
    "tier": "A",
@@ -251,53 +620,133 @@
     "passive",
     "cooldowns"
    ],
-   "note": "Defensive shields stack multiplicatively: two or three of them overlap."
+   "how": "Automatic. Protects you when you dash, for longer after you cast a skill. Dash into and out of fights.",
+   "stats": {
+    "all": [
+     7.8,
+     45.2,
+     8.64
+    ],
+    "top": [
+     9.1,
+     55.6,
+     9.91
+    ]
+   },
+   "note": "Defensive shields multiply rather than add, so two or three of them overlap (Mirror Image guide)."
   },
   "MANICMECHANIC": {
-   "tier": "C",
+   "tier": "B",
    "tree": "Utility",
    "role": "Utility",
    "tags": [
     "passive",
     "economy",
     "cars"
-   ]
+   ],
+   "how": "Automatic. Extra damage to vehicles, bonus cash and XP for destroying them. Shoot cars while you farm.",
+   "stats": {
+    "all": [
+     4.6,
+     45,
+     8.62
+    ],
+    "top": [
+     6.8,
+     50.2,
+     9.57
+    ]
+   }
   },
   "MEDICALSUPPLIES": {
-   "tier": "B",
+   "tier": "S",
    "tree": "Healing",
    "role": "Sustain",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. Picking up loot heals you, and shot crates fly to you. Heals you just for playing normally.",
+   "stats": {
+    "all": [
+     6.1,
+     47.1,
+     8.94
+    ],
+    "top": [
+     7.5,
+     55.7,
+     9.88
+    ]
+   },
+   "note": "Under-picked: few people take it, yet results are well above average."
   },
   "MIRRORIMAGE": {
-   "tier": "S",
+   "tier": "A",
    "tree": "Defense",
    "role": "Tank",
    "tags": [
     "active"
    ],
-   "note": "Weak at low levels, strong at 6-7. Cast another active first so the clones copy it."
+   "how": "Press to make a clone that fights and confuses enemies, and press again to send it to your crosshair. Weak at low levels. The clone copies active skills you cast just before.",
+   "stats": {
+    "all": [
+     10,
+     45,
+     8.49
+    ],
+    "top": [
+     11.3,
+     57.1,
+     9.66
+    ]
+   },
+   "note": "The developer has restricted this skill repeatedly in 2026, so it may keep getting weaker. Don’t pair it with stacks of defensive shields: the “How to Mirror Image” guide found they overlap badly."
   },
   "PHASEDRIFTING": {
-   "tier": "C",
+   "tier": "B",
    "tree": "Utility",
    "role": "Utility",
    "tags": [
     "active",
     "mobility"
    ],
-   "note": "Cancels the movement penalty of machine guns."
+   "how": "Press to toggle: much faster but harder to control. At top speed you glow red and hit harder. Takes practice.",
+   "stats": {
+    "all": [
+     2.9,
+     38.7,
+     8.3
+    ],
+    "top": [
+     2.4,
+     53,
+     9.59
+    ]
+   },
+   "note": "Rarely picked, so its numbers are less reliable. Looks weak until played well."
   },
   "POISONTRAIL": {
-   "tier": "A",
+   "tier": "S",
    "tree": "DOT",
    "role": "Damage over time",
    "tags": [
     "passive",
     "poison"
-   ]
+   ],
+   "how": "Automatic. You leave poison wherever you walk, so enemies chasing you get hurt. Keep moving.",
+   "stats": {
+    "all": [
+     6.6,
+     45.2,
+     8.69
+    ],
+    "top": [
+     7.3,
+     58.7,
+     10.1
+    ]
+   },
+   "note": "Under-picked: few people take it, yet it has the highest average trophies in the top 100."
   },
   "PROXIMITYROUNDS": {
    "tier": "B",
@@ -305,7 +754,20 @@
    "role": "Gun damage",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. Your guns build up strong bullets while you stay near enemy players.",
+   "stats": {
+    "all": [
+     7.1,
+     42.9,
+     8.52
+    ],
+    "top": [
+     8.5,
+     50.5,
+     9.51
+    ]
+   }
   },
   "RADIATE": {
    "tier": "A",
@@ -313,50 +775,132 @@
    "role": "Burst",
    "tags": [
     "active"
-   ]
+   ],
+   "how": "Press to fire a long-range nuke that leaves a harmful field. Use it to force enemies out of cover.",
+   "stats": {
+    "all": [
+     14.9,
+     44.4,
+     8.58
+    ],
+    "top": [
+     15.4,
+     53.5,
+     9.76
+    ]
+   }
   },
   "RAMBULANCE": {
-   "tier": "C",
+   "tier": "B",
    "tree": "Healing",
    "role": "Sustain",
    "tags": [
     "passive",
     "cars"
-   ]
+   ],
+   "how": "Automatic. Vehicles heal you, take less damage and hit harder when you ram. Only worth it if you drive a lot.",
+   "stats": {
+    "all": [
+     2,
+     41,
+     8.65
+    ],
+    "top": [
+     2.7,
+     51.1,
+     9.73
+    ]
+   },
+   "note": "Rarely picked, so its numbers are less reliable."
   },
   "REGENERATION": {
-   "tier": "A",
+   "tier": "B",
    "tree": "Healing",
    "role": "Sustain",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. Restores health while you are not shooting, so step out of fights to recover.",
+   "stats": {
+    "all": [
+     11.4,
+     39.5,
+     8.3
+    ],
+    "top": [
+     8.6,
+     52.6,
+     9.72
+    ]
+   },
+   "note": "Below average overall, close to average in the top 100."
   },
   "REVENGEROCKET": {
-   "tier": "A",
+   "tier": "B",
    "tree": "Damage",
    "role": "Burst",
    "tags": [
     "passive",
     "explosives"
-   ]
+   ],
+   "how": "Automatic. Bazookas spin around you and fire back at whoever shoots you.",
+   "stats": {
+    "all": [
+     11.8,
+     39.8,
+     8.13
+    ],
+    "top": [
+     9,
+     54.6,
+     9.48
+    ]
+   },
+   "note": "Below average at all ranks but above it in the top 100: it gets better with skill."
   },
   "SELFREPAIR": {
-   "tier": "S",
+   "tier": "A",
    "tree": "Healing",
    "role": "Sustain",
    "tags": [
     "active"
-   ]
+   ],
+   "how": "Press to heal yourself and nearby allies. Your simplest panic button, so use it before you are nearly dead.",
+   "stats": {
+    "all": [
+     13.1,
+     43.9,
+     8.49
+    ],
+    "top": [
+     13.1,
+     54,
+     9.58
+    ]
+   },
+   "note": "The strongest partner for Mirror Image (Mirror Image guide)."
   },
   "SHIFTATTACK": {
-   "tier": "B",
+   "tier": "S",
    "tree": "Weaponry",
    "role": "Gun damage",
    "tags": [
     "passive",
     "dash"
-   ]
+   ],
+   "how": "Automatic. Bullets hit harder after a dash, especially the first shot. Dash, then shoot. Top players’ best performer.",
+   "stats": {
+    "all": [
+     12.7,
+     44.5,
+     8.46
+    ],
+    "top": [
+     12.7,
+     60.6,
+     9.85
+    ]
+   }
   },
   "SHIFTSUPPLY": {
    "tier": "C",
@@ -366,25 +910,63 @@
     "passive",
     "mobility",
     "dash"
-   ]
+   ],
+   "how": "Automatic. More dash charges and longer dashes.",
+   "stats": {
+    "all": [
+     9.8,
+     39.4,
+     8.38
+    ],
+    "top": [
+     9.6,
+     48.9,
+     9.64
+    ]
+   }
   },
   "SHOCKWAVE": {
-   "tier": "B",
+   "tier": "A",
    "tree": "Defense",
    "role": "Tank",
    "tags": [
     "active"
    ],
-   "note": "Also boosts Fire Storm and Venom Shot."
+   "how": "Press to freeze enemy bullets in mid-air. Each one heals you, and it reveals enemies through walls.",
+   "stats": {
+    "all": [
+     9.8,
+     46.3,
+     8.72
+    ],
+    "top": [
+     14.1,
+     53,
+     9.8
+    ]
+   }
   },
   "SHRAPNEL": {
-   "tier": "C",
+   "tier": "B",
    "tree": "Damage",
    "role": "Burst",
    "tags": [
     "passive",
     "explosives"
-   ]
+   ],
+   "how": "Automatic. Bigger explosions from grenades, bazookas and molotovs. Grenades also drop from crates.",
+   "stats": {
+    "all": [
+     7.8,
+     42.4,
+     8.56
+    ],
+    "top": [
+     7.8,
+     51.1,
+     9.62
+    ]
+   }
   },
   "SKILLSHOTS": {
    "tier": "B",
@@ -394,24 +976,62 @@
     "passive",
     "skill damage"
    ],
-   "note": "Makes active skills hit much harder."
+   "how": "Automatic. Boosts all non-bullet damage: skills, grenades, cars and knife. Non-bullet kills add more, and dying halves it.",
+   "stats": {
+    "all": [
+     8.6,
+     45.2,
+     8.85
+    ],
+    "top": [
+     12.4,
+     48.4,
+     9.61
+    ]
+   }
   },
   "SMOKEBOMB": {
-   "tier": "A",
+   "tier": "B",
    "tree": "Defense",
    "role": "Tank",
    "tags": [
     "active",
     "stealth"
-   ]
+   ],
+   "how": "Press to throw smoke that heals you and hides you. Also good for escaping a losing fight.",
+   "stats": {
+    "all": [
+     10.2,
+     41.2,
+     8.45
+    ],
+    "top": [
+     10.4,
+     50.5,
+     9.75
+    ]
+   }
   },
   "SOULDROP": {
-   "tier": "C",
+   "tier": "B",
    "tree": "Healing",
    "role": "Sustain",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. Falling from a height heals you and damages enemies where you land. Needs rooftops or jump pads.",
+   "stats": {
+    "all": [
+     4.2,
+     42.6,
+     8.59
+    ],
+    "top": [
+     5.1,
+     50.8,
+     9.52
+    ]
+   }
   },
   "SPIKETRAP": {
    "tier": "C",
@@ -419,41 +1039,107 @@
    "role": "Burst",
    "tags": [
     "active"
-   ]
+   ],
+   "how": "Press to throw a line of spikes that hurts enemies and makes them take more weapon damage for a moment.",
+   "stats": {
+    "all": [
+     6,
+     41.8,
+     8.53
+    ],
+    "top": [
+     6.9,
+     47.4,
+     9.66
+    ]
+   }
   },
   "STIMPACKS": {
-   "tier": "C",
+   "tier": "B",
    "tree": "Healing",
    "role": "Sustain",
    "tags": [
     "passive",
     "dash"
-   ]
+   ],
+   "how": "Automatic. Every dash heals you, with a small chance to drop double damage.",
+   "stats": {
+    "all": [
+     9.3,
+     41.9,
+     8.45
+    ],
+    "top": [
+     7.8,
+     54.3,
+     9.68
+    ]
+   }
   },
   "TELEPORTATION": {
-   "tier": "A",
+   "tier": "B",
    "tree": "Utility",
    "role": "Utility",
    "tags": [
     "active"
-   ]
+   ],
+   "how": "Press to teleport to your target after a short delay, healing when you arrive. Press again to cancel.",
+   "stats": {
+    "all": [
+     6.5,
+     44.6,
+     8.58
+    ],
+    "top": [
+     7.4,
+     51.8,
+     9.79
+    ]
+   }
   },
   "TOXICBLOOD": {
-   "tier": "C",
+   "tier": "B",
    "tree": "DOT",
    "role": "Damage over time",
    "tags": [
     "passive",
     "poison"
-   ]
+   ],
+   "how": "Automatic. Kills and destroyed cars leave a toxic puddle on the ground.",
+   "stats": {
+    "all": [
+     13.1,
+     42,
+     8.52
+    ],
+    "top": [
+     15.5,
+     50,
+     9.8
+    ]
+   },
+   "note": "Has no official synergy pair, but top players use it a lot anyway."
   },
   "VAMPIRISM": {
-   "tier": "S",
+   "tier": "B",
    "tree": "Healing",
    "role": "Sustain",
    "tags": [
     "passive"
-   ]
+   ],
+   "how": "Automatic. Your bullets heal you when they hit enemies, so it rewards steady aim.",
+   "stats": {
+    "all": [
+     16.2,
+     43.1,
+     8.39
+    ],
+    "top": [
+     17.5,
+     53,
+     9.65
+    ]
+   }
   },
   "VENOMSHOT": {
    "tier": "B",
@@ -462,7 +1148,20 @@
    "tags": [
     "active",
     "poison"
-   ]
+   ],
+   "how": "Press to fire poison darts that damage enemies over time. Hit them, then back away.",
+   "stats": {
+    "all": [
+     11.4,
+     42.1,
+     8.39
+    ],
+    "top": [
+     12.1,
+     49.2,
+     9.65
+    ]
+   }
   },
   "XRAYVISION": {
    "tier": "B",
@@ -471,7 +1170,20 @@
    "tags": [
     "passive",
     "vision"
-   ]
+   ],
+   "how": "Automatic. See nearby enemies and loot through walls, and reveals invisible players.",
+   "stats": {
+    "all": [
+     10.2,
+     41.6,
+     8.52
+    ],
+    "top": [
+     9.3,
+     50.5,
+     9.79
+    ]
+   }
   }
  }
 }

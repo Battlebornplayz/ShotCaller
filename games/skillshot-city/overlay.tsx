@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MatchRecord, SkillshotData, SkillshotLiveState, SkillshotSkill } from '../../shared/skillshot';
-import { SKILL_TREES } from '../../shared/skillshot';
+import { MAX_LEVEL_BY_RARITY, SKILL_TREES } from '../../shared/skillshot';
 import type { SkillAdvice } from '../../shared/skillshotAdvisor';
 import { reviewMatch, suggestSessionGoals } from '../../shared/skillshotStats';
 import type { Settings } from '../../shared/types';
-import { useOverlayState, useSettings, useSkillshot, useSkillshotData } from '../../src/hooks/useLive';
+import { useOverlayState, useScreenStatus, useSettings, useSkillshot, useSkillshotData } from '../../src/hooks/useLive';
+import { ScreenStatusLine } from './ScreenCheckPage';
+import { CompactLookup } from './SkillLookup';
 import { SkillIcon, skillById, TierBadge, TREE_COLORS } from './ui';
 
 /**
@@ -153,46 +155,45 @@ function AdviceCard({
   wide: boolean;
 }) {
   const synergy = a.synergies.length > 0;
+  const recommended = best && !reroll;
   return (
     <button
-      className={`ss-card clickable${best && !reroll ? ' best' : ''}${synergy ? ' synergy' : ''}`}
+      className={`ss-card clickable${recommended ? ' best' : ''}${synergy ? ' synergy' : ''}${wide ? ' wide' : ''}`}
       onClick={onPick}
-      title={skill?.description || skill?.short}
+      title={skill?.how || skill?.description || skill?.short}
     >
-      {best && !reroll && (
-        <span className="pill" style={{ position: 'absolute', top: -9, right: 8, fontSize: 10, padding: '1px 7px', background: 'var(--accent)', color: '#fff' }}>
-          Take this
-        </span>
-      )}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <SkillIcon skill={skill} rarity={rarity} size={wide ? 46 : 34} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ fontWeight: 800, fontSize: 13, lineHeight: 1.15 }}>{skill?.name ?? a.skillId}</span>
-            <TierBadge tier={skill?.tier} size={15} />
-          </div>
-          <div className="muted" style={{ fontSize: 11 }}>
+      {recommended && <span className="shine" />}
+      <span className="ss-icon">
+        <SkillIcon skill={skill} rarity={rarity} size={wide ? 60 : 52} />
+      </span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ flex: 1 }}>{recommended ? 'Take this' : reroll ? 'Weak for this build' : 'Other option'}</span>
+          <Keycap accel={keyLabel} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+          <span style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.2, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{skill?.name ?? a.skillId}</span>
+          <TierBadge tier={skill?.tier} size={16} />
+          <span className="muted" style={{ fontSize: 11.5, flex: 'none' }}>
             Lv {a.nextLevel}
-            {keyLabel && (
-              <>
-                {' · '}
-                <Keycap accel={keyLabel} />
-              </>
-            )}
+          </span>
+        </div>
+        <div className="muted" style={{ fontSize: 12, marginTop: 3, lineHeight: 1.35 }}>
+          {a.reasons[0] ?? skill?.short ?? ''}
+        </div>
+        {wide && skill?.how && <div style={{ fontSize: 12, marginTop: 5, lineHeight: 1.35 }}>{skill.how}</div>}
+        {wide &&
+          a.reasons.slice(1).map((r) => (
+            <div key={r} className="muted" style={{ fontSize: 11.5, marginTop: 3 }}>
+              · {r}
+            </div>
+          ))}
+        {synergy && (
+          <div style={{ fontSize: 11, color: 'var(--green)', marginTop: 4, fontWeight: 700 }}>
+            ⚡ {a.synergies.map((i) => synergyLabel(data, i)).slice(0, wide ? 3 : 1).join(' · ')}
           </div>
-        </div>
+        )}
       </div>
-      <div style={{ fontSize: 11.5, marginTop: 7, lineHeight: 1.35, minHeight: 31 }}>{a.reasons[0] ?? skill?.short ?? ''}</div>
-      {wide && a.reasons.slice(1).map((r) => (
-        <div key={r} className="muted" style={{ fontSize: 11, marginTop: 3 }}>
-          · {r}
-        </div>
-      ))}
-      {synergy && (
-        <div style={{ fontSize: 10.5, color: 'var(--green)', marginTop: 5, fontWeight: 600 }}>
-          ⚡ {a.synergies.map((i) => synergyLabel(data, i)).slice(0, wide ? 3 : 1).join(' · ')}
-        </div>
-      )}
     </button>
   );
 }
@@ -201,7 +202,7 @@ function AdvicePanel({ s, data, hotkeys, wide, onManual }: { s: SkillshotLiveSta
   const adv = s.advice;
   if (!s.offer || !adv) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.03)' }}>
+      <div className="tile" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px' }}>
         <span className="muted" style={{ fontSize: 12, flex: 1 }}>
           Waiting for your next skill offer.
         </span>
@@ -218,7 +219,8 @@ function AdvicePanel({ s, data, hotkeys, wide, onManual }: { s: SkillshotLiveSta
           ↻ Both are weak for this build. Reroll if you can.
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8, marginTop: adv.reroll ? 0 : 8 }}>
+      {/* One card per row, the shape of the unlock card: side by side cuts off the skill names. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {adv.offers.map((a, i) => (
           <AdviceCard
             key={a.skillId}
@@ -241,6 +243,20 @@ function AdvicePanel({ s, data, hotkeys, wide, onManual }: { s: SkillshotLiveSta
         <button className="muted" style={{ fontSize: 10.5 }} onClick={onManual}>
           Change
         </button>
+      </div>
+    </div>
+  );
+}
+
+/** Advice from Claude, when the optional connection is on. Kept apart from ShotCaller's own advisor. */
+function CoachNote({ coach, data }: { coach: NonNullable<SkillshotLiveState['coach']>; data: SkillshotData }) {
+  const skill = skillById(data, coach.skillId);
+  return (
+    <div className="tier-row toast" style={{ ['--tier' as string]: '#c39bff', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px 9px 13px' }}>
+      {skill && <SkillIcon skill={skill} size={36} />}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="eyebrow">Claude says</div>
+        <div style={{ fontSize: 12.5, lineHeight: 1.35, marginTop: 1 }}>{coach.text}</div>
       </div>
     </div>
   );
@@ -306,7 +322,7 @@ function BuildPanel({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotD
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {entries.map(([id, lvl]) => {
           const skill = skillById(data, id);
-          const max = 7;
+          const max = MAX_LEVEL_BY_RARITY[s.pool[id] ?? 3] ?? 7;
           return (
             <div key={id} style={{ width: wide ? 64 : 48, textAlign: 'center' }} title={skill?.short}>
               <SkillIcon
@@ -384,7 +400,7 @@ function ManualPick({ s, data, onClose }: { s: SkillshotLiveState; data: Skillsh
     onClose();
   };
   return (
-    <div className="toast" style={{ padding: 10, borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+    <div className="toast tile" style={{ padding: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <b style={{ fontSize: 12, flex: 1 }}>Which 2 skills are offered?</b>
         <button className="muted" style={{ fontSize: 11 }} onClick={onClose}>
@@ -520,9 +536,11 @@ function LobbyView({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotDa
 export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
   const s = useSkillshot();
   const data = useSkillshotData();
+  const screen = useScreenStatus();
   const overlay = useOverlayState();
   const settings = useSettings();
   const [manual, setManual] = useState(false);
+  const [lookup, setLookup] = useState(false);
   /** Bumped on a new offer / level-up: keeps the full panel open for EXPAND_MS. */
   const [burst, setBurst] = useState(0);
   /** The last burst whose time ran out. */
@@ -567,18 +585,35 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
   if (!data) return <div className="muted">Loading skills…</div>;
 
   const interactive = overlay?.interactive ?? false;
-  const expanded = wide || manual || !!s.offer || interactive || burst > expired;
+  const expanded = wide || manual || lookup || !!s.offer || interactive || burst > expired;
   const toastEl = toast && (
     <div className="toast pill green" style={{ fontSize: 12 }}>
       ⚡ {toast}
     </div>
   );
 
+  const statusEl = (
+    <>
+      <ScreenStatusLine status={screen} data={data} />
+      {s.coach && <CoachNote coach={s.coach} data={data} />}
+    </>
+  );
+
+  const lookupEl = lookup ? (
+    <CompactLookup data={data} build={s.build} onClose={() => setLookup(false)} />
+  ) : (
+    <button className="muted" style={{ fontSize: 11, textAlign: 'left' }} onClick={() => setLookup(true)}>
+      🔍 Look up a skill
+    </button>
+  );
+
   if (!s.inMatch && !s.offer && !manual) {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
+        {statusEl}
         {toastEl}
         <LobbyView s={s} data={data} wide={wide} />
+        {lookupEl}
       </div>
     );
   }
@@ -586,6 +621,7 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
   if (!expanded) {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
+        {statusEl}
         {toastEl}
         <RoundStrip s={s} data={data} compact />
       </div>
@@ -601,6 +637,7 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
   if (wide) {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
+        {statusEl}
         {toastEl}
         <RoundStrip s={s} data={data} />
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 2fr)', gap: 14 }}>
@@ -610,6 +647,7 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
             </div>
             {advice}
             <RecentPicks s={s} data={data} />
+            {lookupEl}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, alignContent: 'start' }}>
             <SynergyMeter s={s} />
@@ -627,6 +665,7 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
+      {statusEl}
       {toastEl}
       <RoundStrip s={s} data={data} />
       {advice}
@@ -634,6 +673,7 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
       <SynergyMeter s={s} />
       <BuildPanel s={s} data={data} />
       <GoalRow s={s} data={data} />
+      {(interactive || lookup) && lookupEl}
       {interactive && <Hints hotkeys={hotkeys} />}
     </div>
   );

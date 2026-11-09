@@ -21,9 +21,20 @@ export interface SkillshotSkill {
   role?: string;
   /** "active" / "passive" plus themes (fire, poison, economy, …). */
   tags?: string[];
-  /** Community tip, from tiers.json. */
+  /** Tip or caution from research, from tiers.json. */
   note?: string;
+  /** The game's numeric skill id (log lines, memory), from icons.json. */
+  num?: number;
+  /** The game's own icon as a data URL, cropped from the installed game. Missing if the crop failed. */
+  icon?: string;
+  /** Plain-language "how to use it" for new players, from tiers.json. */
+  how?: string;
+  /** Ranked stats as [usage %, win %, average trophies], all ranks and top 100, from tiers.json. */
+  stats?: { all: [number, number, number]; top: [number, number, number] };
 }
+
+/** Highest level a skill can reach at each rarity (Common … Legendary), per the game's text. */
+export const MAX_LEVEL_BY_RARITY = [4, 5, 6, 7] as const;
 
 export const SKILL_TREES = ['Healing', 'Defense', 'Weaponry', 'Damage', 'DOT', 'Utility'] as const;
 export type SkillTree = (typeof SKILL_TREES)[number];
@@ -32,6 +43,8 @@ export interface SkillshotClass {
   id: string;
   name: string;
   nameEn: string;
+  /** The game's own description, in the game's language. */
+  description?: string;
 }
 
 export interface SkillshotSynergy {
@@ -51,6 +64,8 @@ export interface SkillshotData {
   skills: SkillshotSkill[];
   classes: SkillshotClass[];
   synergies: SkillshotSynergy[];
+  /** The game's own loading-screen tips, in the game's language. */
+  tips?: string[];
   extractedAt: number;
 }
 
@@ -79,6 +94,53 @@ export interface MatchRecord {
 
 export type OfferSource = 'manual' | 'screen' | 'memory';
 
+/**
+ * What the screen reader is doing. off: turned off in settings. no-game: game not running. not-front: game
+ * isn't the front window, so nothing is read. no-picture: the copy failed or came back black. watching: looking
+ * for offers. offer: an offer is on screen now.
+ */
+export type ScreenReadMode = 'off' | 'no-game' | 'not-front' | 'no-picture' | 'watching' | 'offer';
+
+/**
+ * How a read compares with the game's log. waiting: the log hasn't written this draft yet. right: same two
+ * skills, and the same pick if one was seen. pick-wrong / offer-wrong: the log says otherwise. missed: the log
+ * has a draft the screen never saw. rerolled: replaced on screen by a reroll, so the log never records it.
+ */
+export type ScreenReadVerdict = 'waiting' | 'right' | 'pick-wrong' | 'offer-wrong' | 'missed' | 'rerolled';
+
+export interface ScreenRead {
+  id: number;
+  at: number;
+  offers: string[];
+  /** Confidence for each offer, 0-1; empty for a draft only the log saw. */
+  scores: number[];
+  picked: string | null;
+  /** How the pick was known. 'log' = the screen couldn't tell, the log filled it in. */
+  how: 'build row' | 'click' | 'not in build row' | 'log' | null;
+  verdict: ScreenReadVerdict;
+  /** What the log said, when it disagreed. */
+  logged?: { offers: string[]; picked: string | null };
+}
+
+export interface ScreenReadStatus {
+  mode: ScreenReadMode;
+  /** Pictures looked at since the game started. It climbs while the reader is alive. */
+  frames: number;
+  /** The game picture's size in pixels, once seen. */
+  width: number;
+  height: number;
+  /** This session, oldest first. */
+  reads: ScreenRead[];
+}
+
+/** The strip the reader looked at most recently, with where it looks marked as fractions of the picture. */
+export interface ScreenPreview {
+  image: string;
+  aspect: number;
+  offers: { x: number; y: number; width: number; height: number }[];
+  buildRow: { x: number; y: number; width: number; height: number };
+}
+
 export interface SkillshotLiveState {
   available: boolean;
   /** Why it isn't available (game not installed, etc.). */
@@ -104,6 +166,8 @@ export interface SkillshotLiveState {
   /** Last picks, newest last. */
   recentPicks: { skillId: string; level: number; round: number; confirmed: boolean }[];
   offer: { ids: string[]; source: OfferSource; at: number } | null;
+  /** Advice sent by Claude over the optional MCP connection, shown on the overlay until the next offer. */
+  coach: { text: string; skillId: string | null; at: number } | null;
   advice: import('./skillshotAdvisor').Advice | null;
   goal: { ids: string[]; locked: boolean };
   goalProgress: number;

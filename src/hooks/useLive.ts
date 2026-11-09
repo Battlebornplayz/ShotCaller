@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { SkillshotData, SkillshotLiveState } from '../../shared/skillshot';
+import type { ScreenReadStatus, SkillshotData, SkillshotLiveState } from '../../shared/skillshot';
 import type { SkillCollection } from '../../shared/skillshotCollection';
 import type { AuthState, DetectionState, HotkeyStatus, HubState, Library, OverlayState, Settings } from '../../shared/types';
 
@@ -30,6 +30,7 @@ export const useHotkeyStatus = (): HotkeyStatus | null => useLive(() => api().ge
 export const useAuth = (): AuthState | null => useLive(() => api().getAuthState(), (cb) => api().onAuthState(cb));
 
 export const useSkillshot = (): SkillshotLiveState | null => useLive(() => api().getSkillshot(), (cb) => api().onSkillshot(cb));
+export const useScreenStatus = (): ScreenReadStatus | null => useLive(() => api().getScreenStatus(), (cb) => api().onScreenStatus(cb));
 export const useSkillCollection = (): SkillCollection | null =>
   useLive(() => api().getSkillCollection(), (cb) => api().onSkillCollection(cb));
 /** Skill data changes only when the game updates; fetched once per window. */

@@ -65,18 +65,19 @@ Moved up by the user (2026-11-07). Split into two parts by the user in the Phase
 3. In a match, at every level-up the 2 offered skills are detected and the engine shows the optimal pick for your build: goal, synergies, class, your rarities and your own win rates.
 
 Deliverables:
-- Skill collection: owned skills + rarity per class, auto-detected (log builds + profile now; memory reader for the full list and instant unlock / rarity changes), change notices. ✅ file-based part done
-- Advanced skill builder page (P6-Q42–48): playstyle card + sliders (aggression, range, survival, spice) + surprise me; owned skills only; top 3 builds with pros/cons; each with skills, what to max first, backups and reroll targets, and the in-game slots to equip; scored from synergy results, offer odds, tiers/notes, skill numbers, K/D per build. The chosen build becomes the goal the advisor follows.
-- Skill + synergy data extracted from the game files (names, descriptions, trees, synergies, real icons), plus tier/role/tags (community-drafted, adjusted by your stats). JSON in `games/skillshot-city/`; re-extract after game updates.
+- Skill collection: owned skills + rarity per class, auto-detected (log builds + profile: full owned list ✅; memory reader for all rarities and instant unlock / rarity changes), change notices.
+- Advanced skill builder page (P6-Q42–48): playstyle card + sliders (aggression, range, survival, spice) + surprise me; owned skills only; top 3 builds with pros/cons; each with skills, what to max first, backups and reroll targets, and the in-game slots to equip; scored from synergy results, offer structure (most offers are random, see DESIGN.md research findings), tiers/notes, skill numbers, K/D per build. The chosen build becomes the goal the advisor follows; plans must allow for not being offered a skill. ✅
+- Skill + synergy data extracted from the game files (names, descriptions, trees, synergies, real icons), plus tier/role/tags (from public ranked stats, adjusted by your stats). JSON in `games/skillshot-city/`; re-extract after game updates.
 - Live log tailer: level-ups, offers, picks, build, BR round 1-3/final, match stats, final standings. Import past matches from old logs on first run.
-- Screen reading of the 2 offered skills (icon match + OCR, offline); manual icon grid/search + Alt+1/Alt+2 fallback.
+- Screen reading of the 2 offered skills (icon match, offline; OCR not needed so far); manual icon grid/search + Alt+1/Alt+2 fallback. Built and tested on real screenshots; not yet run live in a match. Next: rarity from the panel's `Lvl x/y` and the build row's disc colours.
 - Advisor cards (tier + synergy + build + class + your history), reroll advice, soft sound cue, last-3-picks strip.
 - Goal build suggested from early picks (lock/change), synergy glow + toast, synergy meter (goal % + active synergies), build panel with rarity borders/level pips/synergy links.
 - Round panel: thin strip in fights, full on level-up/between rounds/Alt; live stats; Alt+N/Alt+E overrides.
 - Recap (overlay card + app match history) with pick review; stats per skill/synergy/build/class with trends; win % + average place + top-3; session goals (suggested + your own); lobby view.
-- Lookup page in the app + compact overlay search (filters, synergy map, your stats per skill). Text follows the game's language.
-- Overlay fixes: default top right below QUIT; Alt-click without stealing focus, restore the game if it minimizes.
-- Release beta v0.0.4.
+- Lookup page in the app + compact overlay search (filters, synergy map, your stats per skill). Text follows the game's language. ✅ (ShotCaller's own how-to text is English only)
+- Learn to play page (added by the user, 2026-11-08: the user is new to the game and wants the app to teach them). ✅
+- Overlay fixes: default top right below QUIT; Alt-click without stealing focus, restore the game if it minimizes. ✅ (restore not yet tried in-game)
+- Release beta v0.0.4. First beta out as v0.0.4-beta.1 (2026-11-09, user's request, before Part 1 is finished); another at the end of Part 1.
 Done when: the flow above works: owned skills + rarities detected without typing, a goal build set in the builder, and a full 3-round match tracked end-to-end automatically with the optimal pick shown at each level-up, the round/synergy panel and a saved recap.
 
 ### Phase 6 Part 2 — Weapons, items, counters, library, achievements
@@ -86,7 +87,7 @@ Deliverables:
 - 50+ ShotCaller achievements for Skillshot City (mastery, feats, helper), driven by recaps.
 - Data packs from GitHub separate from app updates + CONTRIBUTING guide.
 - Built-in "Ask" engine (user, 2026-11-07): a question box in the overlay and app that answers from ShotCaller's own data, fully offline and free (no AI service): "what should I pick?", "why this skill?", "what synergizes with X?", "how am I doing with Heavy?", "what's my best build?". Answers come from the advisor, synergy list, tiers, collection and match stats, with suggested questions as one-click chips. Works with no account and no Claude.
-- ShotCaller MCP server (added by the user, 2026-11-07): Optional extra for people who use Claude; the Ask engine does not depend on it. a localhost-only MCP server in the app, off by default (Settings toggle), so Claude Desktop / Claude Code can assist players. Read tools: live match (round, level, build, offers, advice), skill collection, match history + stats, skill/synergy/tier lookup with the advisor's reasons. Write tools (set offers, lock goal build) behind a second toggle. Reads ShotCaller's own data only, never the game.
+- ShotCaller MCP server (parked by the user 2026-11-09, partly built and off, see HANDOFF.md) (added by the user, 2026-11-07): Optional extra for people who use Claude; the Ask engine does not depend on it. a localhost-only MCP server in the app, off by default (Settings toggle), so Claude Desktop / Claude Code can assist players. Read tools: live match (round, level, build, offers, advice), skill collection, match history + stats, skill/synergy/tier lookup with the advisor's reasons. Write tools (set offers, lock goal build) behind a second toggle. Reads ShotCaller's own data only, never the game.
 Done when: weapons/items/counters show in lookup and recaps, builds can be shared by code, Skillshot achievements unlock from real matches, and Claude can answer "what should I pick?" through the MCP during a real match.
 
 ## Phase 7 — Hub home, XP, profile, extra sources

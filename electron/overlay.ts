@@ -2,6 +2,7 @@ import { BrowserWindow, screen } from 'electron';
 import { moduleById } from '../games';
 import { IPC } from '../shared/ipc';
 import type { HotkeyAction, OverlayState, RunningGame, Settings } from '../shared/types';
+import { releaseGameWindow, resetGameWindow, watchGameWindow } from './gameFocus';
 import { getSettings, updateSettings } from './settings';
 import { endMatch, nextRound, pickOffer } from './skillshot/tracker';
 import { createOverlayWindow, OVERLAY_DEFAULT_SIZE } from './windows';
@@ -180,6 +181,7 @@ export function wantsOverlay(rg: RunningGame): boolean {
 export function setOverlayGame(next: RunningGame | null): void {
   const prevKey = game?.key;
   game = next;
+  if (!next) resetGameWindow();
   if (next && next.key !== prevKey) {
     const s = getSettings();
     // A new game: show straight away in "always" / "monitor" modes, unless the user turned
@@ -226,6 +228,8 @@ export function handleOverlayAction(action: HotkeyAction): void {
 export function setAltHeld(held: boolean): void {
   if (altHeld === held) return;
   altHeld = held;
+  if (held && game && isCorner()) watchGameWindow();
+  else if (!held) releaseGameWindow();
   applyClickThrough();
   broadcast();
 }

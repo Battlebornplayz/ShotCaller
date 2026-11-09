@@ -81,4 +81,8 @@ export const IPC = {
   skillshotSetClass: 'skillshot:set-class',
   skillshotCollection: 'skillshot:collection',
   skillshotCollectionChanged: 'skillshot:collection-changed',
+  skillshotScreen: 'skillshot:screen',
+  skillshotScreenChanged: 'skillshot:screen-changed',
+  skillshotScreenPreview: 'skillshot:screen-preview',
+  mcpInfo: 'mcp:info',
 } as const;

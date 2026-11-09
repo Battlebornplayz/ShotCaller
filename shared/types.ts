@@ -1,6 +1,6 @@
 // Types shared by the Electron main process, the preload script and the renderer.
 
-import type { MatchRecord, SkillshotData, SkillshotLiveState } from './skillshot';
+import type { MatchRecord, ScreenPreview, ScreenReadStatus, SkillshotData, SkillshotLiveState } from './skillshot';
 import type { SkillCollection } from './skillshotCollection';
 
 export type Channel = 'stable' | 'beta';
@@ -55,6 +55,8 @@ export interface SkillshotSettings {
   offerSound: boolean;
   /** Read-only memory reader for live values (own player only). Off by default: ban risk. */
   memoryReader: boolean;
+  /** Read the offered skills off the screen (a copy of a small strip, offline). On by default. */
+  screenReader: boolean;
 }
 
 export interface PrivacySettings {
@@ -75,6 +77,23 @@ export interface PopupSettings {
 
 export type LibraryView = 'grid' | 'list';
 
+/** The optional connection that lets Claude read ShotCaller's data. */
+export interface McpSettings {
+  /** Run the local server. Off by default. */
+  enabled: boolean;
+  /** Also let Claude change things in ShotCaller: show advice on the overlay, set the goal build, set offers. */
+  allowActions: boolean;
+}
+
+export interface McpInfo {
+  running: boolean;
+  url: string;
+  /** Why it isn't running, when it should be. */
+  error: string | null;
+  /** The command that connects Claude Code. Holds the secret token. Null while the connection is off. */
+  command: string | null;
+}
+
 export interface Settings {
   channel: Channel;
   popups: PopupSettings;
@@ -87,6 +106,7 @@ export interface Settings {
   hotkeysOnlyInGame: boolean;
   startup: StartupSettings;
   skillshot: SkillshotSettings;
+  mcp: McpSettings;
 }
 
 export interface SettingsPatch {
@@ -99,6 +119,7 @@ export interface SettingsPatch {
   startup?: Partial<StartupSettings>;
   privacy?: Partial<PrivacySettings>;
   skillshot?: Partial<SkillshotSettings>;
+  mcp?: Partial<McpSettings>;
 }
 
 // ---------- Accounts and cloud ----------
@@ -443,6 +464,12 @@ export interface ShotCallerApi {
   onSkillshot(callback: (state: SkillshotLiveState) => void): Unsubscribe;
   getSkillshotData(): Promise<SkillshotData | null>;
   getSkillshotMatches(): Promise<MatchRecord[]>;
+  /** What the screen reader is doing and what it has read. Pushed on change and every few seconds while it runs. */
+  getScreenStatus(): Promise<ScreenReadStatus>;
+  onScreenStatus(callback: (status: ScreenReadStatus) => void): Unsubscribe;
+  /** The latest picture the screen reader looked at, or null when it isn't running. */
+  getScreenPreview(): Promise<ScreenPreview | null>;
+  getMcpInfo(): Promise<McpInfo>;
   /** Your owned skills with rarity and the build you equip on each class, read from the game's files. Pushed on change. */
   getSkillCollection(): Promise<SkillCollection>;
   onSkillCollection(callback: (collection: SkillCollection) => void): Unsubscribe;

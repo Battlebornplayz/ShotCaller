@@ -10,6 +10,7 @@ type UiohookModule = typeof import('uiohook-napi');
 let mod: UiohookModule | null = null;
 let loadTried = false;
 let running = false;
+let onMouseDown: (x: number, y: number) => void = () => undefined;
 let held = false;
 let onChange: (held: boolean) => void = () => undefined;
 
@@ -32,6 +33,7 @@ async function load(): Promise<UiohookModule | null> {
     uIOhook.on('keyup', (e) => {
       if (isAlt(e.keycode)) set(false);
     });
+    uIOhook.on('mousedown', (e) => onMouseDown(e.x, e.y));
   } catch (err) {
     console.error('Alt-key hook unavailable:', err);
     mod = null;
@@ -40,8 +42,9 @@ async function load(): Promise<UiohookModule | null> {
 }
 
 /** Loads the hook module. Resolves to whether it's available. */
-export async function initAltHook(listener: (held: boolean) => void): Promise<boolean> {
+export async function initAltHook(listener: (held: boolean) => void, mouseDown?: (x: number, y: number) => void): Promise<boolean> {
   onChange = listener;
+  if (mouseDown) onMouseDown = mouseDown;
   return (await load()) !== null;
 }
 

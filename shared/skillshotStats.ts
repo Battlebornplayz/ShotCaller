@@ -214,6 +214,49 @@ export function skillWinStats(matches: MatchRecord[]): Record<string, SkillStat>
 }
 
 // ---------------------------------------------------------------------------------------------
+// Per-skill stats for the lookup page
+
+export interface SkillHistory {
+  /** Matches you finished with this skill in your build. */
+  bucket: Bucket | null;
+  /** Times it was offered, and times you took it. */
+  offered: number;
+  picked: number;
+  /** Skills that shared your builds with it, best average place first (2+ matches together). */
+  partners: { id: string; played: number; avgPlace: number }[];
+}
+
+export function skillHistory(matches: MatchRecord[], id: string): SkillHistory {
+  let offered = 0;
+  let picked = 0;
+  const together = new Map<string, { played: number; placeSum: number }>();
+  const holder = new Map<string, Bucket>();
+  for (const m of matches.filter(countable)) {
+    for (const p of m.picks) {
+      if (!p.offers.includes(id)) continue;
+      offered++;
+      if (p.picked === id) picked++;
+    }
+    if (!m.build[id]) continue;
+    bucket(holder, id, m);
+    if (m.place === null) continue;
+    for (const other of Object.keys(m.build)) {
+      if (other === id) continue;
+      const t = together.get(other) ?? { played: 0, placeSum: 0 };
+      t.played++;
+      t.placeSum += m.place;
+      together.set(other, t);
+    }
+  }
+  const partners = [...together.entries()]
+    .filter(([, t]) => t.played >= 2)
+    .map(([other, t]) => ({ id: other, played: t.played, avgPlace: t.placeSum / t.played }))
+    .sort((a, b) => a.avgPlace - b.avgPlace)
+    .slice(0, 3);
+  return { bucket: holder.get(id) ?? null, offered, picked, partners };
+}
+
+// ---------------------------------------------------------------------------------------------
 // Session goals
 
 export interface SessionGoal {

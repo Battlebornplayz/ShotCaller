@@ -13,8 +13,10 @@
   --gold: #f5c451;
   --green: #3ddc97;
   --red: #ff6b7a;
-  --radius: 12px;
+  --radius: 14px;
   --radius-pill: 999px;
+  /* The colour a panel speaks in, like an achievement's rarity on the unlock card. Set it on any panel. */
+  --tier: var(--accent);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   color-scheme: dark;
 }
@@ -107,11 +109,50 @@ button:disabled {
 
 /* ---------- Shared components ---------- */
 
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
+/*
+ * The look of the unlock card, used everywhere: a diagonal navy gradient, a thin border tinted by --tier, a
+ * coloured bar down the left edge and a soft glow. The bar is a background layer rather than an element, so
+ * it follows the rounded corners without clipping anything inside the panel.
+ */
+.card,
+.overlay-panel,
+.ss-card {
+  background:
+    linear-gradient(color-mix(in srgb, var(--tier) 80%, transparent), color-mix(in srgb, var(--tier) 80%, transparent)) left / 3px 100% no-repeat,
+    linear-gradient(135deg, rgba(26, 28, 58, 0.97), rgba(15, 16, 35, 0.97));
+  border: 1px solid color-mix(in srgb, var(--tier) 30%, transparent);
   border-radius: var(--radius);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 22px color-mix(in srgb, var(--tier) 9%, transparent);
+}
+
+.card {
   padding: 18px;
+}
+
+/* A list row in the same style, without the panel's shadow: the bar carries the row's colour, e.g. rarity. */
+.tier-row {
+  background:
+    linear-gradient(var(--tier), var(--tier)) left / 3px 100% no-repeat,
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid color-mix(in srgb, var(--tier) 22%, transparent);
+  border-radius: 10px;
+}
+
+/* A quiet block inside a panel: flat, so the panel stays the one thing with a frame. */
+.tile {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+/* The small coloured line above a title, as on the unlock card. */
+.eyebrow,
+.section-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tier);
 }
 
 .pill {
@@ -212,6 +253,22 @@ button:disabled {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes ss-live {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.ss-live-dot {
+  animation: ss-live 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-live-dot {
+    animation: none;
   }
 }
 
@@ -327,14 +384,6 @@ select option {
   gap: 16px;
 }
 
-.section-label {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-
 .dot-live {
   width: 8px;
   height: 8px;
@@ -351,10 +400,6 @@ html.overlay-corner body {
 }
 
 .overlay-panel {
-  background: rgba(15, 16, 35, 0.92);
-  border: 1px solid rgba(127, 178, 255, 0.22);
-  border-radius: 14px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   transition:
     opacity 0.2s var(--ease),
     border-color 0.2s var(--ease);
@@ -557,36 +602,65 @@ html.popup-window #root {
 /* ---------- Skillshot overlay ---------- */
 
 .ss-card {
+  --tier: var(--muted);
   position: relative;
   flex: 1;
   min-width: 0;
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px 12px 15px;
+  overflow: hidden;
   transition:
     border-color 0.2s var(--ease),
-    transform 0.15s var(--ease),
-    background 0.2s var(--ease);
+    transform 0.15s var(--ease);
   text-align: left;
 }
+.ss-card.wide {
+  align-items: flex-start;
+}
 .ss-card.best {
-  border-color: var(--accent);
-  background: rgba(79, 140, 255, 0.1);
-  box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.35);
+  --tier: var(--accent);
+  border-color: color-mix(in srgb, var(--tier) 60%, transparent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 26px color-mix(in srgb, var(--tier) 30%, transparent);
+}
+.ss-card.best .ss-icon {
+  filter: drop-shadow(0 0 10px var(--tier));
+}
+.ss-card .ss-icon {
+  animation: unlock-pop 0.6s 0.05s var(--ease) both;
+}
+/* The same sweep of light the unlock card plays, once, on the recommended pick. */
+.ss-card .shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, color-mix(in srgb, var(--tier) 22%, transparent) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: unlock-shine 1.4s 0.2s var(--ease) both;
+  pointer-events: none;
 }
 .ss-card.synergy::after {
   content: '';
   position: absolute;
-  inset: -1px;
-  border-radius: 12px;
+  inset: 0;
+  border-radius: inherit;
   pointer-events: none;
-  box-shadow: 0 0 14px rgba(61, 220, 151, 0.55);
+  box-shadow: inset 0 0 14px rgba(61, 220, 151, 0.4);
   animation: ss-glow 1.6s ease-in-out infinite;
 }
 .ss-card.clickable:hover {
   transform: translateY(-1px);
-  border-color: rgba(127, 178, 255, 0.55);
+  border-color: color-mix(in srgb, var(--tier) 75%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ss-card .ss-icon,
+  .ss-card .shine,
+  .ss-card.synergy::after {
+    animation: none;
+  }
+  .ss-card .shine {
+    display: none;
+  }
 }
 @keyframes ss-glow {
   0%,

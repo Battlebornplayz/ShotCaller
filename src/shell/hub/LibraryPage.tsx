@@ -154,7 +154,7 @@ function CoverFallback({ game }: { game: LibraryGame }) {
 function CoverCard({ game, summary, running, onOpen }: { game: LibraryGame; summary?: GameSummary; running: boolean; onOpen: () => void }) {
   const pct = summary?.total ? summary.unlocked / summary.total : null;
   return (
-    <button onClick={onOpen} className="hover-lift" style={{ textAlign: 'left', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--card)', overflow: 'hidden', padding: 0 }}>
+    <button onClick={onOpen} className="card hover-lift" style={{ textAlign: 'left', overflow: 'hidden', padding: 0 }}>
       <div style={{ position: 'relative', aspectRatio: '2 / 3', background: '#121330' }}>
         <Art sources={coverSources(game)} style={{ width: '100%', height: '100%' }} fallback={<CoverFallback game={game} />} />
         {pct !== null && (

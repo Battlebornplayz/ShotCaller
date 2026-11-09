@@ -68,16 +68,20 @@
       "synopsis": "Cross-game achievement hub and overlay"
     },
     "asarUnpack": [
-      "resources/**"
+      "resources/**",
+      "node_modules/koffi/**"
     ],
     "npmRebuild": false
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "electron-updater": "^6.8.11",
     "firebase": "^12.19.0",
+    "koffi": "^3.3.7",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "uiohook-napi": "^1.5.5"
+    "uiohook-napi": "^1.5.5",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -123,8 +123,13 @@ export function parseProfileSkills(text: string): Record<number, number> {
   return out;
 }
 
-/** Builds the view the UI shows. `idOf` turns an upper-case English name into a skill id. */
-export function toCollection(store: CollectionStore, idOf: (name: string) => string | null): SkillCollection {
+/**
+ * Builds the view the UI shows. `idOf` turns an upper-case English name into a skill id, `idOfNum` a
+ * game skill number. Every skill in your draft history counts as owned: offers only come from skills
+ * you've unlocked (on the user's account, history + equipped build = exactly the game's unlocked count).
+ * `rarities` stays empty for skills never seen equipped, because the game only logs rarity for those.
+ */
+export function toCollection(store: CollectionStore, idOf: (name: string) => string | null, idOfNum: (num: number) => string | null = () => null): SkillCollection {
   const nums = new Set<number>([...Object.keys(store.seen), ...Object.keys(store.profile)].map(Number));
   const owned: OwnedSkill[] = [...nums].map((num) => {
     const seen = store.seen[num];
@@ -132,7 +137,7 @@ export function toCollection(store: CollectionStore, idOf: (name: string) => str
     const rarities = [...(seen?.rarities ?? [])].sort();
     return {
       num,
-      skillId: name ? idOf(name) : null,
+      skillId: (name ? idOf(name) : null) ?? idOfNum(num),
       rarity: rarities.length ? Math.max(...rarities) : 0,
       rarities,
       copies: store.profile[num] ?? 0,

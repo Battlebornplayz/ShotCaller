@@ -21,7 +21,10 @@ export interface AdvisorInput {
   classId: string | null;
   /** Skill ids in the goal build, if one is set. */
   goal: string[];
-  /** Skill ids that can still be offered (your in-game pool); empty = unknown. */
+  /**
+   * Skill ids known to be in your equipped build; empty = unknown. Not the full offer pool: most offers
+   * are random picks from every skill you've unlocked, and the build only feeds some right-hand offers.
+   */
   pool: string[];
   /** Skill id → your rarity for it (0 common … 3 legendary), from your build and collection. */
   rarity?: Record<string, number>;
@@ -57,7 +60,8 @@ const TIER_SCORE: Record<SkillTier, number> = { S: 40, A: 30, B: 20, C: 10 };
 /** Higher rarity = higher max level and stronger syringe mutations (the game's own help text). */
 const RARITY_SCORE = [0, 5, 10, 15];
 const RARITY_LABEL = ['Common', 'Rare', 'Epic', 'Legendary'];
-const REROLL_BELOW = 24;
+/** Below this, both offers are C-tier with nothing going for them. Rerolls are scarce, so keep it rare. */
+const REROLL_BELOW = 15;
 
 function synergyPartner(parts: [string, string], id: string): string | null {
   if (parts[0] === id) return parts[1];
@@ -71,7 +75,9 @@ export function adviseSkill(input: AdvisorInput, skill: SkillshotSkill): SkillAd
   const synergies: number[] = [];
   const level = build[skill.id] ?? 0;
   let score = skill.tier ? TIER_SCORE[skill.tier] : 20;
-  if (skill.tier === 'S' || skill.tier === 'A') reasons.push({ w: 5, text: `${skill.tier} tier` });
+  if (skill.tier === 'S') reasons.push({ w: 8, text: 'One of the best performers in ranked stats' });
+  else if (skill.tier === 'A') reasons.push({ w: 5, text: 'Above average in ranked stats' });
+  else if (skill.tier === 'C') reasons.push({ w: 4, text: 'Below average in ranked stats' });
 
   for (const syn of data.synergies) {
     const partner = synergyPartner(syn.parts, skill.id);
@@ -84,22 +90,22 @@ export function adviseSkill(input: AdvisorInput, skill: SkillshotSkill): SkillAd
       if (classId && partner === `class:${classId}`) {
         score += 22;
         synergies.push(syn.index);
-        reasons.push({ w: 22, text: `Synergy with your class (${partnerName(partner)})` });
+        reasons.push({ w: 22, text: `Official synergy with your class, ${partnerName(partner)}` });
       }
     } else if (build[partner]) {
       score += level > 0 ? 10 : 25;
       synergies.push(syn.index);
-      reasons.push({ w: 25, text: `Synergy with ${partnerName(partner)}` });
+      reasons.push({ w: 25, text: `Official synergy with your ${partnerName(partner)}` });
     } else if (goal.includes(partner) || (pool.length && pool.includes(partner))) {
       score += 6;
-      reasons.push({ w: 6, text: `Sets up ${partnerName(partner)} synergy` });
+      reasons.push({ w: 6, text: `Could pair with ${partnerName(partner)} later` });
     }
   }
 
   const rarity = input.rarity?.[skill.id] ?? 0;
   if (rarity > 0) {
     score += RARITY_SCORE[rarity] ?? 0;
-    reasons.push({ w: RARITY_SCORE[rarity] ?? 0, text: `Your ${RARITY_LABEL[rarity]}: higher max level, stronger mutation` });
+    reasons.push({ w: RARITY_SCORE[rarity] ?? 0, text: `You own it at ${RARITY_LABEL[rarity]}: it levels higher and mutates stronger` });
   }
 
   if (level > 0) {

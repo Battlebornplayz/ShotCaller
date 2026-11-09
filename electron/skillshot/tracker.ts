@@ -52,6 +52,10 @@ let readAgain = false;
 let reason: string | undefined;
 
 let offer: SkillshotLiveState['offer'] = null;
+let coach: SkillshotLiveState['coach'] = null;
+let coachTimer: NodeJS.Timeout | null = null;
+/** How long a note from Claude stays up if no new offer replaces it. */
+const COACH_MS = 90_000;
 /** Picks made in ShotCaller (Alt+1/Alt+2/grid) that the log hasn't written yet. */
 let pendingPicks: { skillId: string; at: number; round: number }[] = [];
 let goal: { ids: string[]; locked: boolean } = { ids: [], locked: false };
@@ -63,10 +67,19 @@ let profileWatcher: FSWatcher | null = null;
 
 const listeners = new Set<(s: SkillshotLiveState) => void>();
 const collectionListeners = new Set<(c: SkillCollection) => void>();
+const draftListeners = new Set<(d: { offers: string[]; picked: string | null; at: number }) => void>();
+
+/** Called for each skill draft as the log writes it. */
+export function onLoggedDraft(fn: (d: { offers: string[]; picked: string | null; at: number }) => void): () => void {
+  draftListeners.add(fn);
+  return () => draftListeners.delete(fn);
+}
 
 /** The class advice uses: your pick, else the one read from your last finished match. */
 const effectiveClass = (): string | null => classId ?? collection.detectedClass;
 
+/** Game logs to keep (they're small, under 200 KB each). */
+const LOG_BACKUPS = 100;
 const storeDir = () => path.join(app.getPath('userData'), 'skillshot');
 const matchesFile = () => path.join(storeDir(), 'matches.json');
 const prefsFile = () => path.join(storeDir(), 'prefs.json');
@@ -76,7 +89,7 @@ const collectionFile = () => path.join(storeDir(), 'collection.json');
 // Data
 
 function applyTiers(d: SkillshotData): SkillshotData {
-  const t = (tiers as { skills: Record<string, Partial<SkillshotSkill>> }).skills;
+  const t = (tiers as unknown as { skills: Record<string, Partial<SkillshotSkill>> }).skills;
   for (const s of d.skills) Object.assign(s, t[s.id] ?? {});
   return d;
 }
@@ -156,7 +169,7 @@ function noteBuild(m: MatchState): void {
 }
 
 function getCollectionView(): SkillCollection {
-  return toCollection(collection, idFromLogName);
+  return toCollection(collection, idFromLogName, (num) => data?.skills.find((s) => s.num === num)?.id ?? null);
 }
 
 export function getSkillCollection(): SkillCollection {
@@ -229,8 +242,9 @@ function feed(e: TimedEvent): void {
   if (startsNewMatch(live, e)) {
     archive(live);
     live = newMatch(e.at, profileName);
-    pendingPicks = [];
-    offer = null;
+    // The log is minutes behind the screen: keep what the screen has already seen of this match.
+    pendingPicks = pendingPicks.filter((p) => p.at >= e.at);
+    if (!(offer?.source === 'screen' && offer.at >= e.at)) offer = null;
     if (!goal.locked) goal = { ids: [], locked: false };
   }
   if (!live) return;
@@ -239,11 +253,17 @@ function feed(e: TimedEvent): void {
   // The build is logged right before the first draft: save it now (class confirmed at match end).
   if (e.ev.t === 'draft' && before === 0 && live.slots.length) noteBuild(live);
   if (e.ev.t === 'draft' && live.picks.length > before) {
-    // The log confirmed a pick: drop the oldest pending manual pick and any offer it answered.
-    pendingPicks.shift();
-    if (offer && e.ev.selected && offer.ids.includes(idFromLogName(e.ev.selected.name) ?? '')) offer = null;
+    // The log confirmed a pick, so it replaces our guess: the matching pending pick, else the oldest.
+    const logged = e.ev.selected ? idFromLogName(e.ev.selected.name) : null;
+    const offers = e.ev.offers.map((o) => idFromLogName(o.name)).filter((x): x is string => !!x);
+    for (const fn of draftListeners) fn({ offers, picked: logged, at: e.at });
+    const i = pendingPicks.findIndex((p) => p.skillId === logged);
+    pendingPicks.splice(Math.max(i, 0), 1);
+    // A hand-set offer it answered is over. A screen offer is the screen's to end: this line can be minutes old.
+    if (offer && offer.source !== 'screen' && logged && offer.ids.includes(logged)) offer = null;
   }
   if (e.ev.t === 'standing' || e.ev.t === 'closed') {
+    pendingPicks = pendingPicks.filter((p) => p.at >= e.at);
     archive(live);
     if (e.ev.t === 'closed') live = null;
   }
@@ -364,7 +384,7 @@ export function getSkillshotState(): SkillshotLiveState {
   return {
     available: !!data,
     reason,
-    inMatch: !!m && !m.ended,
+    inMatch: (!!m && !m.ended) || pendingPicks.length > 0,
     self: m?.self ?? profileName,
     round: m?.round ?? 1,
     final: m?.final ?? false,
@@ -380,6 +400,7 @@ export function getSkillshotState(): SkillshotLiveState {
     pool,
     recentPicks: recentPicks.slice(-6),
     offer,
+    coach,
     advice: adv,
     goal: { ids: goalIds, locked: goal.locked },
     goalProgress: goalProgress(goalIds, build),
@@ -403,8 +424,40 @@ export function onSkillshotChange(fn: (s: SkillshotLiveState) => void): () => vo
 // Actions (overlay hotkeys, manual grid, screen reader, memory reader)
 
 export function setOffer(ids: string[], source: OfferSource): void {
+  // The screen can see a new match before the log does: don't add its picks to the finished one.
+  if (source === 'screen' && live?.ended) {
+    archive(live);
+    live = null;
+  }
   const valid = ids.filter((id) => data?.skills.some((s) => s.id === id)).slice(0, 3);
   offer = valid.length ? { ids: valid, source, at: Date.now() } : null;
+  coach = null; // A note was about the last offer.
+  emit();
+}
+
+/** Shows a note from Claude on the overlay until the next offer, or for COACH_MS. */
+export function setCoachNote(text: string, skillId: string | null): void {
+  coach = { text, skillId, at: Date.now() };
+  if (coachTimer) clearTimeout(coachTimer);
+  coachTimer = setTimeout(() => {
+    coach = null;
+    emit();
+  }, COACH_MS);
+  emit();
+}
+
+/** The screen stopped showing an offer. True if a screen offer was still open (nothing answered it yet). */
+export function endScreenOffer(): boolean {
+  if (offer?.source !== 'screen') return false;
+  offer = null;
+  emit();
+  return true;
+}
+
+/** The game closed or screen reading was turned off: drop what only the screen knew. */
+export function resetScreenState(): void {
+  pendingPicks = [];
+  if (offer?.source === 'screen') offer = null;
   emit();
 }
 
@@ -468,6 +521,24 @@ async function loadStore(): Promise<void> {
     if (p.goal?.locked) goal = p.goal;
   } catch {
     /* first run */
+  }
+}
+
+/**
+ * Keeps a copy of the game's log after each session. The game only keeps its last 4 logs, and these are
+ * the only record of draft order, level timing and round length.
+ */
+export async function backupGameLog(): Promise<void> {
+  if (!installDir) return;
+  const dir = path.join(storeDir(), 'logs');
+  try {
+    await fsp.mkdir(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    await fsp.copyFile(path.join(installDir, 'data', 'log.txt'), path.join(dir, `log-${stamp}.txt`));
+    const files = (await fsp.readdir(dir)).filter((f) => f.startsWith('log-')).sort();
+    for (const old of files.slice(0, Math.max(0, files.length - LOG_BACKUPS))) await fsp.unlink(path.join(dir, old));
+  } catch (err) {
+    console.warn('[skillshot] log backup failed:', err);
   }
 }
 

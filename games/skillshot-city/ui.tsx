@@ -4,8 +4,7 @@ import { RARITY_COLORS, RARITY_NAMES } from '../../shared/skillshotCollection';
 
 /**
  * Shared Skillshot City UI bits (renderer only): skill icon with a rarity border, rarity pill,
- * tier badge. Icons are monograms tinted by skill tree until the real icons are cropped from the
- * game's texture sheets.
+ * tier badge. Icons are the game's own, cropped at startup; a monogram stands in if that failed.
  */
 
 export const TREE_COLORS: Record<SkillTree, string> = {
@@ -70,7 +69,13 @@ export function SkillIcon({
         ...style,
       }}
     >
-      {skill ? monogram(skill.nameEn || skill.name) : (label ?? '?')}
+      {skill?.icon ? (
+        <img src={skill.icon} alt="" draggable={false} style={{ width: '84%', height: '84%', display: 'block' }} />
+      ) : skill ? (
+        monogram(skill.nameEn || skill.name)
+      ) : (
+        (label ?? '?')
+      )}
     </div>
   );
 }

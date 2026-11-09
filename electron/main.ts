@@ -2,7 +2,9 @@ import { app, BrowserWindow } from 'electron';
 import { IPC } from '../shared/ipc';
 import type { RunningGame } from '../shared/types';
 import { disposeHub, initHub, onHubChange } from './achievements';
-import { disposeSkillshot, initSkillshot, onCollectionChange, onSkillshotChange } from './skillshot/tracker';
+import { backupGameLog, disposeSkillshot, initSkillshot, onCollectionChange, onSkillshotChange } from './skillshot/tracker';
+import { setMcpRunning } from './skillshot/mcpServer';
+import { noteMouseDown, onScreenStatus, screenReaderRunning, setScreenReaderRunning } from './skillshot/screenReader';
 import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
 import { disposeAuth, initAuth, onAuthStateChange, refreshProfile } from './auth';
 import { initCrashReports } from './crashReports';
@@ -100,10 +102,17 @@ if (!app.requestSingleInstanceLock()) {
 
     applyLaunchAtLogin(getSettings().startup.launchAtLogin);
     initHotkeys(handleOverlayAction);
-    setAltHookAvailable(await initAltHook(setAltHeld));
+    setAltHookAvailable(await initAltHook(setAltHeld, noteMouseDown));
+    // The screen reader also watches for clicks on the offer cards, even when no corner overlay is up.
+    const syncInputHook = () => setAltHookRunning(cornerOverlayVisible() || screenReaderRunning());
+    const syncScreenReader = () => {
+      const playing = getDetectionState().running.some((rg) => rg.moduleId === 'skillshot-city');
+      setScreenReaderRunning(playing, getSettings().skillshot.screenReader);
+      syncInputHook();
+    };
 
     onOverlayStateChange((state) => {
-      setAltHookRunning(cornerOverlayVisible());
+      syncInputHook();
       setHotkeysInGame(!!state.game || state.preview);
       refreshTray();
     });
@@ -112,7 +121,10 @@ if (!app.requestSingleInstanceLock()) {
       broadcast(IPC.detectionChanged, state);
       for (const rg of started) sessionStarted(rg);
       for (const rg of stopped) sessionStopped(rg);
+      // The game writes its log in batches, so give it a moment to finish after it closes.
+      if (stopped.some((rg) => rg.moduleId === 'skillshot-city')) setTimeout(() => void backupGameLog(), 5000);
       setOverlayGame(overlayGameFrom(state.running));
+      syncScreenReader();
       if (started.some(wantsOverlay) && getSettings().startup.onGameLaunch === 'window') openMain();
       refreshTray();
     });
@@ -126,6 +138,8 @@ if (!app.requestSingleInstanceLock()) {
       }
       if (next.startup.launchAtLogin !== prev.startup.launchAtLogin) applyLaunchAtLogin(next.startup.launchAtLogin);
       if (next.channel !== prev.channel) void checkForUpdates();
+      if (next.skillshot.screenReader !== prev.skillshot.screenReader) syncScreenReader();
+      if (next.mcp.enabled !== prev.mcp.enabled) setMcpRunning(next.mcp.enabled);
       applyOverlaySettings(next, prev);
       if (next.overlay.allGames !== prev.overlay.allGames) setOverlayGame(overlayGameFrom(getDetectionState().running));
     });
@@ -135,6 +149,9 @@ if (!app.requestSingleInstanceLock()) {
     onHubChange((state) => broadcast(IPC.hubChanged, state));
     onSkillshotChange((state) => broadcast(IPC.skillshotChanged, state));
     onCollectionChange((c) => broadcast(IPC.skillshotCollectionChanged, c));
+    onScreenStatus((s) => broadcast(IPC.skillshotScreenChanged, s));
+    syncScreenReader(); // Starts in the right state ("off" or "game not running") before any game is seen.
+    setMcpRunning(getSettings().mcp.enabled);
     void importSteamLibrary().then(() => Promise.all([initHub(), initSkillshot()]));
 
     if (startedHidden()) {
@@ -165,6 +182,8 @@ if (!app.requestSingleInstanceLock()) {
     stopDetection();
     flushSessions();
     disposeHub();
+    setScreenReaderRunning(false, false);
+    setMcpRunning(false);
     disposeSkillshot();
     disposePopup();
     disposeHotkeys();

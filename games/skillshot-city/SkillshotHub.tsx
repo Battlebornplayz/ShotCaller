@@ -1,16 +1,21 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { MatchRecord, SkillshotData } from '../../shared/skillshot';
 import { avgPlace, computeStats, reviewMatch, suggestSessionGoals, winRate, type Bucket, type MatchReview } from '../../shared/skillshotStats';
-import { useSkillshot, useSkillshotData } from '../../src/hooks/useLive';
+import { useSkillCollection, useSkillshot, useSkillshotData } from '../../src/hooks/useLive';
+import { BuilderPage } from './BuilderPage';
+import { LearnPage } from './LearnPage';
+import { ScreenCheckPage } from './ScreenCheckPage';
+import { SkillLookup } from './SkillLookup';
 import { SkillCollectionCard } from './SkillCollectionCard';
 import { SkillIcon, skillById } from './ui';
 
 /**
- * Skillshot City section of the game page: your skills, match history with pick review, and stats.
+ * Skillshot City section of the game page: your skills, skill lookup, learn to play, match history
+ * with pick review, and stats.
  * Matches reload whenever the tracker saves a new one (pushed lastMatch changes).
  */
 
-type Tab = 'skills' | 'matches' | 'stats';
+type Tab = 'skills' | 'builder' | 'lookup' | 'learn' | 'matches' | 'stats' | 'screen';
 
 function useMatches(): MatchRecord[] | null {
   const live = useSkillshot();
@@ -39,14 +44,25 @@ export function SkillshotHub() {
   const [tab, setTab] = useState<Tab>('skills');
   const data = useSkillshotData();
   const matches = useMatches();
+  const collection = useSkillCollection();
+  const live = useSkillshot();
+  const [openSkill, setOpenSkill] = useState<string | null>(null);
+  const openInLookup = (id: string) => {
+    setOpenSkill(id);
+    setTab('lookup');
+  };
   return (
     <div style={{ marginBottom: 14 }}>
       <div className="segmented" style={{ marginBottom: 12 }}>
         {(
           [
             ['skills', 'Your skills'],
+            ['builder', 'Builder'],
+            ['lookup', 'Lookup'],
+            ['learn', 'Learn to play'],
             ['matches', `Matches${matches ? ` (${matches.length})` : ''}`],
             ['stats', 'Stats'],
+            ['screen', 'Screen check'],
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)}>
@@ -55,9 +71,13 @@ export function SkillshotHub() {
         ))}
       </div>
       {tab === 'skills' && <SkillCollectionCard />}
+      {tab === 'builder' && data && matches && <BuilderPage data={data} matches={matches} collection={collection} live={live} />}
+      {tab === 'lookup' && data && matches && <SkillLookup data={data} matches={matches} collection={collection} openId={openSkill} />}
+      {tab === 'learn' && data && <LearnPage data={data} onOpenSkill={openInLookup} />}
       {tab === 'matches' && data && matches && <MatchHistory data={data} matches={matches} />}
       {tab === 'stats' && data && matches && <StatsView data={data} matches={matches} />}
-      {tab !== 'skills' && (!data || !matches) && <div className="card muted">Loading…</div>}
+      {tab === 'screen' && data && <ScreenCheckPage data={data} />}
+      {tab !== 'skills' && tab !== 'learn' && tab !== 'screen' && (!data || !matches) && <div className="card muted">Loading…</div>}
     </div>
   );
 }
@@ -218,7 +238,7 @@ function MatchDetail({ m, data, review }: { m: MatchRecord; data: SkillshotData;
 
 function Metric({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }}>
+    <div className="tile" style={{ padding: '12px 14px' }}>
       <div className="muted" style={{ fontSize: 11.5 }}>
         {label}
       </div>

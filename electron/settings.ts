@@ -21,7 +21,8 @@ const DEFAULTS: Settings = {
   hotkeys: { ...DEFAULT_HOTKEYS },
   hotkeysOnlyInGame: true,
   startup: { launchAtLogin: true, onGameLaunch: 'overlay', closeToTray: true },
-  skillshot: { offerSound: true, memoryReader: false },
+  skillshot: { offerSound: true, memoryReader: false, screenReader: true },
+  mcp: { enabled: false, allowActions: false },
 };
 
 let cache: Settings | null = null;
@@ -81,6 +82,7 @@ function sanitize(input: unknown): Settings {
   const startup = obj(raw.startup);
   const privacy = obj(raw.privacy);
   const skillshot = obj(raw.skillshot);
+  const mcp = obj(raw.mcp);
   const hotkeysRaw = obj(raw.hotkeys);
   const popups = obj(raw.popups);
   const volume = finite(popups.volume) ? popups.volume : DEFAULTS.popups.volume;
@@ -122,6 +124,10 @@ function sanitize(input: unknown): Settings {
     },
     hotkeys,
     hotkeysOnlyInGame: bool(raw.hotkeysOnlyInGame, DEFAULTS.hotkeysOnlyInGame),
+    mcp: {
+      enabled: bool(mcp.enabled, DEFAULTS.mcp.enabled),
+      allowActions: bool(mcp.allowActions, DEFAULTS.mcp.allowActions),
+    },
     startup: {
       launchAtLogin: bool(startup.launchAtLogin, DEFAULTS.startup.launchAtLogin),
       onGameLaunch: oneOf<GameLaunchAction>(startup.onGameLaunch, ['overlay', 'window', 'nothing'], DEFAULTS.startup.onGameLaunch),
@@ -130,6 +136,7 @@ function sanitize(input: unknown): Settings {
     skillshot: {
       offerSound: bool(skillshot.offerSound, DEFAULTS.skillshot.offerSound),
       memoryReader: bool(skillshot.memoryReader, DEFAULTS.skillshot.memoryReader),
+      screenReader: bool(skillshot.screenReader, DEFAULTS.skillshot.screenReader),
     },
   };
 }
@@ -161,6 +168,7 @@ export function updateSettings(patch: SettingsPatch): Settings {
     startup: { ...prev.startup, ...obj(p.startup) },
     privacy: { ...prev.privacy, ...obj(p.privacy) },
     skillshot: { ...prev.skillshot, ...obj(p.skillshot) },
+    mcp: { ...prev.mcp, ...obj(p.mcp) },
   };
   // Rebinding a combination another action already uses moves it: the old action is unbound.
   for (const [action, combo] of Object.entries(obj(p.hotkeys))) {

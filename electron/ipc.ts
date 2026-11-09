@@ -30,6 +30,8 @@ import {
   setGoal,
   setOffer,
 } from './skillshot/tracker';
+import { getMcpInfo } from './skillshot/mcpServer';
+import { getScreenPreview, getScreenStatus } from './skillshot/screenReader';
 import { searchSteamApps } from './steamPublic';
 import {
   cancelAuthFlow,
@@ -190,6 +192,9 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.skillshotData, () => getSkillshotData());
   ipcMain.handle(IPC.skillshotMatches, () => getMatches());
   ipcMain.handle(IPC.skillshotCollection, () => getSkillCollection());
+  ipcMain.handle(IPC.skillshotScreen, () => getScreenStatus());
+  ipcMain.handle(IPC.skillshotScreenPreview, () => getScreenPreview());
+  ipcMain.handle(IPC.mcpInfo, () => getMcpInfo());
   ipcMain.handle(IPC.skillshotSetOffer, (_e, v: unknown) => setOffer(ids(v), 'manual'));
   ipcMain.handle(IPC.skillshotPick, (_e, which: unknown) => {
     if (which === 0 || which === 1 || which === 2) pickOffer(which);

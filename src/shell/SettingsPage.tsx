@@ -7,6 +7,7 @@ import {
   type DisplayInfo,
   type GameLaunchAction,
   type HotkeyAction,
+  type McpInfo,
   type OverlayMode,
   type PopupCorner,
   type SettingsPatch,
@@ -28,7 +29,7 @@ function Section({ title, subtitle, children, delay = 0 }: { title: string; subt
   return (
     <section className="card enter" style={{ display: 'grid', gap: 16, maxWidth: 760, marginBottom: 14, animationDelay: `${delay}ms` }}>
       <div>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>{title}</div>
+        <div style={{ fontWeight: 800, fontSize: 17 }}>{title}</div>
         <div className="muted" style={{ fontSize: 13 }}>
           {subtitle}
         </div>
@@ -165,6 +166,17 @@ function OverlaySection() {
           </SettingRow>
         </>
       )}
+
+      <SettingRow
+        title="Read Skillshot City's skill offers from the screen"
+        description="Copies a small strip at the top of the game's picture to recognize the 2 offered skills, offline. It doesn't touch the game. Off: enter offers by hand."
+      >
+        <Toggle
+          label="Read Skillshot City's skill offers from the screen"
+          checked={settings?.skillshot.screenReader ?? true}
+          onChange={(v) => update({ skillshot: { screenReader: v } })}
+        />
+      </SettingRow>
 
       <SettingRow title="Show the overlay for every game" description="Off: only games with a ShotCaller module (Skillshot City) get the overlay.">
         <Toggle label="Show the overlay for every game" checked={!!o?.allGames} onChange={(v) => update({ overlay: { allGames: v } })} />
@@ -326,6 +338,63 @@ const LAUNCH_ACTIONS: { id: GameLaunchAction; label: string }[] = [
   { id: 'nothing', label: 'Do nothing (use the hotkey)' },
 ];
 
+/** The Claude connection is parked and only partly tested (see HANDOFF.md), so its switch stays out of releases. */
+const SHOW_CLAUDE_CONNECTION: boolean = false;
+
+function ClaudeSection() {
+  const settings = useSettings();
+  const enabled = !!settings?.mcp.enabled;
+  const [mcp, setMcp] = useState<McpInfo | null>(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    // Starting the server takes a moment, and a port clash only shows up after that.
+    const t = setTimeout(() => void window.shotcaller.getMcpInfo().then(setMcp), 400);
+    return () => clearTimeout(t);
+  }, [enabled]);
+  const copy = () => {
+    if (!mcp?.command) return;
+    void navigator.clipboard.writeText(mcp.command).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <Section title="Claude connection" subtitle="Optional: lets Claude see your match data and coach you. ShotCaller works fully without it." delay={90}>
+      <SettingRow
+        title="Connect to Claude"
+        description="Runs a small server that only this PC can reach, protected by a secret token. It shares ShotCaller’s data, including your match history, with the Claude app you connect. Claude’s replies use your Claude plan."
+      >
+        <Toggle label="Connect to Claude" checked={enabled} onChange={(v) => update({ mcp: { enabled: v } })} />
+      </SettingRow>
+      {enabled && (
+        <>
+          <SettingRow
+            title="Let Claude show advice"
+            description="Claude can put advice on your overlay, set your goal build and enter offers. Off: it can only read."
+          >
+            <Toggle label="Let Claude show advice" checked={!!settings?.mcp.allowActions} onChange={(v) => update({ mcp: { allowActions: v } })} />
+          </SettingRow>
+          {mcp?.error && <div style={{ fontSize: 13, color: 'var(--red)' }}>Couldn’t start: {mcp.error}</div>}
+          {mcp?.running && (
+            <div className="tile" style={{ padding: '12px 14px', display: 'grid', gap: 8 }}>
+              <div className="row">
+                <div className="eyebrow">Set up Claude Code</div>
+                <button className="btn" style={{ padding: '5px 12px', fontSize: 12.5 }} onClick={copy}>
+                  {copied ? 'Copied' : 'Copy command'}
+                </button>
+              </div>
+              <div className="muted" style={{ fontSize: 12 }}>
+                Run the command once in a terminal, then start a new Claude Code chat. Type <b style={{ color: 'var(--text)' }}>/mcp__shotcaller__coach</b> when you start a match. The command holds your secret token, so
+                don’t share it.
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </Section>
+  );
+}
+
 function StartupSection({ info }: { info: AppInfo | null }) {
   const settings = useSettings();
   const s = settings?.startup;
@@ -462,6 +531,7 @@ export function SettingsPage() {
       <PopupSection />
       <OverlaySection />
       <HotkeysSection />
+      {SHOW_CLAUDE_CONNECTION && <ClaudeSection />}
       <StartupSection info={info} />
       <PrivacySection delay={150} />
 

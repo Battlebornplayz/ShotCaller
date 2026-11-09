@@ -1,0 +1,277 @@
+{
+ "_about": "Where each skill icon sits in the game's own data/textures/menuTextures.png (cropped from the installed game at startup; the art is not shipped), and the game's numeric skill id. Matched by image fingerprint against skillshotcity.gg's icons on 2026-11-09, game version 1992.",
+ "sheet": "menuTextures.png",
+ "cell": 64,
+ "skills": {
+  "ARMEDROBBERY": {
+   "num": 50,
+   "x": 64,
+   "y": 1088
+  },
+  "ASSASSINATE": {
+   "num": 39,
+   "x": 832,
+   "y": 1344
+  },
+  "AUTOMATICARMOR": {
+   "num": 27,
+   "x": 512,
+   "y": 1344
+  },
+  "BEEFCAKE": {
+   "num": 42,
+   "x": 0,
+   "y": 1728
+  },
+  "BLADEFURY": {
+   "num": 10,
+   "x": 128,
+   "y": 1408
+  },
+  "BLADEMAIL": {
+   "num": 29,
+   "x": 512,
+   "y": 1472
+  },
+  "BOOTSOFTRAVEL": {
+   "num": 18,
+   "x": 320,
+   "y": 1344
+  },
+  "BOUNCINGBULLETS": {
+   "num": 23,
+   "x": 384,
+   "y": 1472
+  },
+  "BULLETTIME": {
+   "num": 8,
+   "x": 64,
+   "y": 1472
+  },
+  "CHARGEDSHOT": {
+   "num": 38,
+   "x": 704,
+   "y": 1472
+  },
+  "CLIPMAGNET": {
+   "num": 30,
+   "x": 576,
+   "y": 1344
+  },
+  "CLUSTERBOMB": {
+   "num": 40,
+   "x": 832,
+   "y": 1408
+  },
+  "COMBOKILLER": {
+   "num": 47,
+   "x": 1920,
+   "y": 1664
+  },
+  "CRITICALRAGE": {
+   "num": 44,
+   "x": 1408,
+   "y": 1792
+  },
+  "ENERGYVORTEX": {
+   "num": 19,
+   "x": 320,
+   "y": 1408
+  },
+  "EXECUTIONER": {
+   "num": 45,
+   "x": 1792,
+   "y": 1408
+  },
+  "FALLINGINFERNO": {
+   "num": 35,
+   "x": 64,
+   "y": 1664
+  },
+  "FIRESTORM": {
+   "num": 14,
+   "x": 192,
+   "y": 1472
+  },
+  "FLAMINGBULLETS": {
+   "num": 34,
+   "x": 640,
+   "y": 1408
+  },
+  "FLYINGDAGGER": {
+   "num": 51,
+   "x": 1152,
+   "y": 1664
+  },
+  "FORCEFIELD": {
+   "num": 6,
+   "x": 64,
+   "y": 1344
+  },
+  "FRENZY": {
+   "num": 9,
+   "x": 128,
+   "y": 1344
+  },
+  "GUNSLINGER": {
+   "num": 17,
+   "x": 256,
+   "y": 1472
+  },
+  "HYPNOTICARMY": {
+   "num": 24,
+   "x": 448,
+   "y": 1344
+  },
+  "ILLICITINCOME": {
+   "num": 1,
+   "x": 768,
+   "y": 1408
+  },
+  "INVISIBILITY": {
+   "num": 7,
+   "x": 64,
+   "y": 1408
+  },
+  "KILLERCOOLDOWNS": {
+   "num": 32,
+   "x": 576,
+   "y": 1472
+  },
+  "LASERSCOPE": {
+   "num": 20,
+   "x": 64,
+   "y": 1728
+  },
+  "MANASHIELD": {
+   "num": 15,
+   "x": 256,
+   "y": 1344
+  },
+  "MANICMECHANIC": {
+   "num": 2,
+   "x": 768,
+   "y": 1472
+  },
+  "MEDICALSUPPLIES": {
+   "num": 48,
+   "x": 0,
+   "y": 1088
+  },
+  "MIRRORIMAGE": {
+   "num": 37,
+   "x": 704,
+   "y": 1408
+  },
+  "PHASEDRIFTING": {
+   "num": 21,
+   "x": 384,
+   "y": 1344
+  },
+  "POISONTRAIL": {
+   "num": 52,
+   "x": 128,
+   "y": 1088
+  },
+  "PROXIMITYROUNDS": {
+   "num": 33,
+   "x": 640,
+   "y": 1344
+  },
+  "RADIATE": {
+   "num": 12,
+   "x": 192,
+   "y": 1344
+  },
+  "RAMBULANCE": {
+   "num": 49,
+   "x": 128,
+   "y": 1664
+  },
+  "REGENERATION": {
+   "num": 4,
+   "x": 0,
+   "y": 1408
+  },
+  "REVENGEROCKET": {
+   "num": 53,
+   "x": 1856,
+   "y": 1600
+  },
+  "SELFREPAIR": {
+   "num": 5,
+   "x": 0,
+   "y": 1472
+  },
+  "SHIFTATTACK": {
+   "num": 16,
+   "x": 256,
+   "y": 1408
+  },
+  "SHIFTSUPPLY": {
+   "num": 43,
+   "x": 128,
+   "y": 1728
+  },
+  "SHOCKWAVE": {
+   "num": 11,
+   "x": 128,
+   "y": 1472
+  },
+  "SHRAPNEL": {
+   "num": 26,
+   "x": 448,
+   "y": 1472
+  },
+  "SKILLSHOTS": {
+   "num": 36,
+   "x": 704,
+   "y": 1344
+  },
+  "SMOKEBOMB": {
+   "num": 28,
+   "x": 512,
+   "y": 1408
+  },
+  "SOULDROP": {
+   "num": 41,
+   "x": 832,
+   "y": 1472
+  },
+  "SPIKETRAP": {
+   "num": 25,
+   "x": 448,
+   "y": 1408
+  },
+  "STIMPACKS": {
+   "num": 46,
+   "x": 1152,
+   "y": 1600
+  },
+  "TELEPORTATION": {
+   "num": 31,
+   "x": 576,
+   "y": 1408
+  },
+  "TOXICBLOOD": {
+   "num": 0,
+   "x": 768,
+   "y": 1344
+  },
+  "VAMPIRISM": {
+   "num": 3,
+   "x": 0,
+   "y": 1344
+  },
+  "VENOMSHOT": {
+   "num": 13,
+   "x": 192,
+   "y": 1408
+  },
+  "XRAYVISION": {
+   "num": 22,
+   "x": 384,
+   "y": 1408
+  }
+ }
+}

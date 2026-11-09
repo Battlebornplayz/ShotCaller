@@ -70,8 +70,8 @@ export function SkillCollectionCard() {
 
       <p className="muted" style={{ fontSize: 11.5, margin: '12px 0 0' }}>
         Read-only from the game's files: each match's equipped build (with rarity and class) and your unlocked-skill count from{' '}
-        <code>log.txt</code>, plus the draft history in your profile. New unlocks (flasks) are only kept on the game's server, so skills you
-        haven't equipped yet show up once you equip them, or once the memory reader (coming later) reads your collection.
+        <code>log.txt</code>, plus the draft history in your profile. Any skill you've been offered is one you've unlocked. The game only logs
+        rarity for skills you equip, so the others show their rarity after you equip them once.
       </p>
     </section>
   );
@@ -153,14 +153,13 @@ function OwnedGrid({ owned, data }: { owned: OwnedSkill[]; data: SkillshotData |
         return (
           <div
             key={o.num}
+            className="tier-row"
             style={{
+              ['--tier' as string]: known ? RARITY_COLORS[o.rarity] : 'var(--muted)',
               display: 'flex',
               gap: 10,
               alignItems: 'center',
-              padding: 8,
-              borderRadius: 10,
-              background: 'rgba(255,255,255,0.03)',
-              border: `1px solid ${known ? `${RARITY_COLORS[o.rarity]}33` : 'var(--border)'}`,
+              padding: '8px 8px 8px 11px',
             }}
           >
             <SkillIcon skill={skill} rarity={known ? o.rarity : undefined} label={`#${o.num}`} dim={!skill} />
