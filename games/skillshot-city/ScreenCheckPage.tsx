@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import type { ScreenPreview, ScreenRead, ScreenReadStatus, SkillshotData } from '../../shared/skillshot';
+import { RARITY_COLORS, RARITY_NAMES } from '../../shared/skillshotCollection';
 import { useScreenStatus } from '../../src/hooks/useLive';
 import { SkillIcon, skillById } from './ui';
 
@@ -160,6 +161,7 @@ function ReadRow({ r, data }: { r: ScreenRead; data: SkillshotData }) {
             <SkillIcon skill={skillById(data, id)} size={18} />
             {name(data, id)}
             {r.scores[i] !== undefined && <span className="muted"> {Math.round(r.scores[i] * 100)}%</span>}
+            {typeof r.rarities?.[i] === 'number' && <span style={{ color: RARITY_COLORS[r.rarities[i]] }}> {RARITY_NAMES[r.rarities[i]]}</span>}
           </span>
         ))}
       </div>

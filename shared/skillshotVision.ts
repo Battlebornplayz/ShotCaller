@@ -159,14 +159,16 @@ export interface DraftGeometry {
   /** The build row, inside the capture. */
   buildRow: Box;
   buildIconPx: number;
+  /** The start of each card's `Lvl x/y` text, inside the capture. Stops short of the green NEW SKILL! text. */
+  levelText: [Box, Box];
   /** The clickable cards, in window pixels. */
   cards: [Box, Box];
 }
 
 /**
  * Measured at 1920x1080 (game version 0.992.23): offer icons 38 px at x 769 and 994, y 47; build icons 28 px
- * in a row centred on x 960, y 31 (y 45 on the end screen). Other resolutions assume the UI scales with height
- * and stays centred, which hasn't been checked.
+ * in a row centred on x 960, y 31 (y 45 on the end screen); level text from x 800 and 1025, y 48-66. Other
+ * resolutions assume the UI scales with height and stays centred, which hasn't been checked.
  */
 export function draftGeometry(width: number, height: number): DraftGeometry {
   const s = height / 1080;
@@ -176,10 +178,11 @@ export function draftGeometry(width: number, height: number): DraftGeometry {
   const span = (38 * (OFFER_TEMPLATE_SIZE + OFFER_SLACK * 2)) / OFFER_TEMPLATE_SIZE;
   const offer = (cx: number) => local(at(cx - span / 2, 47 - span / 2, span, span));
   return {
-    capture: { x: ox, y: 0, width: Math.round(335 * s), height: Math.round(75 * s) },
+    capture: { x: ox, y: 0, width: Math.round(400 * s), height: Math.round(75 * s) },
     offers: [offer(769), offer(994)],
     buildRow: local(at(850, 8, 220, 52)),
     buildIconPx: 28 * s,
+    levelText: [local(at(800, 48, 50, 18)), local(at(1025, 48, 50, 18))],
     cards: [at(745, 25, 200, 105), at(970, 25, 200, 105)],
   };
 }
@@ -244,6 +247,60 @@ export function readOffers(
   if ((clear[0] && (clear[1] || fair[1])) || (clear[1] && fair[0])) return { ids, scores, partial: false };
   // One clear slot and one not: nothing to act on, but worth keeping a picture of (see the screen reader).
   return clear[0] || clear[1] ? { ids: [], scores, partial: true } : null;
+}
+
+/**
+ * The colour of a card's `Lvl x/y` text gives the skill's rarity. Hue and saturation of the text, measured on 21
+ * real 1080p strips at game version 0.992.23, and checked against the x/4, x/5, x/6, x/7 printed on the cards:
+ * Common 219 / 0.43, Rare 186 / 0.89, Epic 282 / 0.66, Legendary 49 / 0.81. A frame caught mid-fade held at
+ * hue 190 (Rare) and 269 (Epic). The bands leave gaps between them on purpose: anything else is "not sure".
+ */
+const RARITY_BANDS = [
+  { hue: [205, 235], sat: [0.3, 0.6] },
+  { hue: [175, 200], sat: [0.7, 1] },
+  { hue: [260, 300], sat: [0.5, 0.8] },
+  { hue: [35, 60], sat: [0.65, 1] },
+] as const;
+/** Text has to be this bright, and this much brighter than what's around it, to count as text. */
+const RARITY_MIN_VALUE = 0.6;
+const RARITY_MIN_CONTRAST = 0.2;
+/** Share of the box's pixels taken as the text: the brightest ones. */
+const RARITY_TEXT_SHARE = 0.12;
+
+/**
+ * Reads a skill's rarity (0 Common … 3 Legendary) from the level text in `box`, or null when not sure. Takes raw
+ * 4-byte pixels because this needs colour: `order` matters here, unlike in `toGray`. Screen copies are BGRA.
+ */
+export function readRarity(pixels: Uint8Array, width: number, box: Box, order: 'bgra' | 'rgba' = 'bgra'): number | null {
+  const height = Math.floor(pixels.length / 4 / width);
+  const x0 = Math.max(0, Math.round(box.x));
+  const x1 = Math.min(width, Math.round(box.x + box.width));
+  const y0 = Math.max(0, Math.round(box.y));
+  const y1 = Math.min(height, Math.round(box.y + box.height));
+  const px: { r: number; g: number; b: number; v: number }[] = [];
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const p = (y * width + x) * 4;
+      const r = pixels[p + (order === 'bgra' ? 2 : 0)];
+      const g = pixels[p + 1];
+      const b = pixels[p + (order === 'bgra' ? 0 : 2)];
+      px.push({ r, g, b, v: Math.max(r, g, b) });
+    }
+  }
+  if (px.length < 20) return null;
+  px.sort((a, c) => c.v - a.v);
+  const text = px.slice(0, Math.max(3, Math.round(px.length * RARITY_TEXT_SHARE)));
+  const middle = (values: number[]) => values.sort((a, c) => a - c)[values.length >> 1];
+  const r = middle(text.map((t) => t.r)) / 255;
+  const g = middle(text.map((t) => t.g)) / 255;
+  const b = middle(text.map((t) => t.b)) / 255;
+  const max = Math.max(r, g, b);
+  const span = max - Math.min(r, g, b);
+  if (max < RARITY_MIN_VALUE || max - px[px.length >> 1].v / 255 < RARITY_MIN_CONTRAST || span === 0) return null;
+  const sat = span / max;
+  const hue = (max === r ? ((g - b) / span + 6) % 6 : max === g ? (b - r) / span + 2 : (r - g) / span + 4) * 60;
+  const found = RARITY_BANDS.findIndex((band) => hue >= band.hue[0] && hue <= band.hue[1] && sat >= band.sat[0] && sat <= band.sat[1]);
+  return found < 0 ? null : found;
 }
 
 /** True when nearly all of a picture is black: the copy worked but shows nothing (e.g. exclusive fullscreen). */

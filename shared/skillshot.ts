@@ -114,6 +114,8 @@ export interface ScreenRead {
   offers: string[];
   /** Confidence for each offer, 0-1; empty for a draft only the log saw. */
   scores: number[];
+  /** Rarity read off each card (0 Common … 3 Legendary), null while not sure. Missing for a draft only the log saw. */
+  rarities?: (number | null)[];
   picked: string | null;
   /** How the pick was known. 'log' = the screen couldn't tell, the log filled it in. */
   how: 'build row' | 'click' | 'not in build row' | 'log' | null;
@@ -168,6 +170,8 @@ export interface SkillshotLiveState {
   offer: { ids: string[]; source: OfferSource; at: number } | null;
   /** Advice sent by Claude over the optional MCP connection, shown on the overlay until the next offer. */
   coach: { text: string; skillId: string | null; at: number } | null;
+  /** The newest skill seen at a higher rarity than ShotCaller knew, for a small notice. */
+  rarityUp: { skillId: string; rarity: number; at: number } | null;
   advice: import('./skillshotAdvisor').Advice | null;
   goal: { ids: string[]; locked: boolean };
   goalProgress: number;

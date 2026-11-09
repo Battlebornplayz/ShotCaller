@@ -19,6 +19,7 @@ import {
   recordBuild,
   setDetectedClass,
   setOwnedCount,
+  setScreenRarity,
   toCollection,
   type CollectionStore,
   type SkillCollection,
@@ -54,6 +55,7 @@ let reason: string | undefined;
 let offer: SkillshotLiveState['offer'] = null;
 let coach: SkillshotLiveState['coach'] = null;
 let coachTimer: NodeJS.Timeout | null = null;
+let rarityUp: SkillshotLiveState['rarityUp'] = null;
 /** How long a note from Claude stays up if no new offer replaces it. */
 const COACH_MS = 90_000;
 /** Picks made in ShotCaller (Alt+1/Alt+2/grid) that the log hasn't written yet. */
@@ -401,6 +403,7 @@ export function getSkillshotState(): SkillshotLiveState {
     recentPicks: recentPicks.slice(-6),
     offer,
     coach,
+    rarityUp,
     advice: adv,
     goal: { ids: goalIds, locked: goal.locked },
     goalProgress: goalProgress(goalIds, build),
@@ -432,6 +435,18 @@ export function setOffer(ids: string[], source: OfferSource): void {
   const valid = ids.filter((id) => data?.skills.some((s) => s.id === id)).slice(0, 3);
   offer = valid.length ? { ids: valid, source, at: Date.now() } : null;
   coach = null; // A note was about the last offer.
+  emit();
+}
+
+/** The screen reader saw this rarity on a skill's draft card. Saves it and refreshes the advice, which uses it. */
+export function noteScreenRarity(id: string, rarity: number): void {
+  const num = data?.skills.find((s) => s.id === id)?.num;
+  if (num === undefined) return;
+  const at = Date.now();
+  const { changed, rose } = setScreenRarity(collection, num, rarity, at);
+  if (!changed) return;
+  if (rose) rarityUp = { skillId: id, rarity, at };
+  collectionChanged();
   emit();
 }
 

@@ -4,8 +4,9 @@
  *   tied to the class you played (classID in your final standing);
  * - the owned-skill list in your profile (`::IMPS` in data/profiles/<name>.guy), which only has
  *   the game's skill numbers. Names fill in as the log reveals each number.
- * The full collection lives on the game's server, so skills you never equip only show up once the
- * memory reader (or a build that uses them) reveals them.
+ * - the rarity printed on draft cards, read off the screen whenever a skill is offered.
+ * The full collection lives on the game's server, so a skill you've never been offered or equipped
+ * only shows up once the memory reader (or a build or offer that uses it) reveals it.
  */
 
 export const RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary'] as const;
@@ -32,7 +33,7 @@ export interface OwnedSkill {
   skillId: string | null;
   /** Highest rarity seen. */
   rarity: number;
-  /** Every rarity this skill was seen at in your builds. */
+  /** Every rarity this skill was seen at in your builds, plus the latest one read off a draft card. */
   rarities: number[];
   /** Entries in your profile's ::IMPS list (looks like draft impressions, not ownership). */
   copies: number;
@@ -68,6 +69,11 @@ export interface CollectionStore {
   classBuilds: Record<string, { slots: BuildSlot[]; seenAt: number; confirmed: boolean }>;
   /** Skill number → copies in the profile's owned list. */
   profile: Record<number, number>;
+  /**
+   * Skill number → rarity last read off a draft card. Kept apart from `seen`, which is the game's own record:
+   * a screen read can be wrong, so only the newest counts and the next read can correct it.
+   */
+  screen?: Record<number, { rarity: number; at: number }>;
   detectedClass: string | null;
   detectedAt: number;
   ownedCount?: number;
@@ -109,6 +115,23 @@ export function setOwnedCount(store: CollectionStore, n: number, at: number): bo
   return true;
 }
 
+const knownRarities = (store: CollectionStore, num: number): number[] => {
+  const log = store.seen[num]?.rarities ?? [];
+  const screen = store.screen?.[num]?.rarity;
+  return screen === undefined || log.includes(screen) ? [...log] : [...log, screen];
+};
+
+/**
+ * Records a rarity read off a draft card. `changed`: there's something new to save. `rose`: the skill was known
+ * at a lower rarity before, so it's worth telling you. A first-time read isn't a rise, just something learned.
+ */
+export function setScreenRarity(store: CollectionStore, num: number, rarity: number, at: number): { changed: boolean; rose: boolean } {
+  const before = knownRarities(store, num);
+  const changed = store.screen?.[num]?.rarity !== rarity;
+  (store.screen ??= {})[num] = { rarity, at };
+  return { changed, rose: before.length > 0 && rarity > Math.max(...before) };
+}
+
 /** Pulls the owned-skill numbers out of the profile text. Reads only the `::IMPS` section. */
 export function parseProfileSkills(text: string): Record<number, number> {
   const m = /::IMPS\s*\r?\n([^\r\n]*)/.exec(text);
@@ -127,14 +150,15 @@ export function parseProfileSkills(text: string): Record<number, number> {
  * Builds the view the UI shows. `idOf` turns an upper-case English name into a skill id, `idOfNum` a
  * game skill number. Every skill in your draft history counts as owned: offers only come from skills
  * you've unlocked (on the user's account, history + equipped build = exactly the game's unlocked count).
- * `rarities` stays empty for skills never seen equipped, because the game only logs rarity for those.
+ * A skill read off a draft card counts too, for the same reason. `rarities` stays empty until a skill has been
+ * equipped (the game only logs rarity for those) or offered with screen reading on.
  */
 export function toCollection(store: CollectionStore, idOf: (name: string) => string | null, idOfNum: (num: number) => string | null = () => null): SkillCollection {
-  const nums = new Set<number>([...Object.keys(store.seen), ...Object.keys(store.profile)].map(Number));
+  const nums = new Set<number>([...Object.keys(store.seen), ...Object.keys(store.profile), ...Object.keys(store.screen ?? {})].map(Number));
   const owned: OwnedSkill[] = [...nums].map((num) => {
     const seen = store.seen[num];
     const name = store.nums[num];
-    const rarities = [...(seen?.rarities ?? [])].sort();
+    const rarities = knownRarities(store, num).sort();
     return {
       num,
       skillId: (name ? idOf(name) : null) ?? idOfNum(num),

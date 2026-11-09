@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MatchRecord, SkillshotData, SkillshotLiveState, SkillshotSkill } from '../../shared/skillshot';
 import { MAX_LEVEL_BY_RARITY, SKILL_TREES } from '../../shared/skillshot';
 import type { SkillAdvice } from '../../shared/skillshotAdvisor';
+import { RARITY_NAMES } from '../../shared/skillshotCollection';
 import { reviewMatch, suggestSessionGoals } from '../../shared/skillshotStats';
 import type { Settings } from '../../shared/types';
 import { useOverlayState, useScreenStatus, useSettings, useSkillshot, useSkillshotData } from '../../src/hooks/useLive';
@@ -547,12 +548,12 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
   const [expired, setExpired] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Cues: new offer → sound + expand; level-up → expand; new synergy → toast + sound.
-  const seen = useRef<{ offerAt: number | null; level: number; synergies: number[] } | null>(null);
+  // Cues: new offer → sound + expand; level-up → expand; new synergy → toast + sound; rarity up → toast.
+  const seen = useRef<{ offerAt: number | null; level: number; synergies: number[]; rarityUpAt: number | null } | null>(null);
   useEffect(() => {
     if (!s) return;
     const prev = seen.current;
-    seen.current = { offerAt: s.offer?.at ?? null, level: s.level, synergies: s.activeSynergies };
+    seen.current = { offerAt: s.offer?.at ?? null, level: s.level, synergies: s.activeSynergies, rarityUpAt: s.rarityUp?.at ?? null };
     if (!prev) return;
     const vol = settings?.popups.volume ?? 0.6;
     const sound = settings?.skillshot.offerSound ?? true;
@@ -565,6 +566,8 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
     if (added.length && data) {
       setToast(`Synergy active: ${synergyLabel(data, added[0])}`);
       if (sound) playCue(vol, 'synergy');
+    } else if (s.rarityUp && s.rarityUp.at !== prev.rarityUpAt && data) {
+      setToast(`${skillById(data, s.rarityUp.skillId)?.name ?? s.rarityUp.skillId} is now ${RARITY_NAMES[s.rarityUp.rarity]}`);
     }
   }, [s, data, settings]);
 

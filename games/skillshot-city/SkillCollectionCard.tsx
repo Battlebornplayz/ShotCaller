@@ -71,7 +71,7 @@ export function SkillCollectionCard() {
       <p className="muted" style={{ fontSize: 11.5, margin: '12px 0 0' }}>
         Read-only from the game's files: each match's equipped build (with rarity and class) and your unlocked-skill count from{' '}
         <code>log.txt</code>, plus the draft history in your profile. Any skill you've been offered is one you've unlocked. The game only logs
-        rarity for skills you equip, so the others show their rarity after you equip them once.
+        rarity for skills you equip, so the others show their rarity once you equip them or get offered them in a match with screen reading on.
       </p>
     </section>
   );

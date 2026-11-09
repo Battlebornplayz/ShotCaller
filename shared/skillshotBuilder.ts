@@ -95,10 +95,10 @@ const RANGE_BIAS: Record<string, number> = {
 };
 
 /** Defensive shields multiply rather than add, so stacking them wastes slots (Mirror Image guide). */
-const SHIELDS = new Set(['AUTOMATICARMOR', 'BLADEMAIL', 'MANASHIELD']);
+export const SHIELDS = new Set(['AUTOMATICARMOR', 'BLADEMAIL', 'MANASHIELD']);
 
-const isPassive = (s: SkillshotSkill) => s.tags?.includes('passive') ?? false;
-const isDefensive = (s: SkillshotSkill) => s.tree === 'Healing' || s.tree === 'Defense';
+export const isPassive = (s: SkillshotSkill) => s.tags?.includes('passive') ?? false;
+export const isDefensive = (s: SkillshotSkill) => s.tree === 'Healing' || s.tree === 'Defense';
 
 function aggressionOf(s: SkillshotSkill): number {
   if (s.tags?.includes('economy')) return 25;
@@ -130,7 +130,7 @@ function shake(seed: number, id: string): number {
   return ((h >>> 0) % 1000) / 1000;
 }
 
-function skillValue(input: BuilderInput, s: SkillshotSkill): number {
+export function skillValue(input: BuilderInput, s: SkillshotSkill): number {
   const { sliders, style, owned, seed } = input;
   const fit =
     100 -
@@ -148,7 +148,7 @@ function skillValue(input: BuilderInput, s: SkillshotSkill): number {
   return v;
 }
 
-function setScore(input: BuilderInput, ids: string[], values: Map<string, number>): number {
+export function setScore(input: BuilderInput, ids: string[], values: Map<string, number>): number {
   const { data, classId, simple, sliders, stats } = input;
   let score = ids.reduce((sum, id) => sum + (values.get(id) ?? 0), 0);
   const skills = ids.map((id) => data.skills.find((s) => s.id === id)!);
@@ -195,7 +195,7 @@ function searchBuilds(input: BuilderInput, pool: SkillshotSkill[], values: Map<s
   return beam.map((ids) => ({ ids, score: setScore(input, ids, values) })).sort((a, b) => b.score - a.score);
 }
 
-function buildSynergies(data: SkillshotData, ids: string[], classId: string | null): number[] {
+export function buildSynergies(data: SkillshotData, ids: string[], classId: string | null): number[] {
   const has = (p: string) => (p.startsWith('class:') ? classId !== null && p === `class:${classId}` : ids.includes(p));
   return data.synergies.filter((s) => has(s.parts[0]) && has(s.parts[1])).map((s) => s.index);
 }
@@ -229,7 +229,7 @@ function describe(input: BuilderInput, ids: string[], synergies: number[]): { pr
   return { pros, cons };
 }
 
-function levelOrder(input: BuilderInput, ids: string[], values: Map<string, number>): { id: string; why: string }[] {
+export function levelOrder(input: BuilderInput, ids: string[], values: Map<string, number>): { id: string; why: string }[] {
   const { data, owned } = input;
   const cap = (id: string) => {
     const r = owned.get(id);
@@ -244,7 +244,7 @@ function levelOrder(input: BuilderInput, ids: string[], values: Map<string, numb
   });
 }
 
-function backupsFor(input: BuilderInput, pool: SkillshotSkill[], ids: string[], values: Map<string, number>): string[] {
+export function backupsFor(input: BuilderInput, pool: SkillshotSkill[], ids: string[], values: Map<string, number>): string[] {
   const { data, classId } = input;
   const score = (s: SkillshotSkill) => {
     const pairs = buildSynergies(data, [...ids, s.id], classId).length - buildSynergies(data, ids, classId).length;
@@ -261,7 +261,7 @@ function backupsFor(input: BuilderInput, pool: SkillshotSkill[], ids: string[], 
  * The game's top section takes 2 Legendaries and feeds the skill-3 offer. The bottom section takes
  * the other skills, and the skill-4 offer comes from your build. Only skills you own can go in.
  */
-function equipPlan(input: BuilderInput, ids: string[], backups: string[]): BuildPlan['equip'] {
+export function equipPlan(input: BuilderInput, ids: string[], backups: string[]): BuildPlan['equip'] {
   const top = [...ids, ...backups].filter((id) => input.owned.get(id) === 3).slice(0, TOP_SLOTS);
   const bottom = [...ids, ...backups].filter((id) => !top.includes(id)).slice(0, BOTTOM_SLOTS);
   return { top, bottom };

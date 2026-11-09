@@ -13,12 +13,13 @@ import {
   OfferTracker,
   pickFromBuildRow,
   readOffers,
+  readRarity,
   toGray,
   type Box,
   type IconTemplate,
 } from '../../shared/skillshotVision';
 import { captureScreen, foregroundGameArea, type WindowArea } from './screenCapture';
-import { endScreenOffer, getSkillshotData, getSkillshotState, onLoggedDraft, pickOffer, resetScreenState, setOffer } from './tracker';
+import { endScreenOffer, getSkillshotData, getSkillshotState, noteScreenRarity, onLoggedDraft, pickOffer, resetScreenState, setOffer } from './tracker';
 
 /**
  * Reads the 2 offered skills off the screen while the game is the window in front. Works from a copy of a
@@ -50,6 +51,8 @@ let offered: string[] = [];
 let click: { index: number; at: number } | null = null;
 /** An offer that just closed and whose pick isn't known yet. */
 let settling: { ids: string[]; polls: number } | null = null;
+/** Per open card: the rarity on the last look, and whether it's been settled for this offer. */
+let cardRarity: { last: number | null; done: boolean }[] = [];
 let samples = 0;
 let unsure = 0;
 let lastUnsureAt = 0;
@@ -152,12 +155,35 @@ function onNewOffer(ids: string[], scores: number[], pixels: Uint8Array, box: Bo
   click = null;
   settling = null;
   offered = ids;
+  cardRarity = ids.map(() => ({ last: null, done: false }));
   setOffer(ids, 'screen');
   const rounded = scores.map((s) => Math.round(s * 100) / 100);
   status.reads.push({ id: nextReadId++, at: Date.now(), offers: ids, scores: rounded, picked: null, how: null, verdict: 'waiting' });
   if (status.reads.length > MAX_READS) status.reads.shift();
   note({ offer: ids, scores: rounded });
   if (samples++ < MAX_SAMPLES) saveSample(pixels, box, 'offer');
+}
+
+/**
+ * Reads the rarity on each open card. A rarity counts after the same answer twice in a row, so a card fading in
+ * or a cursor passing over it can't save a wrong one. Each offer settles once, right after it appears.
+ */
+function readCardRarities(pixels: Uint8Array, width: number, geo: ReturnType<typeof draftGeometry>): void {
+  offered.forEach((id, i) => {
+    const card = cardRarity[i];
+    if (!card || card.done) return;
+    const rarity = readRarity(pixels, width, geo.levelText[i]);
+    if (rarity === null || rarity !== card.last) {
+      card.last = rarity;
+      return;
+    }
+    card.done = true;
+    const read = currentRead(offered);
+    if (read) (read.rarities ??= offered.map(() => null))[i] = rarity;
+    note({ skill: id, rarity });
+    noteScreenRarity(id, rarity);
+    pushStatus();
+  });
 }
 
 function settle(frame: ReturnType<typeof toGray>, geo: ReturnType<typeof draftGeometry>): void {
@@ -212,6 +238,7 @@ function tick(): void {
     if (endScreenOffer()) settling = { ids: offered, polls: 0 };
     offered = [];
   }
+  readCardRarities(pixels, box.width, geo);
   settle(frame, geo);
 
   setMode(offered.length ? 'offer' : 'watching');
