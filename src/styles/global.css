@@ -735,3 +735,4 @@ html.popup-window #root {
 .fn-switch { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 13px; }
 .fn-switch input { margin-top: 3px; }
 .fn-slider { display: grid; gap: 4px; font-size: 13px; max-width: 320px; }
+.fn-elims { color: var(--fn-epic); }

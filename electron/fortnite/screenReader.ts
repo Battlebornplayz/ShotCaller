@@ -4,9 +4,22 @@ import path from 'node:path';
 import { fortnite } from '../../games/fortnite';
 import chestLabel from '../../games/fortnite/chestLabel.json';
 import type { FnScreenMode, FnScreenPreview, FnScreenStatus } from '../../shared/fortnite';
-import { CHEST_THRESHOLD, ChestCounter, chestArea, findLabel, toGreyHalf, type Box, type GreyTemplate } from '../../shared/fortniteVision';
+import hudGlyphs from '../../games/fortnite/hudGlyphs.json';
+import {
+  CHEST_THRESHOLD,
+  ChestCounter,
+  chestArea,
+  findLabel,
+  hudArea,
+  readHud,
+  SteadyNumber,
+  toGreyHalf,
+  type Box,
+  type GreyTemplate,
+  type HudGlyphs,
+} from '../../shared/fortniteVision';
 import { captureScreen, foregroundGameArea, type WindowArea } from '../skillshot/screenCapture';
-import { addChest, inFortniteMatch } from './tracker';
+import { addChest, busHasLeft, inFortniteMatch, setEliminations, setTimeAlive } from './tracker';
 
 /**
  * Reads Fortnite's screen while it's the window in front and a match is on: a copy of a small area right of
@@ -27,11 +40,18 @@ let timer: NodeJS.Timeout | null = null;
 let enabled = true;
 let recorderOn = false;
 let counter = new ChestCounter();
+const glyphs = hudGlyphs as unknown as HudGlyphs;
+/** Your eliminations from the number next to the skull: settles after two equal reads, only rises. */
+let elims = new SteadyNumber(true);
+/** Alive or down as last seen (kept while the map or a menu hides the HUD), and time alive since the bus. */
+let lifeState: 'alive' | 'down' | null = null;
+let aliveMs = 0;
+let lastTickAt = 0;
 let lastFrame: { pixels: Uint8Array; box: Box; match: { x: number; y: number } | null; score: number } | null = null;
 let lastShotAt = 0;
 let chestSamples = 0;
 
-const status: FnScreenStatus = { mode: 'no-game', frames: 0, width: 0, height: 0, lastScore: null, chests: [], recorder: { on: false, saved: 0, cap: SHOT_CAP } };
+const status: FnScreenStatus = { mode: 'no-game', frames: 0, width: 0, height: 0, lastScore: null, eliminations: null, chests: [], recorder: { on: false, saved: 0, cap: SHOT_CAP } };
 const listeners = new Set<(s: FnScreenStatus) => void>();
 
 const shotsDir = () => path.join(app.getPath('userData'), 'fortnite', 'shots');
@@ -86,11 +106,43 @@ function recordShot(area: WindowArea): void {
   save(`shot-${lastShotAt}.jpg`, toImage(pixels, area.width, area.height).toJPEG(85));
 }
 
+/** The top-right stack: the number next to the skull. Skipped while it isn't showing (down, spectating). */
+function readEliminations(area: WindowArea): void {
+  const box = hudArea(area.width, area.height);
+  const pixels = captureScreen({ x: area.x + box.x, y: area.y + box.y, width: box.width, height: box.height });
+  if (!pixels) return;
+  const hud = readHud(pixels, box.width, box.height, glyphs);
+  if (hud.state) lifeState = hud.state;
+  const next = elims.update(hud.eliminations);
+  if (next !== undefined) {
+    status.eliminations = next;
+    setEliminations(next);
+    pushStatus();
+  }
+}
+
+/** Adds the time since the last tick while alive, from the bus on. Runs even when Fortnite isn't in front. */
+function countAlive(): void {
+  const now = Date.now();
+  const dt = lastTickAt ? Math.min(now - lastTickAt, 2000) : 0;
+  lastTickAt = now;
+  if (lifeState === 'alive' && busHasLeft()) {
+    aliveMs += dt;
+    setTimeAlive(aliveMs);
+  }
+}
+
 function tick(): void {
   if (!inFortniteMatch()) {
     counter.reset();
+    elims.reset();
+    status.eliminations = null;
+    lifeState = null;
+    aliveMs = 0;
+    lastTickAt = 0;
     return setMode('lobby');
   }
+  countAlive();
   const area = foregroundGameArea(fortnite.exeNames);
   if (!area) return setMode('not-front');
   status.width = area.width;
@@ -111,6 +163,7 @@ function tick(): void {
     if (recorderOn && chestSamples++ < CHEST_SAMPLE_CAP) save(`chest-${Date.now()}.png`, toImage(pixels, box.width, box.height).toPNG());
     pushStatus();
   }
+  readEliminations(area);
   recordShot(area);
   setMode('watching');
   if (++status.frames % HEARTBEAT_FRAMES === 0) pushStatus();
@@ -144,6 +197,7 @@ export function setFortniteReaderRunning(playing: boolean, on: boolean, recorder
   if (want !== !!timer) {
     if (want) {
       counter = new ChestCounter();
+      elims = new SteadyNumber(true);
       status.frames = 0;
       void countShots().then((n) => {
         status.recorder.saved = n;

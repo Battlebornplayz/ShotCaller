@@ -65,6 +65,8 @@ export interface FnLiveState {
     mode: FnModeInfo;
     phase: FnPhase | null;
     chests: number;
+    /** Read live from the number next to the skull; null until first read. */
+    eliminations: number | null;
   } | null;
   chests: FnTotals;
   sessionMatches: number;
@@ -85,6 +87,8 @@ export interface FnScreenStatus {
   height: number;
   /** Best label score on the latest look (0-1), for the Screen check page. */
   lastScore: number | null;
+  /** The settled eliminations read this match, null until read. */
+  eliminations: number | null;
   /** Chests read this session, newest last. */
   chests: FnChestRead[];
   recorder: { on: boolean; saved: number; cap: number };

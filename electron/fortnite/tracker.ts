@@ -27,7 +27,7 @@ let offset = 0;
 let rest = '';
 let timer: NodeJS.Timeout | null = null;
 let running = false;
-let current: (FnLogMatch & { chests: number }) | null = null;
+let current: (FnLogMatch & { chests: number; eliminations: number | null; aliveMs: number | null }) | null = null;
 let sessionChests = 0;
 let sessionMatches = 0;
 let lastMatch: FnMatchRecord | null = null;
@@ -90,7 +90,7 @@ export function getFortniteState(): FnLiveState {
     logFound: fs.existsSync(logDir()),
     running,
     match: current
-      ? { startedAt: current.startedAt, playlist: current.playlist, mode: modeOf(current.playlist), phase: currentPhase(current), chests: current.chests }
+      ? { startedAt: current.startedAt, playlist: current.playlist, mode: modeOf(current.playlist), phase: currentPhase(current), chests: current.chests, eliminations: current.eliminations }
       : null,
     chests: totals(),
     sessionMatches,
@@ -121,12 +121,29 @@ export function addChest(): void {
   push();
 }
 
+/** The screen reader settled a new eliminations count (only ever rises within a match). */
+export function setEliminations(n: number): void {
+  if (!current || current.eliminations === n) return;
+  current.eliminations = n;
+  push();
+}
+
+/** Time alive so far from the screen (counted from the bus, paused while down). */
+export function setTimeAlive(ms: number): void {
+  if (current) current.aliveMs = ms;
+}
+
+/** Whether the bus has left: time alive counts from then. */
+export function busHasLeft(): boolean {
+  return current?.phases.bus !== undefined;
+}
+
 // ---------- Log ----------
 
 function handle(events: FnLogEvent[], live: boolean): void {
   for (const e of events) {
-    if (e.type === 'start') current = { ...e.match, chests: 0 };
-    else if (e.type === 'update' && current) current = { ...current, ...e.match, chests: current.chests };
+    if (e.type === 'start') current = { ...e.match, chests: 0, eliminations: null, aliveMs: null };
+    else if (e.type === 'update' && current) current = { ...current, ...e.match, chests: current.chests, eliminations: current.eliminations, aliveMs: current.aliveMs };
     else if (e.type === 'end') {
       const done = current;
       current = null;
@@ -141,9 +158,10 @@ function handle(events: FnLogEvent[], live: boolean): void {
         zeroBuild: mode.zeroBuild,
         teamSize: mode.teamSize,
         chests: done.chests,
-        eliminations: null,
+        eliminations: done.eliminations,
         placement: null,
-        timeAliveMs: e.match.phases.bus !== undefined && e.match.endedAt ? e.match.endedAt - e.match.phases.bus : null,
+        // Read from the screen (skips time down); without screen reads, from the bus to leaving.
+        timeAliveMs: done.aliveMs ?? (e.match.phases.bus !== undefined && e.match.endedAt ? e.match.endedAt - e.match.phases.bus : null),
         endReason: e.match.endReason,
       };
       matches.push(record);

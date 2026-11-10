@@ -121,7 +121,7 @@ function MatchHistory({ matches }: { matches: FnMatchRecord[] }) {
               <Stat label="Matches" value={String(list.length)} />
               <Stat label="Chests" value={String(chests)} />
               <Stat label="Chests per match" value={(chests / list.length).toFixed(1)} />
-              <Stat label="Average time" value={fmtTime(list.reduce((s, m) => s + (m.timeAliveMs ?? 0), 0) / list.length)} />
+              <Stat label="Average time alive" value={fmtTime(list.reduce((s, m) => s + (m.timeAliveMs ?? 0), 0) / list.length)} />
             </div>
             <ChestTrend list={list} />
           </section>
@@ -206,10 +206,10 @@ function MatchRow({ m }: { m: FnMatchRecord }) {
       <div className="fn-match-num" title="Chests opened">
         <span className="fn-chest">{m.chests}</span> chests
       </div>
-      <div className="fn-match-num" title="Eliminations (read from the screen in a later update)">
+      <div className="fn-match-num" title="Eliminations, read from the number next to the skull">
         {m.eliminations ?? '—'} elims
       </div>
-      <div className="fn-match-num" title="From the battle bus to leaving the match">
+      <div className="fn-match-num" title="Time alive from the battle bus, not counting time spent down (read from the screen)">
         {fmtTime(m.timeAliveMs)}
       </div>
     </div>
@@ -275,6 +275,13 @@ function ScreenCheck() {
           </div>
         </section>
       )}
+      <section className="card">
+        <div className="section-label">Eliminations this match</div>
+        <div style={{ fontSize: 22, fontWeight: 800 }}>{status.eliminations ?? '—'}</div>
+        <div className="muted" style={{ fontSize: 12 }}>
+          Read from the number next to the skull, top right. It pauses while you’re down or spectating (that row hides).
+        </div>
+      </section>
       <section className="card">
         <div className="section-label">Chests read this session ({status.chests.length})</div>
         {status.chests.length ? (

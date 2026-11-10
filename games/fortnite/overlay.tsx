@@ -32,6 +32,12 @@ export function FortniteCard() {
         <span className="fn-card-mode">{m ? modeLabel(m.mode) : 'In the lobby'}</span>
         {m?.phase && <span className="muted">{PHASE[m.phase]}</span>}
       </div>
+      {m && parts.match && (
+        <div className="fn-row">
+          <span className="fn-row-label">Eliminations</span>
+          <span className="fn-row-value fn-elims">{m.eliminations ?? '—'}</span>
+        </div>
+      )}
       <div className="fn-section-label">Chests</div>
       {parts.match && <Row label="This match" value={live.chests.match} strong />}
       {parts.session && <Row label="Session" value={live.chests.session} />}
