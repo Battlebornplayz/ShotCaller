@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useSettings } from '../../src/hooks/useLive';
 import type { FnChestPin, FnDrop, FnFriendMarks, FnKillPin, FnMapState, FnPoint } from '../../shared/fortnite';
 
 /**
@@ -59,6 +60,8 @@ const FRIEND_COLORS = ['#3ddc84', '#ffcf3f', '#ff7ad9', '#ff9b3f'];
 
 export function FnMap({ live, follow, route, chests, landing, death, drops, kills, planning, className }: FnMapProps) {
   const image = useMapImage(live?.map.id ?? null);
+  const fnSettings = useSettings()?.fortnite;
+  const look = fnSettings?.marker === 'image' && !fnSettings.markerImage ? 'arrow' : (fnSettings?.marker ?? 'arrow');
   const dot = live?.dot ?? null;
   const path = route ?? live?.route ?? [];
   const pins = chests ?? live?.chests ?? [];
@@ -187,7 +190,11 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
           {f.marks && <FriendMarks m={f.marks} color={FRIEND_COLORS[i % FRIEND_COLORS.length]} u={u} />}
           {f.dot && (
             <g style={glide(f.dot)}>
-              <circle r={10 * u} fill={FRIEND_COLORS[i % FRIEND_COLORS.length]} stroke="#0b0c1c" strokeWidth={4 * u} />
+              {look === 'dot' ? (
+                <circle r={10 * u} fill={FRIEND_COLORS[i % FRIEND_COLORS.length]} stroke="#0b0c1c" strokeWidth={4 * u} />
+              ) : (
+                <path d={ARROW} transform={`scale(${u})`} fill={FRIEND_COLORS[i % FRIEND_COLORS.length]} stroke="#0b0c1c" strokeWidth={3} strokeLinejoin="round" style={turn(heading(f.route), f.id)} />
+              )}
               <text y={-16 * u} textAnchor="middle" fontSize={22 * u} fontWeight={700} fill="#fff" stroke="#0b0c1c" strokeWidth={5 * u} paintOrder="stroke">
                 {f.name}
               </text>
@@ -198,7 +205,17 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
       {dot && !route && (
         <g style={glide(dot)}>
           <circle r={22 * u} className="fn-dot-halo" data-state={dot.state} />
-          <circle r={10 * u} className="fn-dot-me" data-state={dot.state} strokeWidth={4 * u} />
+          {look === 'dot' && <circle r={10 * u} className="fn-dot-me" data-state={dot.state} strokeWidth={4 * u} />}
+          {look === 'arrow' && <path d={ARROW} transform={`scale(${u})`} className="fn-dot-me" data-state={dot.state} strokeWidth={3} strokeLinejoin="round" style={turn(heading(path))} />}
+          {look === 'image' && (
+            <g opacity={dot.state === 'sure' ? 1 : 0.6}>
+              <clipPath id="fn-me-clip">
+                <circle r={16 * u} />
+              </clipPath>
+              <image href={fnSettings!.markerImage!} x={-16 * u} y={-16 * u} width={32 * u} height={32 * u} clipPath="url(#fn-me-clip)" preserveAspectRatio="xMidYMid slice" />
+              <circle r={16 * u} fill="none" stroke="#fff" strokeWidth={3 * u} />
+            </g>
+          )}
         </g>
       )}
     </svg>
@@ -224,6 +241,31 @@ function useSmoothView(target: { x: number; y: number; w: number }) {
     return () => cancelAnimationFrame(raf);
   }, [target.x, target.y, target.w]);
   return shown;
+}
+
+/** A Fortnite-style arrow pointing up (north), about 24 units tall; turned to face where you're heading. */
+const ARROW = 'M0,-14 L11,11 L0,5 L-11,11 Z';
+
+/** Which way you're moving (degrees, 0 = north), from the last stretch of the path that's long enough to trust. */
+function heading(route: [number, number][]): number | null {
+  const last = route[route.length - 1];
+  if (!last) return null;
+  for (let i = route.length - 2; i >= 0; i--) {
+    const dx = last[0] - route[i][0];
+    const dy = last[1] - route[i][1];
+    if (Math.hypot(dx, dy) >= 8) return (Math.atan2(dx, -dy) * 180) / Math.PI;
+  }
+  return null;
+}
+
+const turned = new Map<string, number>();
+/** Rotates the arrow, taking the short way round (so 350° → 10° turns 20°, not 340°). */
+function turn(deg: number | null, key = 'me'): CSSProperties {
+  if (deg === null) return {};
+  const prev = turned.get(key) ?? deg;
+  const next = prev + ((((deg - prev) % 360) + 540) % 360) - 180;
+  turned.set(key, next);
+  return { rotate: `${next}deg`, transition: 'rotate 0.4s ease-out' };
 }
 
 /** Dots slide to each new reading instead of jumping (readings come about twice a second). */

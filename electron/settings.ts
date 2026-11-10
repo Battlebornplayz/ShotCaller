@@ -160,6 +160,8 @@ function sanitize(input: unknown): Settings {
         allTime: bool(fnCard.allTime, FN.card.allTime),
       },
       liveMap: bool(fortnite.liveMap, FN.liveMap),
+      marker: fortnite.marker === 'dot' || fortnite.marker === 'arrow' || fortnite.marker === 'image' ? fortnite.marker : FN.marker,
+      markerImage: typeof fortnite.markerImage === 'string' && fortnite.markerImage.startsWith('data:image/png;base64,') && fortnite.markerImage.length < 150_000 ? fortnite.markerImage : null,
       monitor: {
         on: bool(obj(fortnite.monitor).on, FN.monitor.on),
         displayId: finite(obj(fortnite.monitor).displayId) ? (obj(fortnite.monitor).displayId as number) : null,

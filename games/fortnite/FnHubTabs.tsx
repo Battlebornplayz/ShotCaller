@@ -67,6 +67,52 @@ export function LobbyTab() {
   );
 }
 
+/** How you show on the map: dot, arrow (turns the way you're moving) or your own picture. */
+function MarkerPicker({ marker, image }: { marker: 'dot' | 'arrow' | 'image'; image: string | null }) {
+  const pick = (file: File | undefined) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      // Shrunk to a 96 px square so it's small enough to keep in settings.
+      const c = document.createElement('canvas');
+      c.width = c.height = 96;
+      const side = Math.min(img.width, img.height);
+      c.getContext('2d')!.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 96, 96);
+      URL.revokeObjectURL(url);
+      setFn({ marker: 'image', markerImage: c.toDataURL('image/png') });
+    };
+    img.src = url;
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <span style={{ fontWeight: 600 }}>You show as</span>
+      {(['dot', 'arrow'] as const).map((m) => (
+        <button key={m} className={`btn ${marker === m ? 'primary' : ''}`} onClick={() => setFn({ marker: m })}>
+          {m === 'dot' ? 'Dot' : 'Arrow'}
+        </button>
+      ))}
+      <label className={`btn ${marker === 'image' ? 'primary' : ''}`} style={{ cursor: 'pointer' }}>
+        {image ? 'Custom picture' : 'Custom picture…'}
+        <input type="file" accept="image/*" hidden onChange={(e) => pick(e.target.files?.[0])} />
+      </label>
+      {image && (
+        <>
+          <img src={image} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} onClick={() => setFn({ marker: 'image' })} />
+          {marker !== 'image' && (
+            <button className="btn" onClick={() => setFn({ marker: 'image' })}>
+              Use picture
+            </button>
+          )}
+        </>
+      )}
+      <span className="muted" style={{ fontSize: 12, flexBasis: '100%' }}>
+        The arrow turns the way you're moving. Friends show as dots or arrows in their colour.
+      </span>
+    </div>
+  );
+}
+
 /** "Plan route" on/off and "Clear route", shared by the lobby map and the map window. */
 export function PlanButtons({ planning, setPlanning, stops }: { planning: boolean; setPlanning: (on: boolean) => void; stops: number }) {
   return (
@@ -398,6 +444,7 @@ export function MapOptions() {
           </span>
         </span>
       </label>
+      <MarkerPicker marker={fn.marker} image={fn.markerImage} />
       <label className="fn-switch">
         <input type="checkbox" checked={fn.monitor.on} onChange={(e) => setFn({ monitor: { on: e.target.checked } })} />
         <span>

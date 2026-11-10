@@ -22,6 +22,9 @@ export interface FortniteSettings {
   card: FortniteCardParts;
   /** Find your spot on the map from the minimap (and teammates' from their arrows on it). On by default. */
   liveMap: boolean;
+  /** How you show on the map: a dot, a Fortnite-style arrow, or your own picture (`markerImage`, a small PNG data URL). */
+  marker: 'dot' | 'arrow' | 'image';
+  markerImage: string | null;
   /** The second-monitor window: opens and closes with Fortnite on the chosen screen. */
   monitor: { on: boolean; displayId: number | null };
   /** Your Epic name for online stats (the key itself is kept apart, never in settings). */
@@ -39,6 +42,8 @@ export const DEFAULT_FORTNITE_SETTINGS: FortniteSettings = {
   cardScale: 1,
   card: { match: true, session: true, today: true, allTime: false },
   liveMap: true,
+  marker: 'arrow',
+  markerImage: null,
   monitor: { on: true, displayId: null },
   epicName: '',
   chestGoal: 0,
