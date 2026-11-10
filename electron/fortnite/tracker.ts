@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
-import type { FnLiveState, FnMatchRecord, FnTotals } from '../../shared/fortnite';
+import { NO_CHEST_KINDS, type FnChestKind, type FnChestKinds, type FnLiveState, type FnMatchRecord, type FnTotals } from '../../shared/fortnite';
 import { FnLogParser, modeOf, wasPlayed, type FnLogEvent, type FnLogMatch, type FnPhase } from '../../shared/fortniteLog';
 
 /**
@@ -27,8 +27,9 @@ let offset = 0;
 let rest = '';
 let timer: NodeJS.Timeout | null = null;
 let running = false;
-let current: (FnLogMatch & { chests: number; eliminations: number | null; aliveMs: number | null }) | null = null;
+let current: (FnLogMatch & { chests: number; kinds: FnChestKinds; eliminations: number | null; aliveMs: number | null; leftAlive: number | null }) | null = null;
 let sessionChests = 0;
+let sessionRare = 0;
 let sessionMatches = 0;
 let lastMatch: FnMatchRecord | null = null;
 const listeners = new Set<(s: FnLiveState) => void>();
@@ -68,16 +69,17 @@ function sameDay(a: number, b: number): boolean {
   return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
 }
 
-function totals(): FnTotals {
+function totals(count: (m: { chests: number; chestKinds?: FnChestKinds }) => number, session: number): FnTotals {
   const now = Date.now();
-  const inMatch = current?.chests ?? 0;
+  const inMatch = current ? count({ chests: current.chests, chestKinds: current.kinds }) : 0;
   let allTime = inMatch;
   let today = inMatch;
   for (const m of matches) {
-    allTime += m.chests;
-    if (sameDay(m.endedAt, now)) today += m.chests;
+    const n = count(m);
+    allTime += n;
+    if (sameDay(m.endedAt, now)) today += n;
   }
-  return { match: inMatch, session: sessionChests, today, allTime };
+  return { match: inMatch, session, today, allTime };
 }
 
 function currentPhase(m: FnLogMatch): FnPhase | null {
@@ -90,9 +92,10 @@ export function getFortniteState(): FnLiveState {
     logFound: fs.existsSync(logDir()),
     running,
     match: current
-      ? { startedAt: current.startedAt, playlist: current.playlist, mode: modeOf(current.playlist), phase: currentPhase(current), chests: current.chests, eliminations: current.eliminations }
+      ? { startedAt: current.startedAt, playlist: current.playlist, mode: modeOf(current.playlist), phase: currentPhase(current), chests: current.chests, chestKinds: { ...current.kinds }, eliminations: current.eliminations }
       : null,
-    chests: totals(),
+    chests: totals((m) => m.chests, sessionChests),
+    rareChests: totals((m) => m.chestKinds?.rare ?? 0, sessionRare),
     sessionMatches,
     lastMatch,
   };
@@ -113,12 +116,15 @@ export function inFortniteMatch(): boolean {
   return !!current;
 }
 
-/** The screen reader saw a chest label. */
-export function addChest(): void {
-  if (!current) return;
+/** A chest: from the screen reader (by kind) or the +1 hotkey ('manual'). Only counts during a match. */
+export function addChest(kind: FnChestKind): boolean {
+  if (!current) return false;
   current.chests++;
+  current.kinds[kind]++;
   sessionChests++;
+  if (kind === 'rare') sessionRare++;
   push();
+  return true;
 }
 
 /** The screen reader settled a new eliminations count (only ever rises within a match). */
@@ -126,6 +132,11 @@ export function setEliminations(n: number): void {
   if (!current || current.eliminations === n) return;
   current.eliminations = n;
   push();
+}
+
+/** Players left as last read while you were alive (the screen reader skips reads while you're down). */
+export function setPlayersLeftAlive(n: number): void {
+  if (current) current.leftAlive = n;
 }
 
 /** Time alive so far from the screen (counted from the bus, paused while down). */
@@ -142,8 +153,9 @@ export function busHasLeft(): boolean {
 
 function handle(events: FnLogEvent[], live: boolean): void {
   for (const e of events) {
-    if (e.type === 'start') current = { ...e.match, chests: 0, eliminations: null, aliveMs: null };
-    else if (e.type === 'update' && current) current = { ...current, ...e.match, chests: current.chests, eliminations: current.eliminations, aliveMs: current.aliveMs };
+    if (e.type === 'start') current = { ...e.match, chests: 0, kinds: { ...NO_CHEST_KINDS }, eliminations: null, aliveMs: null, leftAlive: null };
+    else if (e.type === 'update' && current)
+      current = { ...current, ...e.match, chests: current.chests, kinds: current.kinds, eliminations: current.eliminations, aliveMs: current.aliveMs, leftAlive: current.leftAlive };
     else if (e.type === 'end') {
       const done = current;
       current = null;
@@ -158,8 +170,11 @@ function handle(events: FnLogEvent[], live: boolean): void {
         zeroBuild: mode.zeroBuild,
         teamSize: mode.teamSize,
         chests: done.chests,
+        chestKinds: done.kinds,
         eliminations: done.eliminations,
-        placement: null,
+        // Solo: the players left just before you went down is your place (7 left when you die = #7; a win
+        // ends on 1). Team modes rank teams, which the HUD doesn't show: left empty for now.
+        placement: mode.teamSize === 'solo' ? done.leftAlive : null,
         // Read from the screen (skips time down); without screen reads, from the bus to leaving.
         timeAliveMs: done.aliveMs ?? (e.match.phases.bus !== undefined && e.match.endedAt ? e.match.endedAt - e.match.phases.bus : null),
         endReason: e.match.endReason,

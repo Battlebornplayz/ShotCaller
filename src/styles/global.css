@@ -736,3 +736,112 @@ html.popup-window #root {
 .fn-switch input { margin-top: 3px; }
 .fn-slider { display: grid; gap: 4px; font-size: 13px; max-width: 320px; }
 .fn-elims { color: var(--fn-epic); }
+
+/* ---------- Fortnite look ----------
+ * Our own take on the game's feel (no logos or game art): heavy condensed italic capitals (Impact ships with
+ * Windows), sky-blue to purple gradients, slanted tiles in rarity colours, and a yellow highlight for what's
+ * picked. Scoped to the Fortnite page (.fn-theme) and the Fortnite overlay card (.fn-card). */
+:root {
+  --fn-common: #b4b8c7;
+  --fn-yellow: #ffe14d;
+  --fn-sky: #2f7dff;
+  --fn-display: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+}
+.fn-theme {
+  --tier: var(--fn-rare);
+}
+.fn-theme h1,
+.fn-theme .section-label,
+.fn-card-mode,
+.fn-section-label,
+.fn-tile-value {
+  font-family: var(--fn-display);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.fn-theme h1 {
+  font-size: 34px !important;
+  line-height: 1;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.fn-theme .section-label {
+  font-size: 14px;
+  color: #cfe3ff;
+}
+.fn-theme .card {
+  background:
+    linear-gradient(var(--tier), var(--tier)) left / 3px 100% no-repeat,
+    radial-gradient(120% 140% at 100% 0%, rgba(182, 91, 255, 0.12), transparent 55%),
+    linear-gradient(135deg, rgba(23, 34, 82, 0.97), rgba(15, 16, 35, 0.97));
+}
+/* The banner: a sky-to-storm gradient with light streaks instead of game art. */
+.fn-theme .game-hero-art {
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 26px),
+    radial-gradient(90% 120% at 20% 110%, rgba(182, 91, 255, 0.85), transparent 60%),
+    linear-gradient(160deg, #46b4ff 0%, #2f7dff 45%, #3a1f9e 100%) !important;
+}
+.fn-theme .segmented {
+  background: rgba(8, 14, 40, 0.7);
+  border: 1px solid rgba(61, 165, 255, 0.25);
+}
+.fn-theme .segmented button {
+  font-family: var(--fn-display);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 14px;
+  transform: skewX(-8deg);
+}
+.fn-theme .segmented button[aria-pressed='true'] {
+  background: var(--fn-yellow);
+  color: #13132b;
+}
+.fn-theme .btn {
+  font-family: var(--fn-display);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Stat tiles: slanted, rarity gradient, big number. */
+.fn-tile {
+  --r: var(--fn-common);
+  position: relative;
+  padding: 12px 14px 10px;
+  border-radius: 6px;
+  transform: skewX(-6deg);
+  background:
+    linear-gradient(to top, color-mix(in srgb, var(--r) 55%, transparent), color-mix(in srgb, var(--r) 12%, transparent) 70%),
+    #121436;
+  border: 1px solid color-mix(in srgb, var(--r) 70%, transparent);
+  box-shadow: inset 0 -3px 0 var(--r);
+}
+.fn-tile > * { transform: skewX(6deg); }
+.fn-tile[data-rarity='uncommon'] { --r: var(--fn-uncommon); }
+.fn-tile[data-rarity='rare'] { --r: var(--fn-rare); }
+.fn-tile[data-rarity='epic'] { --r: var(--fn-epic); }
+.fn-tile[data-rarity='legendary'] { --r: var(--fn-legendary); }
+.fn-tile-value { font-size: 30px; line-height: 1.05; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
+.fn-tile-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.8); }
+
+.fn-theme .fn-match-place { font-family: var(--fn-display); font-style: italic; font-weight: 400; font-size: 24px; color: var(--fn-yellow); }
+.fn-rare-note { font-size: 11px; color: var(--fn-rare); font-weight: 700; }
+
+/* Chest kinds as small tags. */
+.fn-kinds { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; margin-top: -2px; }
+.fn-kind { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; padding: 1px 6px; border-radius: 3px; }
+.fn-kind-chest { background: color-mix(in srgb, var(--fn-legendary) 25%, transparent); color: var(--fn-legendary); }
+.fn-kind-rare { background: color-mix(in srgb, var(--fn-rare) 25%, transparent); color: #8fd0ff; }
+.fn-kind-sprite { background: color-mix(in srgb, var(--fn-epic) 25%, transparent); color: #dcb5ff; }
+.fn-kind-manual { background: rgba(255, 255, 255, 0.1); color: #dfe2f5; }
+
+/* The overlay card. */
+.fn-card-mode { font-size: 15px; color: #fff; }
+.fn-section-label { font-size: 13px; letter-spacing: 0.05em; color: #cfe3ff; }
+.fn-row-value.fn-chest { font-family: var(--fn-display); font-style: italic; font-weight: 400; font-size: 28px; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4); }
+.fn-elims { font-family: var(--fn-display); font-style: italic; font-weight: 400; font-size: 20px; }

@@ -33,11 +33,13 @@ export function GamePage({ game }: { game: LibraryGame }) {
   const { value: data, loading } = useHubQuery(() => window.shotcaller.getGameAchievements(game.key), [game.key, game.achievementAppId]);
   const appId = game.steamAppId ?? game.achievementAppId;
   const pct = data?.total ? data.unlocked / data.total : null;
+  // Fortnite has no achievements of its own; its hub shows matches and stats instead.
+  const showAchievements = game.moduleId !== 'fortnite';
 
   return (
-    <>
-      <div className="card enter" style={{ padding: 0, overflow: 'hidden', marginBottom: 14, display: 'flex', alignItems: 'stretch', minHeight: 150 }}>
-        <div style={{ width: 320, flex: 'none', background: '#121330' }}>
+    <div className={game.moduleId === 'fortnite' ? 'fn-theme' : undefined}>
+      <div className="card enter game-hero" style={{ padding: 0, overflow: 'hidden', marginBottom: 14, display: 'flex', alignItems: 'stretch', minHeight: 150 }}>
+        <div className="game-hero-art" style={{ width: 320, flex: 'none', background: '#121330' }}>
           <Art
             sources={bannerSources(game)}
             style={{ width: 320, height: '100%', minHeight: 150 }}
@@ -56,7 +58,7 @@ export function GamePage({ game }: { game: LibraryGame }) {
             {game.moduleId && <span className="pill">ShotCaller module</span>}
           </div>
           <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-            <Stat label="Achievements" value={data?.total ? `${data.unlocked} / ${data.total}` : '—'} />
+            {showAchievements && <Stat label="Achievements" value={data?.total ? `${data.unlocked} / ${data.total}` : '—'} />}
             <Stat label="Playtime" value={formatMinutes(data?.playtimeMinutes ?? null)} />
             <Stat label="Last played" value={data?.lastPlayed ? formatDate(data.lastPlayed) : '—'} />
             <Stat label="Sessions" value={data ? String(data.sessions.length) : '—'} />
@@ -92,9 +94,9 @@ export function GamePage({ game }: { game: LibraryGame }) {
       {game.moduleId === 'skillshot-city' && <SkillshotHub />}
       {game.moduleId === 'fortnite' && <FortniteHub />}
 
-      {data?.tracking !== 'steam' && data && <ListSourceCard game={game} data={data} />}
+      {showAchievements && data?.tracking !== 'steam' && data && <ListSourceCard game={game} data={data} />}
 
-      {loading && !data ? (
+      {!showAchievements ? null : loading && !data ? (
         <div className="card enter muted" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <span className="spinner" /> Loading achievements…
         </div>
@@ -110,7 +112,7 @@ export function GamePage({ game }: { game: LibraryGame }) {
         {game.installDir && <Fact label="Install folder" value={game.installDir} />}
         {game.exePath && <Fact label="Executable" value={game.exePath} />}
       </section>
-    </>
+    </div>
   );
 }
 

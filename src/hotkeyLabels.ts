@@ -7,6 +7,7 @@ export const HOTKEY_LABELS: Record<HotkeyAction, { title: string; description: s
   nextRound: { title: 'Next round', description: 'Moves the round tracker to the next round.' },
   endMatch: { title: 'End match', description: 'Ends the match and opens the recap.' },
   huntList: { title: 'Hunt list', description: 'Shows or hides your pinned achievement hunt list.' },
+  fnChest: { title: 'Fortnite: +1 chest', description: 'Adds a chest to this match, for ones you break open (they show no XP popup).' },
 };
 
 /** "Alt+S" → ["Alt", "S"] for keycap rendering. */

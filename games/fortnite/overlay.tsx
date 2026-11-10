@@ -40,6 +40,13 @@ export function FortniteCard() {
       )}
       <div className="fn-section-label">Chests</div>
       {parts.match && <Row label="This match" value={live.chests.match} strong />}
+      {parts.match && m && (
+        <div className="fn-kinds">
+          <span className="fn-kind fn-kind-rare">{m.chestKinds.rare} rare</span>
+          {!!m.chestKinds.sprite && <span className="fn-kind fn-kind-sprite">{m.chestKinds.sprite} sprite</span>}
+          {!!m.chestKinds.manual && <span className="fn-kind fn-kind-manual">+{m.chestKinds.manual} by key</span>}
+        </div>
+      )}
       {parts.session && <Row label="Session" value={live.chests.session} />}
       {parts.today && <Row label="Today" value={live.chests.today} />}
       {parts.allTime && <Row label="All time" value={live.chests.allTime} />}

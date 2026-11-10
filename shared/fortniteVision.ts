@@ -314,6 +314,224 @@ export class SteadyNumber {
 
 /** A label scoring at least this counts. Real chests scored 0.85-0.98; the best other text 0.68. */
 export const CHEST_THRESHOLD = 0.8;
+/** A CHEST word this good counts when a second word (RARE, SPRITE, X2...) backs it up. "X2" lines score ~0.76. */
+const CHEST_BACKED_THRESHOLD = 0.68;
+const WORD_THRESHOLD = 0.75;
+
+// ---------------------------------------------------------------------------------------------
+// Chest kinds. Fortnite merges chests opened close together into one popup that grows in place:
+// "+900 XP / RARE CHEST" -> "+1,800 XP / RARE CHEST X2" -> a "SPRITE CHEST" line added under it. Lines are
+// right-aligned, so RARE/SPRITE sit at fixed spots left of the CHEST word and "X2" right of it. Every line is
+// read on its own; a line's count goes up when it first shows and each time its "Xn" changes.
+
+export type ChestKind = 'chest' | 'rare' | 'sprite';
+
+export interface WordTemplate extends GreyTemplate {
+  /** Left edge relative to the CHEST word's left edge (half-size pixels). */
+  dx: number;
+}
+
+export interface ChestWords {
+  rare: WordTemplate;
+  sprite: WordTemplate;
+  /** The "X" of "X2", "X3"... */
+  x: WordTemplate;
+}
+
+export interface ChestLine {
+  kind: ChestKind;
+  x: number;
+  y: number;
+  score: number;
+  /** The "Xn" area as grey levels when an X shows, else null. */
+  suffix: Float32Array | null;
+}
+
+/** Normalised match at one spot, -1 when off the picture or flat. */
+function scoreAt(grey: Float32Array, width: number, height: number, x: number, y: number, tpl: GreyTemplate): number {
+  if (x < 0 || y < 0 || x + tpl.width > width || y + tpl.height > height) return -1;
+  let tn = 0;
+  for (const v of tpl.values) tn += v * v;
+  const s = matchAt(grey, width, x, y, tpl);
+  return s < -0.5 ? -1 : s / Math.sqrt(tn);
+}
+
+function bestNear(grey: Float32Array, width: number, height: number, x: number, y: number, tpl: GreyTemplate, r = 2): number {
+  let best = -1;
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -r; dx <= r; dx++) best = Math.max(best, scoreAt(grey, width, height, x + dx, y + dy, tpl));
+  return best;
+}
+
+const SUFFIX_WIDTH = 14;
+const SUFFIX_MARGIN = 2;
+const SUFFIX_MARGIN_Y = 1;
+const SUFFIX_W = SUFFIX_WIDTH + 2 * SUFFIX_MARGIN;
+const SUFFIX_H = 10 + 2 * SUFFIX_MARGIN_Y;
+
+/** Every CHEST line in the half-size grey picture of `chestArea`, top to bottom. */
+export function readChestLines(grey: Float32Array, width: number, height: number, chest: GreyTemplate, words: ChestWords): ChestLine[] {
+  const hits: { x: number; y: number; score: number }[] = [];
+  for (let y = 0; y + chest.height <= height; y++) {
+    for (let x = 0; x + chest.width <= width; x++) {
+      const s = scoreAt(grey, width, height, x, y, chest);
+      if (s >= CHEST_BACKED_THRESHOLD) hits.push({ x, y, score: s });
+    }
+  }
+  hits.sort((a, b) => b.score - a.score);
+  const peaks: typeof hits = [];
+  for (const h of hits) if (!peaks.some((p) => Math.abs(p.y - h.y) < 7)) peaks.push(h);
+  const lines: ChestLine[] = [];
+  for (const p of peaks) {
+    const rare = bestNear(grey, width, height, p.x + words.rare.dx, p.y, words.rare);
+    const sprite = bestNear(grey, width, height, p.x + words.sprite.dx, p.y, words.sprite);
+    const xMark = bestNear(grey, width, height, p.x + words.x.dx, p.y, words.x);
+    const kind: ChestKind = rare >= WORD_THRESHOLD && rare >= sprite ? 'rare' : sprite >= WORD_THRESHOLD ? 'sprite' : 'chest';
+    const hasX = xMark >= WORD_THRESHOLD;
+    if (p.score < CHEST_THRESHOLD && kind === 'chest' && !hasX) continue;
+    let suffix: Float32Array | null = null;
+    if (hasX) {
+      // With a margin all round, so two reads can be lined up when the popup shifts by a pixel.
+      const sx = p.x + words.x.dx - SUFFIX_MARGIN;
+      const sy = p.y - SUFFIX_MARGIN_Y;
+      suffix = new Float32Array(SUFFIX_W * SUFFIX_H);
+      for (let j = 0; j < SUFFIX_H; j++) {
+        for (let i = 0; i < SUFFIX_W; i++) {
+          const gx = Math.min(width - 1, Math.max(0, sx + i));
+          const gy = Math.min(height - 1, Math.max(0, sy + j));
+          suffix[j * SUFFIX_W + i] = grey[gy * width + gx];
+        }
+      }
+    }
+    lines.push({ kind, x: p.x, y: p.y, score: p.score, suffix });
+  }
+  return lines.sort((a, b) => a.y - b.y);
+}
+
+/** Best correlation of two "Xn" pictures, sliding one over the other by up to the margin. */
+function similarity(a: Float32Array, b: Float32Array): number {
+  const cw = SUFFIX_WIDTH;
+  const ch = SUFFIX_H - 2 * SUFFIX_MARGIN_Y;
+  const core = new Float32Array(cw * ch);
+  for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) core[j * cw + i] = a[(j + SUFFIX_MARGIN_Y) * SUFFIX_W + i + SUFFIX_MARGIN];
+  let best = -1;
+  const win = new Float32Array(cw * ch);
+  for (let oy = 0; oy <= 2 * SUFFIX_MARGIN_Y; oy++) {
+    for (let ox = 0; ox <= 2 * SUFFIX_MARGIN; ox++) {
+      for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) win[j * cw + i] = b[(j + oy) * SUFFIX_W + i + ox];
+      best = Math.max(best, correlate(core, win));
+    }
+  }
+  return best;
+}
+
+/** Correlation of two same-size grey patches (-1..1). */
+function correlate(a: Float32Array, b: Float32Array): number {
+  if (a.length !== b.length) return 0;
+  let ma = 0;
+  let mb = 0;
+  for (let i = 0; i < a.length; i++) {
+    ma += a[i];
+    mb += b[i];
+  }
+  ma /= a.length;
+  mb /= b.length;
+  let ab = 0;
+  let aa = 0;
+  let bb = 0;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i] - ma;
+    const y = b[i] - mb;
+    ab += x * y;
+    aa += x * x;
+    bb += y * y;
+  }
+  return aa && bb ? ab / Math.sqrt(aa * bb) : 0;
+}
+
+interface LineState {
+  /** Reads in a row this kind has shown. */
+  streak: number;
+  counted: boolean;
+  /** The settled "Xn" picture, or null before any X. */
+  suffix: Float32Array | null;
+  /** A new "Xn" picture waiting for a second read. */
+  pending: Float32Array | null;
+  /** Where the line was last seen (half-size pixels). */
+  y: number;
+}
+
+/**
+ * Turns per-frame line reads into chests by kind. A popup lasts while any CHEST line shows (with `gapMs` of
+ * grace for flicker). In it, each kind counts once when its line has shown on two reads in a row, plus one each
+ * time its "Xn" settles on a new picture. A line first seen already showing "Xn" counts as 2 (the X2 case).
+ */
+export class ChestPopupCounter {
+  private lines = new Map<ChestKind, LineState>();
+  private lastSeen = 0;
+  private readonly gapMs: number;
+
+  constructor(gapMs = 1200) {
+    this.gapMs = gapMs;
+  }
+
+  /** Returns the chests completed by this read (often empty). */
+  update(read: ChestLine[], at: number): ChestKind[] {
+    const out: ChestKind[] = [];
+    if (!read.length) {
+      if (this.lines.size && at - this.lastSeen >= this.gapMs) this.lines.clear();
+      for (const s of this.lines.values()) s.streak = 0;
+      return out;
+    }
+    this.lastSeen = at;
+    const seen = new Set<ChestKind>();
+    for (const line of read) {
+      let kind = line.kind;
+      // A shaky read of a RARE/SPRITE line can miss its first word: a weak plain line where another kind's line
+      // sits keeps that kind.
+      if (kind === 'chest' && line.score < CHEST_THRESHOLD) {
+        for (const [k, st] of this.lines) if (k !== 'chest' && Math.abs(st.y - line.y) <= 3) kind = k;
+        if (kind === 'chest' && !this.lines.has('chest')) continue;
+      }
+      if (seen.has(kind)) continue;
+      seen.add(kind);
+      let s = this.lines.get(kind);
+      if (!s) {
+        s = { streak: 0, counted: false, suffix: null, pending: null, y: line.y };
+        this.lines.set(kind, s);
+      }
+      s.y = line.y;
+      s.streak++;
+      if (!s.counted) {
+        if (s.streak < 2) continue;
+        s.counted = true;
+        out.push(kind);
+        if (line.suffix) {
+          out.push(kind);
+          s.suffix = line.suffix;
+        }
+        continue;
+      }
+      if (!line.suffix) continue;
+      if (s.suffix && similarity(s.suffix, line.suffix) >= 0.8) {
+        s.pending = null;
+        continue;
+      }
+      // A new "Xn": count it once it reads the same twice in a row.
+      if (s.pending && similarity(s.pending, line.suffix) >= 0.85) {
+        s.suffix = line.suffix;
+        s.pending = null;
+        out.push(kind);
+      } else s.pending = line.suffix;
+    }
+    for (const [kind, s] of this.lines) if (!seen.has(kind)) s.streak = 0;
+    return out;
+  }
+
+  reset(): void {
+    this.lines.clear();
+    this.lastSeen = 0;
+  }
+}
 
 /**
  * Turns per-frame reads into chest openings. A chest counts once its label has been seen on two reads in a

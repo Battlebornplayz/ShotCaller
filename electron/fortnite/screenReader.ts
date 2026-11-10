@@ -3,23 +3,24 @@ import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 import { fortnite } from '../../games/fortnite';
 import chestLabel from '../../games/fortnite/chestLabel.json';
+import chestWords from '../../games/fortnite/chestWords.json';
 import type { FnScreenMode, FnScreenPreview, FnScreenStatus } from '../../shared/fortnite';
 import hudGlyphs from '../../games/fortnite/hudGlyphs.json';
 import {
-  CHEST_THRESHOLD,
-  ChestCounter,
+  ChestPopupCounter,
   chestArea,
-  findLabel,
   hudArea,
+  readChestLines,
   readHud,
   SteadyNumber,
   toGreyHalf,
   type Box,
+  type ChestWords,
   type GreyTemplate,
   type HudGlyphs,
 } from '../../shared/fortniteVision';
 import { captureScreen, foregroundGameArea, type WindowArea } from '../skillshot/screenCapture';
-import { addChest, busHasLeft, inFortniteMatch, setEliminations, setTimeAlive } from './tracker';
+import { addChest, busHasLeft, inFortniteMatch, setEliminations, setPlayersLeftAlive, setTimeAlive } from './tracker';
 
 /**
  * Reads Fortnite's screen while it's the window in front and a match is on: a copy of a small area right of
@@ -36,13 +37,16 @@ const SHOT_CAP = 600;
 const CHEST_SAMPLE_CAP = 100;
 
 const template = chestLabel as GreyTemplate;
+const words = chestWords as ChestWords;
 let timer: NodeJS.Timeout | null = null;
 let enabled = true;
 let recorderOn = false;
-let counter = new ChestCounter();
+let counter = new ChestPopupCounter();
 const glyphs = hudGlyphs as unknown as HudGlyphs;
 /** Your eliminations from the number next to the skull: settles after two equal reads, only rises. */
 let elims = new SteadyNumber(true);
+/** Players left, settled (it flickered 41/42 once), only taken while you're alive: it gives solo placement. */
+let playersLeft = new SteadyNumber(false);
 /** Alive or down as last seen (kept while the map or a menu hides the HUD), and time alive since the bus. */
 let lifeState: 'alive' | 'down' | null = null;
 let aliveMs = 0;
@@ -113,6 +117,10 @@ function readEliminations(area: WindowArea): void {
   if (!pixels) return;
   const hud = readHud(pixels, box.width, box.height, glyphs);
   if (hud.state) lifeState = hud.state;
+  if (hud.state === 'alive') {
+    const left = playersLeft.update(hud.playersLeft);
+    if (left !== undefined) setPlayersLeftAlive(left);
+  }
   const next = elims.update(hud.eliminations);
   if (next !== undefined) {
     status.eliminations = next;
@@ -136,6 +144,7 @@ function tick(): void {
   if (!inFortniteMatch()) {
     counter.reset();
     elims.reset();
+    playersLeft.reset();
     status.eliminations = null;
     lifeState = null;
     aliveMs = 0;
@@ -151,15 +160,19 @@ function tick(): void {
   const pixels = captureScreen({ x: area.x + box.x, y: area.y + box.y, width: box.width, height: box.height });
   if (!pixels) return setMode('no-picture');
   const half = toGreyHalf(pixels, box.width, box.height);
-  const m = findLabel(half.grey, half.width, half.height, template);
-  const score = Math.max(0, Math.round(m.score * 100) / 100);
+  const lines = readChestLines(half.grey, half.width, half.height, template, words);
+  const top = lines.reduce<(typeof lines)[number] | null>((b, l) => (!b || l.score > b.score ? l : b), null);
+  const score = top ? Math.round(top.score * 100) / 100 : 0;
   status.lastScore = score;
-  lastFrame = { pixels, box, match: m.score > 0 ? { x: m.x * 2, y: m.y * 2 } : null, score };
+  lastFrame = { pixels, box, match: top ? { x: top.x * 2, y: top.y * 2 } : null, score };
 
-  if (counter.update(m.score >= CHEST_THRESHOLD, Date.now())) {
-    addChest();
-    status.chests.push({ at: Date.now(), score });
-    if (status.chests.length > MAX_CHEST_READS) status.chests.shift();
+  const found = counter.update(lines, Date.now());
+  if (found.length) {
+    for (const kind of found) {
+      addChest(kind);
+      status.chests.push({ at: Date.now(), score, kind });
+    }
+    while (status.chests.length > MAX_CHEST_READS) status.chests.shift();
     if (recorderOn && chestSamples++ < CHEST_SAMPLE_CAP) save(`chest-${Date.now()}.png`, toImage(pixels, box.width, box.height).toPNG());
     pushStatus();
   }
@@ -183,6 +196,14 @@ export function getFortniteScreenPreview(): FnScreenPreview | null {
   };
 }
 
+/** The +1 hotkey: a chest the screen can't see (one you broke open). Listed on the Screen check page too. */
+export function addManualChest(): void {
+  if (!addChest('manual')) return;
+  status.chests.push({ at: Date.now(), score: 1, kind: 'manual' });
+  while (status.chests.length > MAX_CHEST_READS) status.chests.shift();
+  pushStatus();
+}
+
 export async function openFortniteShots(): Promise<void> {
   await fsp.mkdir(shotsDir(), { recursive: true }).catch(() => undefined);
   await shell.openPath(shotsDir());
@@ -196,8 +217,9 @@ export function setFortniteReaderRunning(playing: boolean, on: boolean, recorder
   const want = playing && enabled;
   if (want !== !!timer) {
     if (want) {
-      counter = new ChestCounter();
+      counter = new ChestPopupCounter();
       elims = new SteadyNumber(true);
+      playersLeft = new SteadyNumber(false);
       status.frames = 0;
       void countShots().then((n) => {
         status.recorder.saved = n;

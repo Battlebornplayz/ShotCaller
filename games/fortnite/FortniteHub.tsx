@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FnMatchRecord } from '../../shared/fortnite';
+import type { FnChestRead, FnMatchRecord } from '../../shared/fortnite';
 import { modeLabel, type FnTeamSize } from '../../shared/fortniteLog';
 import { useFortnite, useFortniteScreen, useSettings } from '../../src/hooks/useLive';
 
@@ -89,6 +89,7 @@ function MatchHistory({ matches }: { matches: FnMatchRecord[] }) {
     [matches, mode, size],
   );
   const chests = list.reduce((s, m) => s + m.chests, 0);
+  const rare = list.reduce((s, m) => s + (m.chestKinds?.rare ?? 0), 0);
   return (
     <div className="enter" style={{ display: 'grid', gap: 12 }}>
       <div className="fn-filters">
@@ -118,10 +119,11 @@ function MatchHistory({ matches }: { matches: FnMatchRecord[] }) {
         <>
           <section className="card">
             <div className="fn-stats">
-              <Stat label="Matches" value={String(list.length)} />
-              <Stat label="Chests" value={String(chests)} />
-              <Stat label="Chests per match" value={(chests / list.length).toFixed(1)} />
-              <Stat label="Average time alive" value={fmtTime(list.reduce((s, m) => s + (m.timeAliveMs ?? 0), 0) / list.length)} />
+              <Stat label="Matches" value={String(list.length)} rarity="uncommon" />
+              <Stat label="Chests" value={String(chests)} rarity="legendary" />
+              <Stat label="Rare chests" value={String(rare)} rarity="rare" />
+              <Stat label="Chests per match" value={(chests / list.length).toFixed(1)} rarity="epic" />
+              <Stat label="Avg time alive" value={fmtTime(list.reduce((s, m) => s + (m.timeAliveMs ?? 0), 0) / list.length)} rarity="common" />
             </div>
             <ChestTrend list={list} />
           </section>
@@ -136,11 +138,14 @@ function MatchHistory({ matches }: { matches: FnMatchRecord[] }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+/** A stat as a slanted tile in a rarity colour, like an item card. */
+function Stat({ label, value, rarity }: { label: string; value: string; rarity: Rarity }) {
   return (
-    <div>
-      <div className="section-label">{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800 }}>{value}</div>
+    <div className="fn-tile" data-rarity={rarity}>
+      <div className="fn-tile-value">{value}</div>
+      <div className="fn-tile-label">{label}</div>
     </div>
   );
 }
@@ -161,6 +166,12 @@ function ChestTrend({ list }: { list: FnMatchRecord[] }) {
       <div className="section-label">Chests per match (last {data.length})</div>
       <div style={{ position: 'relative' }}>
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="Chests per match" onMouseLeave={() => setHover(null)}>
+          <defs>
+            <linearGradient id="fn-bar" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stopColor="var(--fn-epic)" />
+              <stop offset="1" stopColor="var(--fn-legendary)" />
+            </linearGradient>
+          </defs>
           <line x1={0} x2={W} y1={H - 0.5} y2={H - 0.5} stroke="var(--border)" />
           <line x1={0} x2={W} y1={H - 18 - h(max) + 18} y2={H - 18 - h(max) + 18} stroke="var(--border)" strokeDasharray="2 4" />
           {data.map((m, i) => {
@@ -171,7 +182,7 @@ function ChestTrend({ list }: { list: FnMatchRecord[] }) {
                 <rect x={i * slot} y={0} width={slot} height={H} fill="transparent" />
                 <path
                   d={bh ? `M${x},${H} v${-(bh - 4)} q0,-4 4,-4 h${bar - 8} q4,0 4,4 v${bh - 4} z` : ''}
-                  fill="var(--accent)"
+                  fill="url(#fn-bar)"
                   opacity={hover === null || hover === i ? 1 : 0.45}
                 />
               </g>
@@ -191,6 +202,12 @@ function ChestTrend({ list }: { list: FnMatchRecord[] }) {
   );
 }
 
+function kindsTitle(m: FnMatchRecord): string {
+  const k = m.chestKinds;
+  if (!k) return 'Chests opened';
+  return `Chests opened: ${k.chest} normal, ${k.rare} rare, ${k.sprite} sprite, ${k.manual} added with the +1 key`;
+}
+
 function MatchRow({ m }: { m: FnMatchRecord }) {
   const d = new Date(m.startedAt);
   return (
@@ -203,8 +220,9 @@ function MatchRow({ m }: { m: FnMatchRecord }) {
         </div>
       </div>
       <div style={{ flex: 1, fontSize: 13 }}>{modeLabel(m)}</div>
-      <div className="fn-match-num" title="Chests opened">
+      <div className="fn-match-num" title={kindsTitle(m)}>
         <span className="fn-chest">{m.chests}</span> chests
+        {!!m.chestKinds?.rare && <div className="fn-rare-note">{m.chestKinds.rare} rare</div>}
       </div>
       <div className="fn-match-num" title="Eliminations, read from the number next to the skull">
         {m.eliminations ?? '—'} elims
@@ -228,6 +246,8 @@ const SCREEN_TEXT: Record<string, [string, string]> = {
   watching: ['Watching for chests', 'Open a chest: the "+XP / CHEST" text should light up the box below.'],
 };
 
+const KIND_LABEL: Record<FnChestRead['kind'], string> = { chest: 'Chest', rare: 'Rare chest', sprite: 'Sprite chest', manual: '+1 key' };
+
 function ScreenCheck() {
   const status = useFortniteScreen();
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof window.shotcaller.getFortniteScreenPreview>>>(null);
@@ -237,7 +257,7 @@ function ScreenCheck() {
   }, []);
   if (!status) return <div className="card muted">Loading…</div>;
   const [title, help] = SCREEN_TEXT[status.mode] ?? ['', ''];
-  const hit = (preview?.score ?? 0) >= 0.8;
+  const hit = (preview?.score ?? 0) >= 0.68;
   return (
     <div className="enter" style={{ display: 'grid', gap: 12 }}>
       <section className="card">
@@ -271,7 +291,7 @@ function ScreenCheck() {
             )}
           </div>
           <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-            Best match {Math.round((preview.score ?? 0) * 100)}%. A chest counts at 80% or more, seen twice in a row.
+            Best match {Math.round((preview.score ?? 0) * 100)}%. A chest counts at 80% or more (68% when RARE, SPRITE or X2 backs it up), seen twice in a row.
           </div>
         </section>
       )}
@@ -288,7 +308,8 @@ function ScreenCheck() {
           <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>
             {[...status.chests].reverse().slice(0, 20).map((c) => (
               <div key={c.at} style={{ fontSize: 13 }}>
-                {new Date(c.at).toLocaleTimeString()} · match {Math.round(c.score * 100)}%
+                {new Date(c.at).toLocaleTimeString()} · <span className={`fn-kind fn-kind-${c.kind}`}>{KIND_LABEL[c.kind]}</span>
+                {c.kind !== 'manual' && ` · match ${Math.round(c.score * 100)}%`}
               </div>
             ))}
           </div>
@@ -335,6 +356,9 @@ function Options() {
           on={fn.recorder}
           onChange={(v) => set({ recorder: v })}
         />
+        <div className="muted" style={{ fontSize: 12 }}>
+          Broke a chest open? Those show no XP popup, so press <b>{settings.hotkeys.fnChest || '(no key set)'}</b> to add +1. Change the key in Settings → Hotkeys.
+        </div>
         <div>
           <button className="btn" onClick={() => void window.shotcaller.openFortniteShots()}>
             Open screenshots folder

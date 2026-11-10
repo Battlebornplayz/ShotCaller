@@ -5,6 +5,7 @@ import type { HotkeyAction, OverlayState, RunningGame, Settings } from '../share
 import { releaseGameWindow, resetGameWindow, watchGameWindow } from './gameFocus';
 import { getSettings, updateSettings } from './settings';
 import { endMatch, nextRound, pickOffer } from './skillshot/tracker';
+import { addManualChest } from './fortnite/screenReader';
 import { createOverlayWindow, OVERLAY_DEFAULT_SIZE } from './windows';
 
 /**
@@ -213,6 +214,10 @@ export function handleOverlayAction(action: HotkeyAction): void {
     shown = !shown;
     if (!shown && preview && !game) preview = false;
     sync();
+    return;
+  }
+  if (action === 'fnChest') {
+    addManualChest();
     return;
   }
   if (game?.moduleId === 'skillshot-city') {

@@ -30,6 +30,11 @@ export const DEFAULT_FORTNITE_SETTINGS: FortniteSettings = {
   card: { match: true, session: true, today: true, allTime: false },
 };
 
+/** chest / rare / sprite come from the screen; manual is the +1 hotkey (chests you break show no popup). */
+export type FnChestKind = 'chest' | 'rare' | 'sprite' | 'manual';
+export type FnChestKinds = Record<FnChestKind, number>;
+export const NO_CHEST_KINDS: FnChestKinds = { chest: 0, rare: 0, sprite: 0, manual: 0 };
+
 /** One finished match, saved in userData/fortnite/matches.json. */
 export interface FnMatchRecord {
   id: string;
@@ -39,7 +44,10 @@ export interface FnMatchRecord {
   kind: FnKind;
   zeroBuild: boolean;
   teamSize: FnTeamSize;
+  /** Every chest, all kinds together. */
   chests: number;
+  /** By kind; missing on matches saved before chest kinds were read (all of those are in `chests`). */
+  chestKinds?: FnChestKinds;
   /** Not read yet in F1: null. */
   eliminations: number | null;
   placement: number | null;
@@ -65,10 +73,13 @@ export interface FnLiveState {
     mode: FnModeInfo;
     phase: FnPhase | null;
     chests: number;
+    chestKinds: FnChestKinds;
     /** Read live from the number next to the skull; null until first read. */
     eliminations: number | null;
   } | null;
   chests: FnTotals;
+  /** Rare chests only (they're also in `chests`). */
+  rareChests: FnTotals;
   sessionMatches: number;
   lastMatch: FnMatchRecord | null;
 }
@@ -78,6 +89,7 @@ export type FnScreenMode = 'off' | 'no-game' | 'lobby' | 'not-front' | 'no-pictu
 export interface FnChestRead {
   at: number;
   score: number;
+  kind: FnChestKind;
 }
 
 export interface FnScreenStatus {

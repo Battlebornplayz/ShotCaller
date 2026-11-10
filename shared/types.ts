@@ -9,9 +9,9 @@ export type Channel = 'stable' | 'beta';
 /** always = shown whenever a game runs; popup = hidden until the popup hotkey; monitor = normal window on another display. */
 export type OverlayMode = 'always' | 'popup' | 'monitor';
 
-export type HotkeyAction = 'popup' | 'pick1' | 'pick2' | 'nextRound' | 'endMatch' | 'huntList';
+export type HotkeyAction = 'popup' | 'pick1' | 'pick2' | 'nextRound' | 'endMatch' | 'huntList' | 'fnChest';
 
-export const HOTKEY_ACTIONS: HotkeyAction[] = ['popup', 'pick1', 'pick2', 'nextRound', 'endMatch', 'huntList'];
+export const HOTKEY_ACTIONS: HotkeyAction[] = ['popup', 'pick1', 'pick2', 'nextRound', 'endMatch', 'huntList', 'fnChest'];
 
 /** Default bindings. Next round is Alt+N, not Alt+R: the NVIDIA overlay owns Alt+R on many PCs. */
 export const DEFAULT_HOTKEYS: Record<HotkeyAction, string> = {
@@ -21,6 +21,7 @@ export const DEFAULT_HOTKEYS: Record<HotkeyAction, string> = {
   nextRound: 'Alt+N',
   endMatch: 'Alt+E',
   huntList: 'Alt+H',
+  fnChest: 'Alt+C',
 };
 
 export type GameLaunchAction = 'overlay' | 'window' | 'nothing';
