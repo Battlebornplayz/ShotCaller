@@ -107,6 +107,9 @@ export interface FnFriend {
   route: [number, number][];
   /** Their chest, kill, landing and death icons and planned route (sent by friends on beta.8+). */
   marks?: FnFriendMarks;
+  /** How they chose to show on the map (beta.10+), and their picture when it's 'image'. */
+  look?: 'dot' | 'arrow' | 'image';
+  pic?: string | null;
   /** When we last heard from them (our clock). */
   seenAt: number;
 }

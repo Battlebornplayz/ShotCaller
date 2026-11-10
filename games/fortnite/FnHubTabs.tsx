@@ -107,7 +107,7 @@ function MarkerPicker({ marker, image }: { marker: 'dot' | 'arrow' | 'image'; im
         </>
       )}
       <span className="muted" style={{ fontSize: 12, flexBasis: '100%' }}>
-        The arrow turns the way you're moving. Friends show as dots or arrows in their colour.
+        The arrow turns the way you're moving. Linked friends see your choice too (pictures get a ring in your colour).
       </span>
     </div>
   );

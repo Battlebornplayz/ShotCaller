@@ -32,7 +32,15 @@ interface Message {
   inv?: string;
   /** The sender's map icons and planned route. */
   marks?: FnFriendMarks;
+  /** The sender's map marker choice; `pic` (their picture) rides along now and then, not every message. */
+  look?: 'dot' | 'arrow' | 'image';
+  pic?: string | null;
 }
+
+/** Your picture is re-sent this often (and at once when it changes), so friends who join late get it. */
+const PIC_EVERY_MS = 15_000;
+let lastPicAt = 0;
+let lastPic: string | null = null;
 
 const pt = (p: unknown): FnPoint | null => {
   const q = p as FnPoint | null;
@@ -85,7 +93,7 @@ function setState(patch: Partial<FnSquadState>): void {
 }
 
 function publishFriends(): void {
-  const list: FnFriend[] = [...friends.values()].map((f) => ({ id: f.id, name: f.name, dot: f.dot, route: f.route, marks: f.marks, seenAt: f.seenAt }));
+  const list: FnFriend[] = [...friends.values()].map((f) => ({ id: f.id, name: f.name, dot: f.dot, route: f.route, marks: f.marks, look: f.look, pic: f.pic, seenAt: f.seenAt }));
   setSquadDots(list);
   setState({ friends: list.map((f) => ({ id: f.id, name: f.name, seenAt: f.seenAt, inventory: inventories.get(f.id) ?? null })) });
 }
@@ -113,13 +121,21 @@ function send(force = false): void {
   const live = getLiveMap();
   const dot = live.dot;
   const marks: FnFriendMarks = { chests: live.chests, kills: live.kills, landing: live.landing, death: live.death, plan: live.plan };
-  const key = (dot ? `${dot.x},${dot.y},${dot.state}` : 'none') + `|${marks.chests.length},${marks.kills.length},${!!marks.landing},${!!marks.death},${JSON.stringify(marks.plan)}`;
+  const fn = getSettings().fortnite;
+  const look = fn.marker;
+  const picDue = look === 'image' && (fn.markerImage !== lastPic || Date.now() - lastPicAt > PIC_EVERY_MS);
+  const key = `${look}|${picDue}|` + (dot ? `${dot.x},${dot.y},${dot.state}` : 'none') + `|${marks.chests.length},${marks.kills.length},${!!marks.landing},${!!marks.death},${JSON.stringify(marks.plan)}`;
   const now = Date.now();
   if (!force && now - lastSentAt < SEND_EVERY_MS) return;
   if (!force && key === lastSentKey && now - lastSentAt < HEARTBEAT_MS) return;
   lastSentAt = now;
   lastSentKey = key;
-  const msg: Message = { id: myId, name: myName(), dot, match: matchMarker, marks };
+  const msg: Message = { id: myId, name: myName(), dot, match: matchMarker, marks, look };
+  if (picDue) {
+    msg.pic = fn.markerImage;
+    lastPic = fn.markerImage;
+    lastPicAt = now;
+  }
   client.publish(TOPIC(state.code), JSON.stringify(msg), { qos: 0 });
 }
 
@@ -150,6 +166,8 @@ function receive(raw: Buffer): void {
     publishFriends();
     return;
   }
+  if (msg.look === 'dot' || msg.look === 'arrow' || msg.look === 'image') f.look = msg.look;
+  if (typeof msg.pic === 'string' && msg.pic.startsWith('data:image/png;base64,') && msg.pic.length < 150_000) f.pic = msg.pic;
   if (msg.marks && typeof msg.marks === 'object') f.marks = cleanMarks(msg.marks);
   const d = msg.dot;
   if (d && Number.isFinite(d.x) && Number.isFinite(d.y)) {

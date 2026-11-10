@@ -190,7 +190,15 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
           {f.marks && <FriendMarks m={f.marks} color={FRIEND_COLORS[i % FRIEND_COLORS.length]} u={u} />}
           {f.dot && (
             <g style={glide(f.dot)}>
-              {look === 'dot' ? (
+              {f.look === 'image' && f.pic ? (
+                <>
+                  <clipPath id={`fn-clip-${f.id}`}>
+                    <circle r={14 * u} />
+                  </clipPath>
+                  <image href={f.pic} x={-14 * u} y={-14 * u} width={28 * u} height={28 * u} clipPath={`url(#fn-clip-${f.id})`} preserveAspectRatio="xMidYMid slice" />
+                  <circle r={14 * u} fill="none" stroke={FRIEND_COLORS[i % FRIEND_COLORS.length]} strokeWidth={4 * u} />
+                </>
+              ) : (f.look ?? look) === 'dot' ? (
                 <circle r={10 * u} fill={FRIEND_COLORS[i % FRIEND_COLORS.length]} stroke="#0b0c1c" strokeWidth={4 * u} />
               ) : (
                 <path d={ARROW} transform={`scale(${u})`} fill={FRIEND_COLORS[i % FRIEND_COLORS.length]} stroke="#0b0c1c" strokeWidth={3} strokeLinejoin="round" style={turn(heading(f.route), f.id)} />
