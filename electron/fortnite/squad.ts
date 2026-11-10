@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { nativeImage } from 'electron';
 import mqtt, { type MqttClient } from 'mqtt';
 import { captureScreen, type WindowArea } from '../skillshot/screenCapture';
-import type { FnFriend, FnMapState, FnSquadState } from '../../shared/fortnite';
+import type { FnChestPin, FnFriend, FnFriendMarks, FnMapState, FnPoint, FnSquadState } from '../../shared/fortnite';
 import { getSettings } from '../settings';
 import { getLiveMap, onLiveMap, setSquadDots } from './liveMap';
 
@@ -30,6 +30,31 @@ interface Message {
   leaving?: boolean;
   /** The sender's hotbar picture (JPEG data URL), sent on its own about every 2 s. */
   inv?: string;
+  /** The sender's map icons and planned route. */
+  marks?: FnFriendMarks;
+}
+
+const pt = (p: unknown): FnPoint | null => {
+  const q = p as FnPoint | null;
+  return q && Number.isFinite(q.x) && Number.isFinite(q.y) ? { x: q.x, y: q.y } : null;
+};
+function pts<T>(a: unknown, max: number, extra: (o: Record<string, unknown>) => T): (FnPoint & T)[] {
+  return (Array.isArray(a) ? a : []).slice(0, max).flatMap((o) => {
+    const p = pt(o);
+    return p ? [{ ...p, ...extra(o as Record<string, unknown>) }] : [];
+  });
+}
+
+/** Checks a friend's marks so a bad message can't break the map. */
+function cleanMarks(m: FnFriendMarks): FnFriendMarks {
+  const kinds = ['chest', 'rare', 'sprite', 'manual'];
+  return {
+    chests: pts(m.chests, 200, (o) => ({ kind: (kinds.includes(String(o.kind)) ? o.kind : 'chest') as FnChestPin['kind'], at: Number(o.at) || 0 })),
+    kills: pts(m.kills, 100, (o) => ({ at: Number(o.at) || 0 })),
+    landing: pt(m.landing),
+    death: pt(m.death),
+    plan: pts(m.plan, 30, () => ({})),
+  };
 }
 
 const myId = randomBytes(6).toString('hex');
@@ -60,7 +85,7 @@ function setState(patch: Partial<FnSquadState>): void {
 }
 
 function publishFriends(): void {
-  const list: FnFriend[] = [...friends.values()].map((f) => ({ id: f.id, name: f.name, dot: f.dot, route: f.route, seenAt: f.seenAt }));
+  const list: FnFriend[] = [...friends.values()].map((f) => ({ id: f.id, name: f.name, dot: f.dot, route: f.route, marks: f.marks, seenAt: f.seenAt }));
   setSquadDots(list);
   setState({ friends: list.map((f) => ({ id: f.id, name: f.name, seenAt: f.seenAt, inventory: inventories.get(f.id) ?? null })) });
 }
@@ -87,13 +112,14 @@ function send(force = false): void {
   if (!client || !state.code || state.status !== 'on') return;
   const live = getLiveMap();
   const dot = live.dot;
-  const key = dot ? `${dot.x},${dot.y},${dot.state}` : 'none';
+  const marks: FnFriendMarks = { chests: live.chests, kills: live.kills, landing: live.landing, death: live.death, plan: live.plan };
+  const key = (dot ? `${dot.x},${dot.y},${dot.state}` : 'none') + `|${marks.chests.length},${marks.kills.length},${!!marks.landing},${!!marks.death},${JSON.stringify(marks.plan)}`;
   const now = Date.now();
   if (!force && now - lastSentAt < SEND_EVERY_MS) return;
   if (!force && key === lastSentKey && now - lastSentAt < HEARTBEAT_MS) return;
   lastSentAt = now;
   lastSentKey = key;
-  const msg: Message = { id: myId, name: myName(), dot, match: matchMarker };
+  const msg: Message = { id: myId, name: myName(), dot, match: matchMarker, marks };
   client.publish(TOPIC(state.code), JSON.stringify(msg), { qos: 0 });
 }
 
@@ -124,6 +150,7 @@ function receive(raw: Buffer): void {
     publishFriends();
     return;
   }
+  if (msg.marks && typeof msg.marks === 'object') f.marks = cleanMarks(msg.marks);
   const d = msg.dot;
   if (d && Number.isFinite(d.x) && Number.isFinite(d.y)) {
     f.dot = { x: d.x, y: d.y, state: d.state === 'sure' ? 'sure' : 'unsure', at: f.seenAt };

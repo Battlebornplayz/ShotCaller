@@ -16,6 +16,7 @@ export function LobbyTab() {
   const settings = useSettings();
   const matches = useMatches(live);
   const [drops, setDrops] = useState<FnDrop[]>([]);
+  const [planning, setPlanning] = useState(false);
   useEffect(() => {
     let active = true;
     void window.shotcaller.getFortniteDrops().then((d) => active && setDrops(d));
@@ -48,16 +49,37 @@ export function LobbyTab() {
             Your drops this season ({drops.length}
             {wins ? `, ${wins} won` : ''})
           </div>
+          <PlanButtons planning={planning} setPlanning={setPlanning} stops={map?.plan.length ?? 0} />
           <button className="btn" onClick={() => void window.shotcaller.showFortniteMonitor()}>
             Open map window
           </button>
         </div>
         <div className="fn-lobby-mapbox">
-          <FnMap live={map} route={[]} chests={[]} landing={null} death={null} drops={drops} />
+          <FnMap live={map} route={[]} chests={[]} landing={null} death={null} drops={drops} planning={planning} />
         </div>
-        <div className="fn-note">Blue: where you landed. Gold: landed and won. Red cross: where you went down. Saved from now on, one per match.</div>
+        <div className="fn-note">
+          {planning
+            ? 'Click the map to add stops in order. Right-click takes the last stop off. In a match, a green GPS line points from you to the next stop.'
+            : 'Parachute: where you landed (gold = won). Red X: where you went down. Plan route: set your own stops with a GPS line between them.'}
+        </div>
       </section>
     </div>
+  );
+}
+
+/** "Plan route" on/off and "Clear route", shared by the lobby map and the map window. */
+export function PlanButtons({ planning, setPlanning, stops }: { planning: boolean; setPlanning: (on: boolean) => void; stops: number }) {
+  return (
+    <span className="fn-plan-bar">
+      <button className={`btn ${planning ? 'primary' : ''}`} onClick={() => setPlanning(!planning)}>
+        {planning ? 'Done planning' : 'Plan route'}
+      </button>
+      {stops > 0 && (
+        <button className="btn" onClick={() => void window.shotcaller.setFortnitePlan([])}>
+          Clear route ({stops})
+        </button>
+      )}
+    </span>
   );
 }
 

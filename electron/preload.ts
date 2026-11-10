@@ -81,6 +81,7 @@ const api: ShotCallerApi = {
   onFortniteMap: (cb) => on(IPC.fortniteMapChanged, cb),
   getFortniteMapImage: () => ipcRenderer.invoke(IPC.fortniteMapImage),
   getFortniteRoute: (matchId) => ipcRenderer.invoke(IPC.fortniteRoute, matchId),
+  setFortnitePlan: (plan) => ipcRenderer.invoke(IPC.fortniteSetPlan, plan),
   getFortniteDrops: () => ipcRenderer.invoke(IPC.fortniteDrops),
   getFortniteSquad: () => ipcRenderer.invoke(IPC.fortniteSquad),
   onFortniteSquad: (cb) => on(IPC.fortniteSquadChanged, cb),

@@ -58,6 +58,11 @@ export interface FnChestPin extends FnPoint {
   at: number;
 }
 
+/** Where you got an elimination (your dot when the count went up). */
+export interface FnKillPin extends FnPoint {
+  at: number;
+}
+
 /** Saved per match in userData/fortnite/routes/<match id>.json. */
 export interface FnRoute {
   matchId: string;
@@ -68,6 +73,7 @@ export interface FnRoute {
   chests: FnChestPin[];
   landing: FnPoint | null;
   death: FnPoint | null;
+  kills?: FnKillPin[];
 }
 
 export interface FnMapState {
@@ -79,6 +85,11 @@ export interface FnMapState {
   route: [number, number][];
   chests: FnChestPin[];
   landing: FnPoint | null;
+  death: FnPoint | null;
+  kills: FnKillPin[];
+  /** Your planned route (click the map to add stops); `planStep` is the next stop not reached yet. */
+  plan: FnPoint[];
+  planStep: number;
   /** Squad-link friends' dots and paths (Phase F5 early build). */
   squad: FnFriend[];
 }
@@ -89,8 +100,18 @@ export interface FnFriend {
   name: string;
   dot: (FnPoint & { state: 'sure' | 'unsure'; at: number }) | null;
   route: [number, number][];
+  /** Their chest, kill, landing and death icons and planned route (sent by friends on beta.8+). */
+  marks?: FnFriendMarks;
   /** When we last heard from them (our clock). */
   seenAt: number;
+}
+
+export interface FnFriendMarks {
+  chests: FnChestPin[];
+  kills: FnKillPin[];
+  landing: FnPoint | null;
+  death: FnPoint | null;
+  plan: FnPoint[];
 }
 
 export interface FnSquadState {

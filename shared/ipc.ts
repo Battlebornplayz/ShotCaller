@@ -97,6 +97,7 @@ export const IPC = {
   fortniteMapChanged: 'fortnite:map-changed',
   fortniteMapImage: 'fortnite:map-image',
   fortniteRoute: 'fortnite:route',
+  fortniteSetPlan: 'fortnite:set-plan',
   fortniteDrops: 'fortnite:drops',
   fortniteSquad: 'fortnite:squad',
   fortniteSquadChanged: 'fortnite:squad-changed',

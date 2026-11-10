@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FnDrop, FnRoute } from '../../shared/fortnite';
 import { FnMap, gridCell } from '../../games/fortnite/FnMap';
+import { PlanButtons } from '../../games/fortnite/FnHubTabs';
 import { ChestsPanel, InventoryPanel, RecapPanel, SessionPanel, useMatches } from '../../games/fortnite/FnPanels';
 import { useFortnite, useFortniteMap, useSettings } from '../hooks/useLive';
 
@@ -14,6 +15,7 @@ export function FnMonitorApp() {
   const settings = useSettings();
   const matches = useMatches(live);
   const [follow, setFollow] = useState(true);
+  const [planning, setPlanning] = useState(false);
   const [route, setRoute] = useState<FnRoute | null>(null);
   const [drops, setDrops] = useState<FnDrop[]>([]);
   const inMatch = !!live?.match;
@@ -42,7 +44,13 @@ export function FnMonitorApp() {
             {gridCell(dot)} {dot.state === 'unsure' ? '· not sure' : ''}
           </span>
         )}
+        {inMatch && dot && map && map.planStep < map.plan.length && (
+          <span className="fnm-where">
+            Next stop {map.planStep + 1} · {gridCell(map.plan[map.planStep])}
+          </span>
+        )}
         <span style={{ flex: 1 }} />
+        <PlanButtons planning={planning} setPlanning={setPlanning} stops={map?.plan.length ?? 0} />
         {inMatch && (
           <button className="btn" onClick={() => setFollow((f) => !f)}>
             {follow ? 'Whole map' : 'Follow me'}
@@ -55,15 +63,16 @@ export function FnMonitorApp() {
       <div className="fnm-body">
         <div className="fnm-map">
           {inMatch ? (
-            <FnMap live={map} follow={follow} />
+            <FnMap live={map} follow={follow && !planning} planning={planning} />
           ) : (
-            <FnMap live={map} route={route?.points.map(([x, y]) => [x, y] as [number, number]) ?? []} chests={route?.chests ?? []} landing={route?.landing ?? null} death={route?.death ?? null} drops={drops} />
+            <FnMap live={map} route={route?.points.map(([x, y]) => [x, y] as [number, number]) ?? []} chests={route?.chests ?? []} landing={route?.landing ?? null} death={route?.death ?? null} kills={route?.kills ?? []} drops={drops} planning={planning} />
           )}
           {!inMatch && (
             <div className="fnm-legend">
-              <span><i className="fn-key fn-key-land" /> Where you landed</span>
-              <span><i className="fn-key fn-key-win" /> Landed and won</span>
-              <span><i className="fn-key fn-key-death" /> Where you went down</span>
+              <span>🪂 Where you landed (gold = won)</span>
+              <span>📦 Chest looted</span>
+              <span>💀 Got a kill</span>
+              <span>❌ Where you went down</span>
               <span><i className="fn-key fn-key-route" /> Last match's route</span>
             </div>
           )}

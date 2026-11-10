@@ -21,7 +21,7 @@ import {
 } from '../../shared/fortniteVision';
 import { captureScreen, foregroundGameArea, type WindowArea } from '../skillshot/screenCapture';
 import { getSettings } from '../settings';
-import { pinChest, readLiveMap } from './liveMap';
+import { pinChest, pinKill, readLiveMap } from './liveMap';
 import { readHotbar } from './squad';
 import { addChest, busHasLeft, inFortniteMatch, setEliminations, setPlayersLeftAlive, setTimeAlive } from './tracker';
 
@@ -126,6 +126,7 @@ function readEliminations(area: WindowArea): void {
   }
   const next = elims.update(hud.eliminations);
   if (next !== undefined) {
+    if (next > (status.eliminations ?? 0)) pinKill();
     status.eliminations = next;
     setEliminations(next);
     pushStatus();

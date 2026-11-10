@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 import { DotTracker, MINIMAP_SPAN, minimapArea, minimapGrey } from '../../shared/fortniteMap';
-import type { FnChestKind, FnChestPin, FnDrop, FnMapState, FnMatchRecord, FnPoint, FnRoute } from '../../shared/fortnite';
+import type { FnChestKind, FnChestPin, FnKillPin, FnDrop, FnMapState, FnMatchRecord, FnPoint, FnRoute } from '../../shared/fortnite';
 import { captureScreen, type WindowArea } from '../skillshot/screenCapture';
 import { getLocator, getSeasonMapStatus, onSeasonMap } from './seasonMap';
 import { currentMatchInfo, onMatchSaved } from './tracker';
@@ -35,13 +35,19 @@ let points: [number, number, number][] = [];
 let pins: FnChestPin[] = [];
 let landing: FnPoint | null = null;
 let death: FnPoint | null = null;
+let kills: FnKillPin[] = [];
+let plan: FnPoint[] = [];
+let planStep = 0;
+/** You reached a planned stop when your dot is this close (map px). */
+const STOP_REACHED_PX = 28;
+const planFile = () => path.join(app.getPath('userData'), 'fortnite', 'plan.json');
 let lastLife: 'alive' | 'down' | null = null;
 let index: IndexEntry[] = [];
 let state: FnMapState = emptyState();
 const listeners = new Set<(s: FnMapState) => void>();
 
 function emptyState(): FnMapState {
-  return { map: getSeasonMapStatus(), dot: null, teammates: [], route: [], chests: [], landing: null, squad: [] };
+  return { map: getSeasonMapStatus(), dot: null, teammates: [], route: [], chests: [], landing: null, death: null, kills: [], plan, planStep, squad: [] };
 }
 
 export function getLiveMap(): FnMapState {
@@ -70,9 +76,11 @@ function resetMatch(startedAt: number | null): void {
   pins = [];
   landing = null;
   death = null;
+  kills = [];
+  planStep = 0;
   lastLife = null;
   tracker?.reset();
-  push({ dot: null, teammates: [], route: [], chests: [], landing: null });
+  push({ dot: null, teammates: [], route: [], chests: [], landing: null, death: null, kills: [], planStep });
 }
 
 /** Called by the screen reader on each look while a match is on and Fortnite is in front. */
@@ -81,7 +89,10 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
   if (!info) return;
   if (info.startedAt !== matchStartedAt) resetMatch(info.startedAt);
   // You went down: the last good spot is where you died.
-  if (lastLife === 'alive' && life === 'down' && state.dot) death = { x: state.dot.x, y: state.dot.y };
+  if (lastLife === 'alive' && life === 'down' && state.dot) {
+    death = { x: state.dot.x, y: state.dot.y };
+    push({ death });
+  }
   if (life) lastLife = life;
   if (!enabled || life === 'down') return;
   const locator = getLocator();
@@ -114,6 +125,11 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
       points.push([x, y, secs]);
       patch.route = points.map(([px, py]) => [px, py] as [number, number]);
     }
+    // GPS: move on to the next planned stop once you get close to this one.
+    if (planStep < plan.length && Math.hypot(plan[planStep].x - x, plan[planStep].y - y) <= STOP_REACHED_PX) {
+      planStep++;
+      patch.planStep = planStep;
+    }
     patch.teammates = !info.teamSize || info.teamSize === 'solo' ? [] : readTeammates(pixels, box.width, box.height, x, y);
   }
   push(patch);
@@ -125,6 +141,22 @@ export function pinChest(kind: FnChestKind): void {
   if (!dot || dot.state !== 'sure' || Date.now() - dot.at > PIN_MAX_AGE_MS) return;
   pins.push({ x: dot.x, y: dot.y, kind, at: Date.now() });
   push({ chests: [...pins] });
+}
+
+/** Your eliminations count went up: pin it where your dot is (if the dot is fresh). */
+export function pinKill(): void {
+  const dot = state.dot;
+  if (!dot || Date.now() - dot.at > PIN_MAX_AGE_MS) return;
+  kills.push({ x: dot.x, y: dot.y, at: Date.now() });
+  push({ kills: [...kills] });
+}
+
+/** Sets your planned route (an empty list clears it). Kept between matches. */
+export function setPlan(next: FnPoint[]): void {
+  plan = next.slice(0, 30).map((p) => ({ x: Math.round(Math.min(2048, Math.max(0, p.x))), y: Math.round(Math.min(2048, Math.max(0, p.y))) }));
+  planStep = 0;
+  push({ plan, planStep });
+  void fsp.mkdir(path.dirname(planFile()), { recursive: true }).then(() => fsp.writeFile(planFile(), JSON.stringify(plan))).catch(() => {});
 }
 
 // ---------- Teammates (team modes only) ----------
@@ -207,7 +239,7 @@ function readTeammates(bgra: Uint8Array, w: number, h: number, meX: number, meY:
 async function saveRoute(m: FnMatchRecord): Promise<void> {
   const mapId = getSeasonMapStatus().id;
   if (!mapId || (!points.length && !pins.length)) return;
-  const route: FnRoute = { matchId: m.id, mapId, points, chests: pins, landing, death };
+  const route: FnRoute = { matchId: m.id, mapId, points, chests: pins, landing, death, kills };
   const entry: IndexEntry = { matchId: m.id, mapId, startedAt: m.startedAt, placement: m.placement, landing, death, chests: m.chests };
   index.push(entry);
   try {
@@ -242,6 +274,13 @@ export function initLiveMap(): void {
   } catch {
     index = [];
   }
+  try {
+    const raw = JSON.parse(fs.readFileSync(planFile(), 'utf8')) as unknown;
+    if (Array.isArray(raw)) plan = (raw as FnPoint[]).filter((p) => typeof p?.x === 'number' && typeof p?.y === 'number');
+  } catch {
+    plan = [];
+  }
+  push({ plan, planStep: 0 });
   onSeasonMap(() => push({}));
   onMatchSaved((m) => {
     void saveRoute(m).then(() => resetMatch(null));

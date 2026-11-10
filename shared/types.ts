@@ -8,6 +8,7 @@ import type {
   FnSquadState,
   FnLiveState,
   FnMapState,
+  FnPoint,
   FnMatchRecord,
   FnRoute,
   FnScreenPreview,
@@ -512,6 +513,8 @@ export interface ShotCallerApi {
   /** The season map with place names as a data URL, or null until it's downloaded. */
   getFortniteMapImage(): Promise<string | null>;
   getFortniteRoute(matchId: string): Promise<FnRoute | null>;
+  /** Your planned route on the season map (empty clears it). */
+  setFortnitePlan(plan: FnPoint[]): Promise<void>;
   /** Landing/death spots of matches on the current season map. */
   getFortniteDrops(): Promise<FnDrop[]>;
   /** Squad link: share map dots with a friend by join code. */

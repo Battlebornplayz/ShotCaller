@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import type { FnChestPin, FnDrop, FnMapState, FnPoint } from '../../shared/fortnite';
+import type { FnChestPin, FnDrop, FnFriendMarks, FnKillPin, FnMapState, FnPoint } from '../../shared/fortnite';
 
 /**
  * The season map with the A-J / 1-10 grid, your dot (sure = solid, not sure = hollow), your route, chest pins,
@@ -48,18 +48,25 @@ export interface FnMapProps {
   death?: FnPoint | null;
   /** Lobby: landing (and death) pins from past matches on this map. */
   drops?: FnDrop[];
+  kills?: FnKillPin[];
+  /** Plan mode: click the map to add a stop to your route, right-click to take the last one off. */
+  planning?: boolean;
   className?: string;
 }
 
 /** Linked friends' colours (yours is the blue dot). */
 const FRIEND_COLORS = ['#3ddc84', '#ffcf3f', '#ff7ad9', '#ff9b3f'];
 
-export function FnMap({ live, follow, route, chests, landing, death, drops, className }: FnMapProps) {
+export function FnMap({ live, follow, route, chests, landing, death, drops, kills, planning, className }: FnMapProps) {
   const image = useMapImage(live?.map.id ?? null);
   const dot = live?.dot ?? null;
   const path = route ?? live?.route ?? [];
   const pins = chests ?? live?.chests ?? [];
   const land = landing !== undefined ? landing : (live?.landing ?? null);
+  const died = death !== undefined ? death : (live?.death ?? null);
+  const killPins = kills ?? (route ? [] : (live?.kills ?? []));
+  const plan = live?.plan ?? [];
+  const step = route ? 0 : (live?.planStep ?? 0);
   const squad = live?.squad ?? [];
   // With no dot of your own (e.g. in the lobby), the map window follows your linked friend instead.
   const center = dot ?? squad.find((f) => f.dot)?.dot ?? null;
@@ -89,8 +96,30 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, clas
   }
 
   const cell = SIZE / 10;
+  const toMap = (e: React.MouseEvent<SVGSVGElement>): FnPoint | null => {
+    const m = e.currentTarget.getScreenCTM();
+    if (!m) return null;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    return { x: p.x, y: p.y };
+  };
+  const addStop = (e: React.MouseEvent<SVGSVGElement>) => {
+    const p = planning ? toMap(e) : null;
+    if (p) void window.shotcaller.setFortnitePlan([...plan, p]);
+  };
+  const dropStop = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!planning) return;
+    e.preventDefault();
+    void window.shotcaller.setFortnitePlan(plan.slice(0, -1));
+  };
+  // GPS: a bright line from your dot to the next stop, then dashes through the rest.
+  const ahead = plan.slice(step);
+  const gpsFrom = dot && !route && ahead.length ? dot : null;
   return (
-    <svg className={`fn-map ${className ?? ''}`} viewBox={`${shown.x} ${shown.y} ${shown.w} ${shown.w}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Season map">
+    <svg
+      className={`fn-map ${className ?? ''}`}
+      data-planning={planning ? 'yes' : undefined}
+      onClick={addStop}
+      onContextMenu={dropStop} viewBox={`${shown.x} ${shown.y} ${shown.w} ${shown.w}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Season map">
       <image href={image} x={0} y={0} width={SIZE} height={SIZE} />
       {/* Grid: columns A-J left to right, rows 1-10 top to bottom. */}
       <g className="fn-grid">
@@ -114,17 +143,39 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, clas
 
       {drops?.map((d) => (
         <g key={d.matchId}>
-          {d.landing && <circle cx={d.landing.x} cy={d.landing.y} r={7 * u} className="fn-pin-land" data-win={d.placement === 1 ? 'yes' : 'no'} />}
-          {d.death && <path d={cross(d.death, 6 * u)} className="fn-pin-death" strokeWidth={3 * u} />}
+          {d.landing && <LandIcon p={d.landing} s={0.8 * u} win={d.placement === 1} />}
+          {d.death && <DeathIcon p={d.death} s={0.75 * u} />}
         </g>
       ))}
 
       {path.length > 1 && <polyline points={path.map(([x, y]) => `${x},${y}`).join(' ')} className="fn-route" strokeWidth={4 * u} />}
-      {land && <circle cx={land.x} cy={land.y} r={9 * u} className="fn-pin-land" data-win="no" />}
-      {death && <path d={cross(death, 8 * u)} className="fn-pin-death" strokeWidth={4 * u} />}
+
+      {plan.length > 0 && (
+        <g className="fn-plan" pointerEvents="none">
+          {step > 0 && <polyline points={plan.slice(0, step + 1).map((p) => `${p.x},${p.y}`).join(' ')} className="fn-plan-done" strokeWidth={3 * u} />}
+          {ahead.length > 0 && (
+            <polyline points={[...(step > 0 ? [plan[step - 1]] : []), ...ahead].map((p) => `${p.x},${p.y}`).join(' ')} className="fn-plan-line" strokeWidth={4 * u} strokeDasharray={`${12 * u} ${9 * u}`} />
+          )}
+          {gpsFrom && <line x1={gpsFrom.x} y1={gpsFrom.y} x2={ahead[0].x} y2={ahead[0].y} className="fn-plan-gps" strokeWidth={6 * u} />}
+          {plan.map((p, i) => (
+            <g key={i} transform={`translate(${p.x} ${p.y})`} opacity={i < step ? 0.45 : 1}>
+              <circle r={13 * u} className="fn-plan-stop" data-next={i === step ? 'yes' : undefined} strokeWidth={3 * u} />
+              <text y={6 * u} textAnchor="middle" fontSize={17 * u} fontWeight={800} fill="#0b0c1c">
+                {i < step ? '✓' : i + 1}
+              </text>
+            </g>
+          ))}
+        </g>
+      )}
+
+      {land && <LandIcon p={land} s={u} />}
       {pins.map((p) => (
-        <rect key={p.at} x={p.x - 6 * u} y={p.y - 6 * u} width={12 * u} height={12 * u} rx={2 * u} fill={KIND_COLOR[p.kind]} stroke="#0b0c1c" strokeWidth={2 * u} />
+        <ChestIcon key={p.at} p={p} s={u} color={KIND_COLOR[p.kind]} />
       ))}
+      {killPins.map((k) => (
+        <KillIcon key={k.at} p={k} s={u} />
+      ))}
+      {died && <DeathIcon p={died} s={u} />}
       {live.teammates.map((t, i) => (
         <circle key={i} cx={t.x} cy={t.y} r={9 * u} fill={t.color} stroke="#0b0c1c" strokeWidth={3 * u} />
       ))}
@@ -133,6 +184,7 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, clas
           {f.route.length > 1 && (
             <polyline points={f.route.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" stroke={FRIEND_COLORS[i % FRIEND_COLORS.length]} strokeOpacity={0.75} strokeWidth={3 * u} strokeLinejoin="round" />
           )}
+          {f.marks && <FriendMarks m={f.marks} color={FRIEND_COLORS[i % FRIEND_COLORS.length]} u={u} />}
           {f.dot && (
             <g style={glide(f.dot)}>
               <circle r={10 * u} fill={FRIEND_COLORS[i % FRIEND_COLORS.length]} stroke="#0b0c1c" strokeWidth={4 * u} />
@@ -179,8 +231,86 @@ function glide(p: FnPoint): CSSProperties {
   return { transform: `translate(${p.x}px, ${p.y}px)`, transition: 'transform 0.55s linear' };
 }
 
-function cross(p: FnPoint, r: number): string {
-  return `M${p.x - r},${p.y - r} L${p.x + r},${p.y + r} M${p.x + r},${p.y - r} L${p.x - r},${p.y + r}`;
+/** A linked friend's icons and planned route, each with a ring in their colour. */
+function FriendMarks({ m, color, u }: { m: FnFriendMarks; color: string; u: number }) {
+  const ring = (p: FnPoint, key: string | number, icon: React.ReactNode) => (
+    <g key={key}>
+      <circle cx={p.x} cy={p.y} r={15 * u} fill="none" stroke={color} strokeWidth={4 * u} pointerEvents="none" />
+      {icon}
+    </g>
+  );
+  return (
+    <g>
+      {m.plan.length > 1 && (
+        <polyline points={m.plan.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke={color} strokeOpacity={0.8} strokeWidth={4 * u} strokeDasharray={`${12 * u} ${9 * u}`} pointerEvents="none" />
+      )}
+      {m.plan.map((p, i) => (
+        <g key={`s${i}`} transform={`translate(${p.x} ${p.y})`} pointerEvents="none">
+          <circle r={11 * u} fill={color} stroke={OUTLINE} strokeWidth={3 * u} />
+          <text y={5 * u} textAnchor="middle" fontSize={14 * u} fontWeight={800} fill={OUTLINE}>
+            {i + 1}
+          </text>
+        </g>
+      ))}
+      {m.landing && ring(m.landing, 'l', <LandIcon p={m.landing} s={u} />)}
+      {m.chests.map((c) => ring(c, `c${c.at}`, <ChestIcon p={c} s={u} color={KIND_COLOR[c.kind]} />))}
+      {m.kills.map((k) => ring(k, `k${k.at}`, <KillIcon p={k} s={u} />))}
+      {m.death && ring(m.death, 'd', <DeathIcon p={m.death} s={u} />)}
+    </g>
+  );
+}
+
+// ---------- Map icons (drawn 24 units across at s = 1, centred on the spot) ----------
+
+const OUTLINE = '#0b0c1c';
+
+/** Looted chest: a little chest in the chest kind's colour. */
+function ChestIcon({ p, s, color }: { p: FnPoint; s: number; color: string }) {
+  return (
+    <g transform={`translate(${p.x} ${p.y}) scale(${s})`} pointerEvents="none">
+      <title>Chest</title>
+      <rect x={-10} y={-8} width={20} height={16} rx={3} fill={color} stroke={OUTLINE} strokeWidth={2.5} />
+      <line x1={-10} y1={-2} x2={10} y2={-2} stroke={OUTLINE} strokeWidth={2.5} />
+      <rect x={-2.5} y={-4.5} width={5} height={6} rx={1} fill={OUTLINE} />
+    </g>
+  );
+}
+
+/** Got a kill: a white skull. */
+function KillIcon({ p, s }: { p: FnPoint; s: number }) {
+  return (
+    <g transform={`translate(${p.x} ${p.y}) scale(${s})`} pointerEvents="none">
+      <title>Elimination</title>
+      <path d="M0,-11 C7,-11 10,-6 10,-1 C10,3 8,5 6,6 L6,10 L-6,10 L-6,6 C-8,5 -10,3 -10,-1 C-10,-6 -7,-11 0,-11 Z" fill="#f4f5ff" stroke={OUTLINE} strokeWidth={2.5} />
+      <circle cx={-4} cy={-1} r={2.8} fill={OUTLINE} />
+      <circle cx={4} cy={-1} r={2.8} fill={OUTLINE} />
+      <path d="M-2,10 L-2,7 M2,10 L2,7" stroke={OUTLINE} strokeWidth={1.8} />
+    </g>
+  );
+}
+
+/** Where you went down: a red X on a dark disc. */
+function DeathIcon({ p, s }: { p: FnPoint; s: number }) {
+  return (
+    <g transform={`translate(${p.x} ${p.y}) scale(${s})`} pointerEvents="none">
+      <title>Went down</title>
+      <circle r={12} fill={OUTLINE} stroke="#ff4d5e" strokeWidth={2} />
+      <path d="M-6,-6 L6,6 M6,-6 L-6,6" stroke="#ff4d5e" strokeWidth={4} strokeLinecap="round" />
+    </g>
+  );
+}
+
+/** Where you landed: a parachute (gold if you won that match). */
+function LandIcon({ p, s, win }: { p: FnPoint; s: number; win?: boolean }) {
+  const c = win ? '#ffcf3f' : '#4f8cff';
+  return (
+    <g transform={`translate(${p.x} ${p.y}) scale(${s})`} pointerEvents="none">
+      <title>{win ? 'Landed (won)' : 'Landed'}</title>
+      <path d="M-12,-2 A12,11 0 0 1 12,-2 Z" fill={c} stroke={OUTLINE} strokeWidth={2.5} strokeLinejoin="round" />
+      <path d="M-11,-2 L0,9 L11,-2 M0,-2 L0,9" stroke={OUTLINE} strokeWidth={1.8} fill="none" />
+      <circle cy={10} r={3} fill={OUTLINE} />
+    </g>
+  );
 }
 
 /** "D6" for a map spot. */

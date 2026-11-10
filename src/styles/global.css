@@ -855,6 +855,13 @@ html.popup-window #root {
 .fn-pin-land { fill: var(--fn-rare); stroke: #0b0c1c; stroke-width: 3; opacity: 0.9; }
 .fn-pin-land[data-win='yes'] { fill: var(--fn-legendary); }
 .fn-pin-death { stroke: #ff5a6a; fill: none; stroke-linecap: round; }
+.fn-map[data-planning="yes"] { cursor: crosshair; }
+.fn-plan-line { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
+.fn-plan-done { fill: none; stroke: #fff; opacity: 0.3; stroke-linejoin: round; }
+.fn-plan-gps { stroke: #3ddc84; stroke-linecap: round; opacity: 0.95; }
+.fn-plan-stop { fill: #fff; stroke: #0b0c1c; }
+.fn-plan-stop[data-next="yes"] { fill: #3ddc84; }
+.fn-plan-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .fn-dot-me { fill: #fff; stroke: var(--fn-sky); }
 .fn-dot-me[data-state='unsure'] { fill: transparent; stroke: rgba(255, 255, 255, 0.8); stroke-dasharray: 4 4; }
 .fn-dot-halo { fill: rgba(47, 125, 255, 0.28); }

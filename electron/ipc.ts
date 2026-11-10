@@ -34,7 +34,8 @@ import { getMcpInfo } from './skillshot/mcpServer';
 import { getScreenPreview, getScreenStatus } from './skillshot/screenReader';
 import { getFortniteMatches, getFortniteState } from './fortnite/tracker';
 import { getFortniteScreen, getFortniteScreenPreview, openFortniteShots } from './fortnite/screenReader';
-import { getDrops, getLiveMap, getRoute } from './fortnite/liveMap';
+import { getDrops, getLiveMap, getRoute, setPlan } from './fortnite/liveMap';
+import type { FnPoint } from '../shared/fortnite';
 import { getSquad, joinSquad, leaveSquad, startSquad } from './fortnite/squad';
 import { getMapImage } from './fortnite/seasonMap';
 import { listDisplays, showFortniteMonitor } from './fortnite/monitorWindow';
@@ -218,6 +219,7 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.fortniteOpenShots, () => openFortniteShots());
   ipcMain.handle(IPC.fortniteMap, () => getLiveMap());
   ipcMain.handle(IPC.fortniteMapImage, () => getMapImage());
+  ipcMain.handle(IPC.fortniteSetPlan, (_e, plan: unknown) => setPlan(Array.isArray(plan) ? (plan as FnPoint[]) : []));
   ipcMain.handle(IPC.fortniteRoute, (_e, matchId: unknown) => (typeof matchId === 'string' ? getRoute(matchId) : null));
   ipcMain.handle(IPC.fortniteDrops, () => getDrops());
   ipcMain.handle(IPC.fortniteSquad, () => getSquad());
