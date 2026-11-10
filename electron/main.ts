@@ -8,6 +8,10 @@ import { noteMouseDown, onScreenStatus, screenReaderRunning, setScreenReaderRunn
 import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
 import { disposeFortnite, initFortnite, onFortniteChange, setFortniteRunning } from './fortnite/tracker';
 import { onFortniteScreen, setFortniteReaderRunning } from './fortnite/screenReader';
+import { initLiveMap, onLiveMap } from './fortnite/liveMap';
+import { ensureSeasonMap } from './fortnite/seasonMap';
+import { fortniteMonitorSettingsChanged, syncFortniteMonitor } from './fortnite/monitorWindow';
+import { disposeOnline, initOnline, onShop, onStats, refreshStats, wishlistChanged } from './fortnite/online';
 import { disposeAuth, initAuth, onAuthStateChange, refreshProfile } from './auth';
 import { initCrashReports } from './crashReports';
 import { getDetectionState, onDetectionChange, startDetection, stopDetection } from './detection';
@@ -140,6 +144,11 @@ if (!app.requestSingleInstanceLock()) {
       const fn = getSettings().fortnite;
       setFortniteRunning(playing);
       setFortniteReaderRunning(playing, fn.screenReader, fn.recorder);
+      if (playing) {
+        void ensureSeasonMap();
+        void refreshStats();
+      }
+      syncFortniteMonitor(playing);
     };
 
     onOverlayStateChange((state) => {
@@ -172,6 +181,8 @@ if (!app.requestSingleInstanceLock()) {
       if (next.channel !== prev.channel) void checkForUpdates();
       if (next.skillshot.screenReader !== prev.skillshot.screenReader) syncScreenReader();
       if (next.fortnite.screenReader !== prev.fortnite.screenReader || next.fortnite.recorder !== prev.fortnite.recorder) syncFortnite();
+      if (JSON.stringify(next.fortnite.monitor) !== JSON.stringify(prev.fortnite.monitor)) fortniteMonitorSettingsChanged();
+      if (JSON.stringify(next.fortnite.wishlist) !== JSON.stringify(prev.fortnite.wishlist)) wishlistChanged();
       if (next.mcp.enabled !== prev.mcp.enabled) setMcpRunning(next.mcp.enabled);
       applyOverlaySettings(next, prev);
       if (next.overlay.allGames !== prev.overlay.allGames) setOverlayGame(overlayGameFrom(getDetectionState().running));
@@ -186,6 +197,13 @@ if (!app.requestSingleInstanceLock()) {
     initFortnite();
     onFortniteChange((s) => broadcast(IPC.fortniteChanged, s));
     onFortniteScreen((s) => broadcast(IPC.fortniteScreenChanged, s));
+    initLiveMap();
+    onLiveMap((s) => broadcast(IPC.fortniteMapChanged, s));
+    onStats((s) => broadcast(IPC.fortniteStatsChanged, s));
+    onShop((s) => broadcast(IPC.fortniteShopChanged, s));
+    initOnline();
+    // The map is small to keep and needed for the lobby view too: load it (and look for a new season) now.
+    void ensureSeasonMap();
     syncScreenReader();
     syncFortnite(); // Starts in the right state ("off" or "game not running") before any game is seen.
     setMcpRunning(getSettings().mcp.enabled);
@@ -214,6 +232,7 @@ if (!app.requestSingleInstanceLock()) {
     setScreenReaderRunning(false, false);
     setFortniteReaderRunning(false, false, false);
     disposeFortnite();
+    disposeOnline();
     setMcpRunning(false);
     disposeSkillshot();
     disposePopup();

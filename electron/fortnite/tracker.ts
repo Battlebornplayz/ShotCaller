@@ -32,7 +32,20 @@ let sessionChests = 0;
 let sessionRare = 0;
 let sessionMatches = 0;
 let lastMatch: FnMatchRecord | null = null;
+const sessionStats = { matches: 0, wins: 0, eliminations: 0, deaths: 0, chests: 0 };
 const listeners = new Set<(s: FnLiveState) => void>();
+const savedListeners = new Set<(m: FnMatchRecord) => void>();
+
+/** Called with each finished match right after it's saved (the live map files its route under the id). */
+export function onMatchSaved(fn: (m: FnMatchRecord) => void): () => void {
+  savedListeners.add(fn);
+  return () => savedListeners.delete(fn);
+}
+
+/** The match in progress, for the live map: when it started and its team size. */
+export function currentMatchInfo(): { startedAt: number; teamSize: string | null; busAt: number | null } | null {
+  return current ? { startedAt: current.startedAt, teamSize: modeOf(current.playlist).teamSize, busAt: current.phases.bus ?? null } : null;
+}
 
 // ---------- Store ----------
 
@@ -95,6 +108,7 @@ export function getFortniteState(): FnLiveState {
       ? { startedAt: current.startedAt, playlist: current.playlist, mode: modeOf(current.playlist), phase: currentPhase(current), chests: current.chests, chestKinds: { ...current.kinds }, eliminations: current.eliminations }
       : null,
     chests: totals((m) => m.chests, sessionChests),
+    session: { ...sessionStats, chests: sessionChests },
     rareChests: totals((m) => m.chestKinds?.rare ?? 0, sessionRare),
     sessionMatches,
     lastMatch,
@@ -182,6 +196,11 @@ function handle(events: FnLogEvent[], live: boolean): void {
       matches.push(record);
       lastMatch = record;
       sessionMatches++;
+      sessionStats.matches++;
+      if (record.placement === 1) sessionStats.wins++;
+      else sessionStats.deaths++;
+      sessionStats.eliminations += record.eliminations ?? 0;
+      for (const fn of savedListeners) fn(record);
       void saveMatches();
     }
   }

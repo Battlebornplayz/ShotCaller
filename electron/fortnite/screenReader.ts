@@ -20,6 +20,8 @@ import {
   type HudGlyphs,
 } from '../../shared/fortniteVision';
 import { captureScreen, foregroundGameArea, type WindowArea } from '../skillshot/screenCapture';
+import { getSettings } from '../settings';
+import { pinChest, readLiveMap } from './liveMap';
 import { addChest, busHasLeft, inFortniteMatch, setEliminations, setPlayersLeftAlive, setTimeAlive } from './tracker';
 
 /**
@@ -170,6 +172,7 @@ function tick(): void {
   if (found.length) {
     for (const kind of found) {
       addChest(kind);
+      pinChest(kind);
       status.chests.push({ at: Date.now(), score, kind });
     }
     while (status.chests.length > MAX_CHEST_READS) status.chests.shift();
@@ -177,6 +180,7 @@ function tick(): void {
     pushStatus();
   }
   readEliminations(area);
+  readLiveMap(area, lifeState, getSettings().fortnite.liveMap);
   recordShot(area);
   setMode('watching');
   if (++status.frames % HEARTBEAT_FRAMES === 0) pushStatus();
@@ -199,6 +203,7 @@ export function getFortniteScreenPreview(): FnScreenPreview | null {
 /** The +1 hotkey: a chest the screen can't see (one you broke open). Listed on the Screen check page too. */
 export function addManualChest(): void {
   if (!addChest('manual')) return;
+  pinChest('manual');
   status.chests.push({ at: Date.now(), score: 1, kind: 'manual' });
   while (status.chests.length > MAX_CHEST_READS) status.chests.shift();
   pushStatus();

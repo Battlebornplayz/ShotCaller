@@ -20,6 +20,16 @@ export interface FortniteSettings {
   /** Card size, 0.8-1.5. Default 1. */
   cardScale: number;
   card: FortniteCardParts;
+  /** Find your spot on the map from the minimap (and teammates' from their arrows on it). On by default. */
+  liveMap: boolean;
+  /** The second-monitor window: opens and closes with Fortnite on the chosen screen. */
+  monitor: { on: boolean; displayId: number | null };
+  /** Your Epic name for online stats (the key itself is kept apart, never in settings). */
+  epicName: string;
+  /** Chests goal for today; 0 = no goal. */
+  chestGoal: number;
+  /** Cosmetic ids to watch for in the item shop. */
+  wishlist: { id: string; name: string }[];
 }
 
 export const DEFAULT_FORTNITE_SETTINGS: FortniteSettings = {
@@ -28,7 +38,115 @@ export const DEFAULT_FORTNITE_SETTINGS: FortniteSettings = {
   cardOpacity: 0.6,
   cardScale: 1,
   card: { match: true, session: true, today: true, allTime: false },
+  liveMap: true,
+  monitor: { on: true, displayId: null },
+  epicName: '',
+  chestGoal: 0,
+  wishlist: [],
 };
+
+// ---------- Live map ----------
+
+/** A point on the season map, in its pixels (0-2048). */
+export interface FnPoint {
+  x: number;
+  y: number;
+}
+
+export interface FnChestPin extends FnPoint {
+  kind: FnChestKind;
+  at: number;
+}
+
+/** Saved per match in userData/fortnite/routes/<match id>.json. */
+export interface FnRoute {
+  matchId: string;
+  /** The season map the points belong to. */
+  mapId: string;
+  /** [x, y, seconds since the match started], about one a second while the dot is sure. */
+  points: [number, number, number][];
+  chests: FnChestPin[];
+  landing: FnPoint | null;
+  death: FnPoint | null;
+}
+
+export interface FnMapState {
+  /** Map download: ready, fetching, or failed (with why). */
+  map: { status: 'none' | 'loading' | 'ready' | 'error'; id: string | null; error: string | null; fetchedAt: number | null };
+  /** Your dot: sure = matched just now; unsure = last good spot, kept while the minimap can't be read. */
+  dot: (FnPoint & { state: 'sure' | 'unsure'; at: number }) | null;
+  teammates: (FnPoint & { color: string })[];
+  route: [number, number][];
+  chests: FnChestPin[];
+  landing: FnPoint | null;
+}
+
+/** One match's landing and death spots, for drop stats. */
+export interface FnDrop {
+  matchId: string;
+  mapId: string;
+  startedAt: number;
+  placement: number | null;
+  landing: FnPoint | null;
+  death: FnPoint | null;
+  chests: number;
+}
+
+export interface FnDisplay {
+  id: number;
+  label: string;
+  primary: boolean;
+  width: number;
+  height: number;
+}
+
+// ---------- Online stats (fortnite-api.com) ----------
+
+export interface FnStatBlock {
+  matches: number;
+  wins: number;
+  kills: number;
+  kd: number;
+  winRate: number;
+  top10: number;
+  minutesPlayed: number;
+}
+
+export interface FnStats {
+  name: string;
+  battlePass: { level: number; progress: number } | null;
+  /** By mode: overall, solo, duo, trio, squad (whatever the service returns). */
+  season: Record<string, FnStatBlock>;
+  lifetime: Record<string, FnStatBlock>;
+  fetchedAt: number;
+}
+
+export interface FnStatsState {
+  hasKey: boolean;
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  error: string | null;
+  stats: FnStats | null;
+}
+
+// ---------- Item shop ----------
+
+export interface FnShopItem {
+  id: string;
+  name: string;
+  type: string;
+  rarity: string;
+  price: number;
+  image: string | null;
+}
+
+export interface FnShopState {
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  error: string | null;
+  date: string | null;
+  items: FnShopItem[];
+  /** Wishlisted items in today's shop. */
+  wished: FnShopItem[];
+}
 
 /** chest / rare / sprite come from the screen; manual is the +1 hotkey (chests you break show no popup). */
 export type FnChestKind = 'chest' | 'rare' | 'sprite' | 'manual';
@@ -78,6 +196,8 @@ export interface FnLiveState {
     eliminations: number | null;
   } | null;
   chests: FnTotals;
+  /** This session: matches, wins (placed #1), eliminations and the time alive they took. */
+  session: { matches: number; wins: number; eliminations: number; deaths: number; chests: number };
   /** Rare chests only (they're also in `chests`). */
   rareChests: FnTotals;
   sessionMatches: number;

@@ -159,6 +159,20 @@ function sanitize(input: unknown): Settings {
         today: bool(fnCard.today, FN.card.today),
         allTime: bool(fnCard.allTime, FN.card.allTime),
       },
+      liveMap: bool(fortnite.liveMap, FN.liveMap),
+      monitor: {
+        on: bool(obj(fortnite.monitor).on, FN.monitor.on),
+        displayId: finite(obj(fortnite.monitor).displayId) ? (obj(fortnite.monitor).displayId as number) : null,
+      },
+      epicName: typeof fortnite.epicName === 'string' ? fortnite.epicName.trim().slice(0, 40) : FN.epicName,
+      chestGoal: clamp(fortnite.chestGoal, 0, 500, FN.chestGoal),
+      wishlist: Array.isArray(fortnite.wishlist)
+        ? (fortnite.wishlist as unknown[])
+            .map((w) => obj(w))
+            .filter((w) => typeof w.id === 'string' && typeof w.name === 'string')
+            .slice(0, 100)
+            .map((w) => ({ id: String(w.id).slice(0, 120), name: String(w.name).slice(0, 120) }))
+        : [],
     },
   };
 }
@@ -190,7 +204,12 @@ export function updateSettings(patch: SettingsPatch): Settings {
     startup: { ...prev.startup, ...obj(p.startup) },
     privacy: { ...prev.privacy, ...obj(p.privacy) },
     skillshot: { ...prev.skillshot, ...obj(p.skillshot) },
-    fortnite: { ...prev.fortnite, ...obj(p.fortnite), card: { ...prev.fortnite.card, ...obj(obj(p.fortnite).card) } },
+    fortnite: {
+      ...prev.fortnite,
+      ...obj(p.fortnite),
+      card: { ...prev.fortnite.card, ...obj(obj(p.fortnite).card) },
+      monitor: { ...prev.fortnite.monitor, ...obj(obj(p.fortnite).monitor) },
+    },
     mcp: { ...prev.mcp, ...obj(p.mcp) },
   };
   // Rebinding a combination another action already uses moves it: the old action is unbound.

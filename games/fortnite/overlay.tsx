@@ -1,5 +1,6 @@
 import { modeLabel } from '../../shared/fortniteLog';
 import { useFortnite, useFortniteScreen, useSettings } from '../../src/hooks/useLive';
+import { GoalBar } from './FnPanels';
 
 /**
  * The Fortnite overlay card: chests this match, this session, today and all time, each part with its own
@@ -51,6 +52,7 @@ export function FortniteCard() {
       {parts.today && <Row label="Today" value={live.chests.today} />}
       {parts.allTime && <Row label="All time" value={live.chests.allTime} />}
       {!parts.match && !parts.session && !parts.today && !parts.allTime && <div className="muted">Every part is switched off.</div>}
+      {settings.fortnite.chestGoal > 0 && <GoalBar done={live.chests.today} goal={settings.fortnite.chestGoal} />}
     </div>
   );
 }

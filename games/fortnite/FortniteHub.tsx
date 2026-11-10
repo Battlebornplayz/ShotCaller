@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FnChestRead, FnMatchRecord } from '../../shared/fortnite';
 import { modeLabel, type FnTeamSize } from '../../shared/fortniteLog';
 import { useFortnite, useFortniteScreen, useSettings } from '../../src/hooks/useLive';
+import { LobbyTab, MapOptions, ShopTab, StatsTab } from './FnHubTabs';
 
 /**
  * Fortnite section of the game page: match history (trend on top, list below), Screen check and Options.
  * Matches reload whenever a new one is saved (pushed lastMatch changes).
  */
 
-type Tab = 'matches' | 'screen' | 'options';
+type Tab = 'lobby' | 'matches' | 'stats' | 'shop' | 'screen' | 'options';
 type ModeFilter = 'all' | 'builds' | 'zero-build' | 'ranked' | 'reload';
 
 function useMatches(): FnMatchRecord[] | null {
@@ -26,14 +27,17 @@ function useMatches(): FnMatchRecord[] | null {
 }
 
 export function FortniteHub() {
-  const [tab, setTab] = useState<Tab>('matches');
+  const [tab, setTab] = useState<Tab>('lobby');
   const matches = useMatches();
   return (
     <div style={{ marginBottom: 14 }}>
       <div className="segmented" style={{ marginBottom: 12 }}>
         {(
           [
+            ['lobby', 'Lobby'],
             ['matches', `Matches${matches ? ` (${matches.length})` : ''}`],
+            ['stats', 'Stats'],
+            ['shop', 'Shop'],
             ['screen', 'Screen check'],
             ['options', 'Options'],
           ] as [Tab, string][]
@@ -43,6 +47,9 @@ export function FortniteHub() {
           </button>
         ))}
       </div>
+      {tab === 'lobby' && <LobbyTab />}
+      {tab === 'stats' && <StatsTab />}
+      {tab === 'shop' && <ShopTab />}
       {tab === 'matches' && (matches ? <MatchHistory matches={matches} /> : <div className="card muted">Loading…</div>)}
       {tab === 'screen' && <ScreenCheck />}
       {tab === 'options' && <Options />}
@@ -366,6 +373,7 @@ function Options() {
         </div>
         {live && !live.logFound && <div className="muted" style={{ fontSize: 12 }}>Fortnite’s log folder wasn’t found on this PC, so matches can’t be tracked yet.</div>}
       </section>
+      <MapOptions />
       <section className="card" style={{ display: 'grid', gap: 10 }}>
         <div className="section-label">Overlay card</div>
         <Switch label="This match" on={fn.card.match} onChange={(v) => set({ card: { match: v } })} />

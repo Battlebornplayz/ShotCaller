@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ScreenReadStatus, SkillshotData, SkillshotLiveState } from '../../shared/skillshot';
 import type { SkillCollection } from '../../shared/skillshotCollection';
-import type { FnLiveState, FnScreenStatus } from '../../shared/fortnite';
+import type { FnLiveState, FnMapState, FnScreenStatus, FnShopState, FnStatsState } from '../../shared/fortnite';
 import type { AuthState, DetectionState, HotkeyStatus, HubState, Library, OverlayState, Settings } from '../../shared/types';
 
 /** Initial fetch plus live updates from the main process. */
@@ -41,6 +41,9 @@ export const useHub = (): HubState | null => useLive(() => api().getHub(), (cb) 
 
 export const useFortnite = (): FnLiveState | null => useLive(() => api().getFortnite(), (cb) => api().onFortnite(cb));
 export const useFortniteScreen = (): FnScreenStatus | null => useLive(() => api().getFortniteScreen(), (cb) => api().onFortniteScreen(cb));
+export const useFortniteMap = (): FnMapState | null => useLive(() => api().getFortniteMap(), (cb) => api().onFortniteMap(cb));
+export const useFortniteStats = (): FnStatsState | null => useLive(() => api().getFortniteStats(), (cb) => api().onFortniteStats(cb));
+export const useFortniteShop = (): FnShopState | null => useLive(() => api().getFortniteShop(), (cb) => api().onFortniteShop(cb));
 
 /** Loads a value and reloads it whenever the hub's data changes (or `deps` change). */
 export function useHubQuery<T>(load: () => Promise<T>, deps: unknown[]): { value: T | null; loading: boolean; reload: () => void } {

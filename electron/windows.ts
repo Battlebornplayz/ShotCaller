@@ -9,7 +9,7 @@ export const APP_ICON = nativeImage.createFromPath(iconPath);
 
 export const OVERLAY_DEFAULT_SIZE = { width: 300, height: 260 };
 
-type WindowName = 'splash' | 'main' | 'overlay' | 'popup';
+type WindowName = 'splash' | 'main' | 'overlay' | 'popup' | 'fnmonitor';
 
 export const POPUP_SIZE = { width: 440, height: 150 };
 
@@ -122,5 +122,22 @@ export function createOverlayWindow(kind: 'corner' | 'monitor', bounds: Electron
           webPreferences,
         });
   loadRenderer(win, 'overlay', { mode: kind });
+  return win;
+}
+
+/** The Fortnite second-monitor window: frameless, fills the given area, an ordinary window otherwise. */
+export function createFortniteMonitorWindow(bounds: Electron.Rectangle): BrowserWindow {
+  const win = new BrowserWindow({
+    ...bounds,
+    minWidth: 800,
+    minHeight: 500,
+    frame: false,
+    show: false,
+    backgroundColor: BG,
+    title: 'ShotCaller · Fortnite map',
+    icon: APP_ICON,
+    webPreferences: { ...webPreferences, backgroundThrottling: false },
+  });
+  loadRenderer(win, 'fnmonitor');
   return win;
 }

@@ -2,7 +2,20 @@
 
 import type { MatchRecord, ScreenPreview, ScreenReadStatus, SkillshotData, SkillshotLiveState } from './skillshot';
 import type { SkillCollection } from './skillshotCollection';
-import type { FnLiveState, FnMatchRecord, FnScreenPreview, FnScreenStatus, FortniteSettings } from './fortnite';
+import type {
+  FnDisplay,
+  FnDrop,
+  FnLiveState,
+  FnMapState,
+  FnMatchRecord,
+  FnRoute,
+  FnScreenPreview,
+  FnScreenStatus,
+  FnShopItem,
+  FnShopState,
+  FnStatsState,
+  FortniteSettings,
+} from './fortnite';
 
 export type Channel = 'stable' | 'beta';
 
@@ -122,7 +135,7 @@ export interface SettingsPatch {
   startup?: Partial<StartupSettings>;
   privacy?: Partial<PrivacySettings>;
   skillshot?: Partial<SkillshotSettings>;
-  fortnite?: Partial<Omit<FortniteSettings, 'card'>> & { card?: Partial<FortniteSettings['card']> };
+  fortnite?: Partial<Omit<FortniteSettings, 'card' | 'monitor'>> & { card?: Partial<FortniteSettings['card']>; monitor?: Partial<FortniteSettings['monitor']> };
   mcp?: Partial<McpSettings>;
 }
 
@@ -493,6 +506,24 @@ export interface ShotCallerApi {
   getFortniteScreenPreview(): Promise<FnScreenPreview | null>;
   /** Opens the folder of saved screenshots in Explorer. */
   openFortniteShots(): Promise<void>;
+  getFortniteMap(): Promise<FnMapState>;
+  onFortniteMap(callback: (state: FnMapState) => void): Unsubscribe;
+  /** The season map with place names as a data URL, or null until it's downloaded. */
+  getFortniteMapImage(): Promise<string | null>;
+  getFortniteRoute(matchId: string): Promise<FnRoute | null>;
+  /** Landing/death spots of matches on the current season map. */
+  getFortniteDrops(): Promise<FnDrop[]>;
+  getFortniteDisplays(): Promise<FnDisplay[]>;
+  /** Opens the second-monitor map window now. */
+  showFortniteMonitor(): Promise<void>;
+  getFortniteStats(): Promise<FnStatsState>;
+  onFortniteStats(callback: (state: FnStatsState) => void): Unsubscribe;
+  refreshFortniteStats(force: boolean): Promise<FnStatsState>;
+  /** Saves the fortnite-api.com key (empty removes it). The key never comes back to the renderer. */
+  setFortniteApiKey(key: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  getFortniteShop(): Promise<FnShopState>;
+  onFortniteShop(callback: (state: FnShopState) => void): Unsubscribe;
+  searchFortniteCosmetics(query: string): Promise<FnShopItem[]>;
   /** Opens a Steam or web-search link in the browser (allow-listed hosts only). */
   openExternal(url: string): Promise<void>;
   /** Popup window only. */

@@ -34,6 +34,10 @@ import { getMcpInfo } from './skillshot/mcpServer';
 import { getScreenPreview, getScreenStatus } from './skillshot/screenReader';
 import { getFortniteMatches, getFortniteState } from './fortnite/tracker';
 import { getFortniteScreen, getFortniteScreenPreview, openFortniteShots } from './fortnite/screenReader';
+import { getDrops, getLiveMap, getRoute } from './fortnite/liveMap';
+import { getMapImage } from './fortnite/seasonMap';
+import { listDisplays, showFortniteMonitor } from './fortnite/monitorWindow';
+import { getShop, getStats, refreshStats, searchCosmetics, setApiKey } from './fortnite/online';
 import { searchSteamApps } from './steamPublic';
 import {
   cancelAuthFlow,
@@ -211,6 +215,17 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.fortniteScreen, () => getFortniteScreen());
   ipcMain.handle(IPC.fortniteScreenPreview, () => getFortniteScreenPreview());
   ipcMain.handle(IPC.fortniteOpenShots, () => openFortniteShots());
+  ipcMain.handle(IPC.fortniteMap, () => getLiveMap());
+  ipcMain.handle(IPC.fortniteMapImage, () => getMapImage());
+  ipcMain.handle(IPC.fortniteRoute, (_e, matchId: unknown) => (typeof matchId === 'string' ? getRoute(matchId) : null));
+  ipcMain.handle(IPC.fortniteDrops, () => getDrops());
+  ipcMain.handle(IPC.fortniteDisplays, () => listDisplays());
+  ipcMain.handle(IPC.fortniteShowMonitor, () => showFortniteMonitor());
+  ipcMain.handle(IPC.fortniteStats, () => getStats());
+  ipcMain.handle(IPC.fortniteRefreshStats, (_e, force: unknown) => refreshStats(force === true));
+  ipcMain.handle(IPC.fortniteSetKey, (_e, key: unknown) => setApiKey(typeof key === 'string' ? key : ''));
+  ipcMain.handle(IPC.fortniteShop, () => getShop());
+  ipcMain.handle(IPC.fortniteSearchCosmetics, (_e, q: unknown) => searchCosmetics(typeof q === 'string' ? q.slice(0, 60) : ''));
 
   // Links out: Steam pages and web searches only.
   const ALLOWED_HOSTS = new Set(['steamcommunity.com', 'store.steampowered.com', 'www.google.com', 'www.youtube.com']);
