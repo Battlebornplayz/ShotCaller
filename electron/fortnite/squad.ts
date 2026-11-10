@@ -1,5 +1,7 @@
 import { randomBytes } from 'node:crypto';
+import { nativeImage } from 'electron';
 import mqtt, { type MqttClient } from 'mqtt';
+import { captureScreen, type WindowArea } from '../skillshot/screenCapture';
 import type { FnFriend, FnMapState, FnSquadState } from '../../shared/fortnite';
 import { getSettings } from '../settings';
 import { getLiveMap, onLiveMap, setSquadDots } from './liveMap';
@@ -26,11 +28,16 @@ interface Message {
   /** Our match start, so a friend's path restarts when we start a new match. */
   match: number | null;
   leaving?: boolean;
+  /** The sender's hotbar picture (JPEG data URL), sent on its own about every 2 s. */
+  inv?: string;
 }
 
 const myId = randomBytes(6).toString('hex');
 let client: MqttClient | null = null;
-let state: FnSquadState = { status: 'off', code: null, error: null, friends: [] };
+let state: FnSquadState = { status: 'off', code: null, error: null, friends: [], mine: null };
+const inventories = new Map<string, string>();
+let lastHotbarAt = 0;
+const HOTBAR_EVERY_MS = 2000;
 const friends = new Map<string, FnFriend & { match: number | null }>();
 const listeners = new Set<(s: FnSquadState) => void>();
 let lastSentAt = 0;
@@ -55,7 +62,7 @@ function setState(patch: Partial<FnSquadState>): void {
 function publishFriends(): void {
   const list: FnFriend[] = [...friends.values()].map((f) => ({ id: f.id, name: f.name, dot: f.dot, route: f.route, seenAt: f.seenAt }));
   setSquadDots(list);
-  setState({ friends: list.map((f) => ({ id: f.id, name: f.name, seenAt: f.seenAt })) });
+  setState({ friends: list.map((f) => ({ id: f.id, name: f.name, seenAt: f.seenAt, inventory: inventories.get(f.id) ?? null })) });
 }
 
 function makeCode(): string {
@@ -100,6 +107,7 @@ function receive(raw: Buffer): void {
   if (!msg || typeof msg.id !== 'string' || msg.id === myId) return;
   if (msg.leaving) {
     friends.delete(msg.id);
+    inventories.delete(msg.id);
     publishFriends();
     return;
   }
@@ -111,6 +119,11 @@ function receive(raw: Buffer): void {
   }
   f.name = name;
   f.seenAt = Date.now();
+  if (typeof msg.inv === 'string') {
+    if (msg.inv.startsWith('data:image/jpeg;base64,') && msg.inv.length < 200_000) inventories.set(msg.id, msg.inv);
+    publishFriends();
+    return;
+  }
   const d = msg.dot;
   if (d && Number.isFinite(d.x) && Number.isFinite(d.y)) {
     f.dot = { x: d.x, y: d.y, state: d.state === 'sure' ? 'sure' : 'unsure', at: f.seenAt };
@@ -160,8 +173,39 @@ function disconnect(clearState = true): void {
     }
   }
   friends.clear();
+  inventories.clear();
   setSquadDots([]);
   if (clearState) setState({ status: 'off', code: null, error: null, friends: [] });
+}
+
+/**
+ * Crops your hotbar (pickaxe, 5 slots and the Q item, with their rarity colours and ammo) from the screen about
+ * every 2 s, keeps it as "your inventory" and sends it to linked friends. A picture, not a reading: no item
+ * recognition needed. Measured at 1920x1080, default HUD; scaled for other heights.
+ */
+export function readHotbar(area: WindowArea): void {
+  const now = Date.now();
+  if (now - lastHotbarAt < HOTBAR_EVERY_MS) return;
+  lastHotbarAt = now;
+  const k = area.height / 1080;
+  const box = {
+    x: Math.round(area.width - (1920 - 1310) * k),
+    y: Math.round(area.height - (1080 - 830) * k),
+    width: Math.round(580 * k),
+    height: Math.round(190 * k),
+  };
+  const pixels = captureScreen({ x: area.x + box.x, y: area.y + box.y, width: box.width, height: box.height });
+  if (!pixels) return;
+  const opaque = Buffer.from(pixels);
+  for (let i = 3; i < opaque.length; i += 4) opaque[i] = 255;
+  let img = nativeImage.createFromBitmap(opaque, { width: box.width, height: box.height });
+  if (k !== 1) img = img.resize({ width: 580, height: 190 });
+  const url = `data:image/jpeg;base64,${img.toJPEG(70).toString('base64')}`;
+  setState({ mine: url });
+  if (client && state.code && state.status === 'on') {
+    const msg: Message = { id: myId, name: myName(), dot: getLiveMap().dot, match: matchMarker, inv: url };
+    client.publish(TOPIC(state.code), JSON.stringify(msg), { qos: 0 });
+  }
 }
 
 export function startSquad(): FnSquadState {

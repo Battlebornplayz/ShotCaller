@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FnDisplay, FnDrop, FnShopItem, FnSquadState, FnStatBlock } from '../../shared/fortnite';
 import { useFortnite, useFortniteMap, useFortniteShop, useFortniteStats, useSettings } from '../../src/hooks/useLive';
 import { FnMap } from './FnMap';
-import { ChestsPanel, RecapPanel, SessionPanel, useMatches } from './FnPanels';
+import { ChestsPanel, InventoryPanel, RecapPanel, SessionPanel, useMatches } from './FnPanels';
 
 type FnPatch = Parameters<typeof window.shotcaller.updateSettings>[0]['fortnite'];
 const setFn = (patch: FnPatch) => void window.shotcaller.updateSettings({ fortnite: patch });
@@ -29,6 +29,7 @@ export function LobbyTab() {
     <div className="enter fn-lobby">
       <div className="fn-lobby-side">
         <SquadPanel />
+        <InventoryPanel />
         <RecapPanel match={live.lastMatch} />
         <SessionPanel live={live} matches={matches} />
         <ChestsPanel live={live} goal={settings.fortnite.chestGoal} />

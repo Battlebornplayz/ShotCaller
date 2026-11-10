@@ -97,7 +97,9 @@ export interface FnSquadState {
   status: 'off' | 'connecting' | 'on' | 'error';
   code: string | null;
   error: string | null;
-  friends: { id: string; name: string; seenAt: number }[];
+  friends: { id: string; name: string; seenAt: number; inventory: string | null }[];
+  /** Your own hotbar picture (JPEG data URL), cropped from the screen about every 2 s in a match. */
+  mine: string | null;
 }
 
 /** One match's landing and death spots, for drop stats. */

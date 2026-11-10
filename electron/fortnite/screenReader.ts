@@ -22,6 +22,7 @@ import {
 import { captureScreen, foregroundGameArea, type WindowArea } from '../skillshot/screenCapture';
 import { getSettings } from '../settings';
 import { pinChest, readLiveMap } from './liveMap';
+import { readHotbar } from './squad';
 import { addChest, busHasLeft, inFortniteMatch, setEliminations, setPlayersLeftAlive, setTimeAlive } from './tracker';
 
 /**
@@ -181,6 +182,7 @@ function tick(): void {
   }
   readEliminations(area);
   readLiveMap(area, lifeState, getSettings().fortnite.liveMap);
+  if (lifeState !== 'down') readHotbar(area);
   recordShot(area);
   setMode('watching');
   if (++status.frames % HEARTBEAT_FRAMES === 0) pushStatus();

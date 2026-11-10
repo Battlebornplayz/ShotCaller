@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { FnLiveState, FnMatchRecord } from '../../shared/fortnite';
+import type { FnLiveState, FnMatchRecord, FnSquadState } from '../../shared/fortnite';
 import { modeLabel } from '../../shared/fortniteLog';
 
 /** Panels shared by the second-monitor window and the Fortnite page. */
@@ -120,17 +120,54 @@ export function RecapPanel({ match }: { match: FnMatchRecord | null }) {
   );
 }
 
-/** Inventory comes with the squad link (F5); a placeholder keeps its spot in the layout. */
+/** Live squad-link state (friends, their hotbar pictures, and yours). */
+export function useSquad(): FnSquadState | null {
+  const [squad, setSquad] = useState<FnSquadState | null>(null);
+  useEffect(() => {
+    let active = true;
+    void window.shotcaller.getFortniteSquad().then((s) => active && setSquad(s));
+    const off = window.shotcaller.onFortniteSquad(setSquad);
+    return () => {
+      active = false;
+      off();
+    };
+  }, []);
+  return squad;
+}
+
+/** Your hotbar and linked friends' hotbars, as pictures cropped from each player's own screen. */
 export function InventoryPanel() {
+  const squad = useSquad();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+  const rows = [
+    ...(squad?.friends ?? []).map((f) => ({ key: f.id, name: f.name, img: f.inventory, old: now - f.seenAt > 15_000 })),
+    { key: 'me', name: 'You', img: squad?.mine ?? null, old: false },
+  ];
   return (
     <section className="fn-panel">
       <div className="fn-panel-title">Inventory</div>
-      <div className="fn-slots">
-        {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="fn-slot" />
-        ))}
-      </div>
-      <div className="fn-note">Your items show here in a later update.</div>
+      {rows.map((r) => (
+        <div key={r.key} style={{ marginBottom: 8 }}>
+          <div className="fn-note" style={{ margin: '0 0 4px' }}>
+            {r.name}
+            {r.old ? ' (not updating)' : ''}
+          </div>
+          {r.img ? (
+            <img src={r.img} alt={`${r.name}'s hotbar`} style={{ width: '100%', maxWidth: 580, borderRadius: 6, display: 'block', opacity: r.old ? 0.5 : 1 }} />
+          ) : (
+            <div className="fn-slots">
+              {Array.from({ length: 5 }, (_, i) => (
+                <div key={i} className="fn-slot" />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+      {!squad?.friends.length && <div className="fn-note">Shows during a match. Link a friend (Lobby → Squad link) to see theirs too.</div>}
     </section>
   );
 }
