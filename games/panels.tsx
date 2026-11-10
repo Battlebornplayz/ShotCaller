@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import type { HotkeyAction, RunningGame, Settings } from '../shared/types';
 import { SkillshotPanel } from './skillshot-city/overlay';
+import { FortniteCard } from './fortnite/overlay';
 
 /**
  * Renderer-side registry of overlay panels, keyed "<moduleId>/<panelId>" to match the
@@ -86,4 +87,5 @@ function GenericSessionPanel({ game, hotkeys }: PanelProps) {
 export const overlayPanels: Record<string, ComponentType<PanelProps>> = {
   'skillshot-city/round': SkillshotRoundPanel,
   'generic/session': GenericSessionPanel,
+  'fortnite/card': FortniteCard,
 };

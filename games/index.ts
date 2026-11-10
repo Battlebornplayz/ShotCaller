@@ -1,3 +1,4 @@
+import { fortnite } from './fortnite';
 import { genericModule } from './generic';
 import { skillshotCity } from './skillshot-city';
 import type { GameModule } from './types';
@@ -6,7 +7,7 @@ import type { GameModule } from './types';
  * Registry of game modules with dedicated support, shown at the top of the game-icon rail.
  * Add a new game by creating games/<id>/index.ts and listing it here.
  */
-export const games: GameModule[] = [skillshotCity];
+export const games: GameModule[] = [skillshotCity, fortnite];
 
 export { genericModule };
 

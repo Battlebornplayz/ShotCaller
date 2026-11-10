@@ -6,6 +6,8 @@ import { backupGameLog, disposeSkillshot, initSkillshot, onCollectionChange, onS
 import { setMcpRunning } from './skillshot/mcpServer';
 import { noteMouseDown, onScreenStatus, screenReaderRunning, setScreenReaderRunning } from './skillshot/screenReader';
 import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
+import { disposeFortnite, initFortnite, onFortniteChange, setFortniteRunning } from './fortnite/tracker';
+import { onFortniteScreen, setFortniteReaderRunning } from './fortnite/screenReader';
 import { disposeAuth, initAuth, onAuthStateChange, refreshProfile } from './auth';
 import { initCrashReports } from './crashReports';
 import { getDetectionState, onDetectionChange, startDetection, stopDetection } from './detection';
@@ -133,6 +135,12 @@ if (!app.requestSingleInstanceLock()) {
       setScreenReaderRunning(playing, getSettings().skillshot.screenReader);
       syncInputHook();
     };
+    const syncFortnite = () => {
+      const playing = getDetectionState().running.some((rg) => rg.moduleId === 'fortnite');
+      const fn = getSettings().fortnite;
+      setFortniteRunning(playing);
+      setFortniteReaderRunning(playing, fn.screenReader, fn.recorder);
+    };
 
     onOverlayStateChange((state) => {
       syncInputHook();
@@ -148,6 +156,7 @@ if (!app.requestSingleInstanceLock()) {
       if (stopped.some((rg) => rg.moduleId === 'skillshot-city')) setTimeout(() => void backupGameLog(), 5000);
       setOverlayGame(overlayGameFrom(state.running));
       syncScreenReader();
+      syncFortnite();
       if (started.some(wantsOverlay) && getSettings().startup.onGameLaunch === 'window') openMain();
       refreshTray();
     });
@@ -162,6 +171,7 @@ if (!app.requestSingleInstanceLock()) {
       if (next.startup.launchAtLogin !== prev.startup.launchAtLogin) applyLaunchAtLogin(next.startup.launchAtLogin);
       if (next.channel !== prev.channel) void checkForUpdates();
       if (next.skillshot.screenReader !== prev.skillshot.screenReader) syncScreenReader();
+      if (next.fortnite.screenReader !== prev.fortnite.screenReader || next.fortnite.recorder !== prev.fortnite.recorder) syncFortnite();
       if (next.mcp.enabled !== prev.mcp.enabled) setMcpRunning(next.mcp.enabled);
       applyOverlaySettings(next, prev);
       if (next.overlay.allGames !== prev.overlay.allGames) setOverlayGame(overlayGameFrom(getDetectionState().running));
@@ -173,7 +183,11 @@ if (!app.requestSingleInstanceLock()) {
     onSkillshotChange((state) => broadcast(IPC.skillshotChanged, state));
     onCollectionChange((c) => broadcast(IPC.skillshotCollectionChanged, c));
     onScreenStatus((s) => broadcast(IPC.skillshotScreenChanged, s));
-    syncScreenReader(); // Starts in the right state ("off" or "game not running") before any game is seen.
+    initFortnite();
+    onFortniteChange((s) => broadcast(IPC.fortniteChanged, s));
+    onFortniteScreen((s) => broadcast(IPC.fortniteScreenChanged, s));
+    syncScreenReader();
+    syncFortnite(); // Starts in the right state ("off" or "game not running") before any game is seen.
     setMcpRunning(getSettings().mcp.enabled);
     void importSteamLibrary().then(() => Promise.all([initHub(), initSkillshot()]));
 
@@ -198,6 +212,8 @@ if (!app.requestSingleInstanceLock()) {
     flushSessions();
     disposeHub();
     setScreenReaderRunning(false, false);
+    setFortniteReaderRunning(false, false, false);
+    disposeFortnite();
     setMcpRunning(false);
     disposeSkillshot();
     disposePopup();

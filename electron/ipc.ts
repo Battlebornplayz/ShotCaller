@@ -32,6 +32,8 @@ import {
 } from './skillshot/tracker';
 import { getMcpInfo } from './skillshot/mcpServer';
 import { getScreenPreview, getScreenStatus } from './skillshot/screenReader';
+import { getFortniteMatches, getFortniteState } from './fortnite/tracker';
+import { getFortniteScreen, getFortniteScreenPreview, openFortniteShots } from './fortnite/screenReader';
 import { searchSteamApps } from './steamPublic';
 import {
   cancelAuthFlow,
@@ -202,6 +204,13 @@ export function registerIpc(h: IpcHandlers): void {
   });
   ipcMain.handle(IPC.skillshotSetGoal, (_e, v: unknown, locked: unknown) => setGoal(ids(v), !!locked));
   ipcMain.handle(IPC.skillshotSetClass, (_e, id: unknown) => setClass(id === null ? null : str(id, 40)));
+
+  // Fortnite companion
+  ipcMain.handle(IPC.fortniteGet, () => getFortniteState());
+  ipcMain.handle(IPC.fortniteMatches, () => getFortniteMatches());
+  ipcMain.handle(IPC.fortniteScreen, () => getFortniteScreen());
+  ipcMain.handle(IPC.fortniteScreenPreview, () => getFortniteScreenPreview());
+  ipcMain.handle(IPC.fortniteOpenShots, () => openFortniteShots());
 
   // Links out: Steam pages and web searches only.
   const ALLOWED_HOSTS = new Set(['steamcommunity.com', 'store.steampowered.com', 'www.google.com', 'www.youtube.com']);

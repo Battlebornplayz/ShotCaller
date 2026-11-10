@@ -22,7 +22,11 @@ export function OverlayApp() {
   const mod = state?.game ? moduleById(state.game.moduleId) : games[0];
   const title = state?.game?.name ?? `${mod.name} (preview)`;
   const interactive = state?.interactive ?? false;
-  const opacity = kind === 'monitor' || interactive ? 1 : (state?.idleOpacity ?? 0.7);
+  // Fortnite's card has its own opacity (60% by default) and size, set in its hub's Options.
+  const isFortnite = mod.id === 'fortnite';
+  const idle = isFortnite ? (settings?.fortnite.cardOpacity ?? 0.6) : (state?.idleOpacity ?? 0.7);
+  const opacity = kind === 'monitor' || interactive ? 1 : idle;
+  const scale = isFortnite && kind === 'corner' ? (settings?.fortnite.cardScale ?? 1) : 1;
 
   // Keep the corner window exactly as big as the card.
   useLayoutEffect(() => {
@@ -77,7 +81,7 @@ export function OverlayApp() {
   }
 
   return (
-    <div ref={rootRef} style={{ width: mod.id === 'skillshot-city' ? 360 : 300, padding: 8 }}>
+    <div ref={rootRef} style={{ width: mod.id === 'skillshot-city' ? 360 : isFortnite ? 230 : 300, padding: 8, zoom: scale }}>
       <div className={`overlay-panel enter${interactive ? ' interactive' : ''}`} style={{ opacity }}>
         <div
           className={interactive ? 'drag-region' : undefined}

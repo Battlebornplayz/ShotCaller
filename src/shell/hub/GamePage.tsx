@@ -6,6 +6,7 @@ import { GameTile, since } from '../pages';
 import { Art, bannerSources } from './art';
 import { SOURCE_LABEL } from './LibraryPage';
 import { SkillshotHub } from '../../../games/skillshot-city/SkillshotHub';
+import { FortniteHub } from '../../../games/fortnite/FortniteHub';
 
 type Filter = 'all' | 'unlocked' | 'locked';
 type Sort = 'easiest' | 'rarest' | 'recent' | 'name';
@@ -89,6 +90,7 @@ export function GamePage({ game }: { game: LibraryGame }) {
       </div>
 
       {game.moduleId === 'skillshot-city' && <SkillshotHub />}
+      {game.moduleId === 'fortnite' && <FortniteHub />}
 
       {data?.tracking !== 'steam' && data && <ListSourceCard game={game} data={data} />}
 

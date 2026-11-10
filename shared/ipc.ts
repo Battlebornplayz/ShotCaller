@@ -85,4 +85,12 @@ export const IPC = {
   skillshotScreenChanged: 'skillshot:screen-changed',
   skillshotScreenPreview: 'skillshot:screen-preview',
   mcpInfo: 'mcp:info',
+
+  fortniteGet: 'fortnite:get',
+  fortniteChanged: 'fortnite:changed',
+  fortniteMatches: 'fortnite:matches',
+  fortniteScreen: 'fortnite:screen',
+  fortniteScreenChanged: 'fortnite:screen-changed',
+  fortniteScreenPreview: 'fortnite:screen-preview',
+  fortniteOpenShots: 'fortnite:open-shots',
 } as const;

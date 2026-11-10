@@ -2,6 +2,7 @@
 
 import type { MatchRecord, ScreenPreview, ScreenReadStatus, SkillshotData, SkillshotLiveState } from './skillshot';
 import type { SkillCollection } from './skillshotCollection';
+import type { FnLiveState, FnMatchRecord, FnScreenPreview, FnScreenStatus, FortniteSettings } from './fortnite';
 
 export type Channel = 'stable' | 'beta';
 
@@ -106,6 +107,7 @@ export interface Settings {
   hotkeysOnlyInGame: boolean;
   startup: StartupSettings;
   skillshot: SkillshotSettings;
+  fortnite: FortniteSettings;
   mcp: McpSettings;
 }
 
@@ -119,6 +121,7 @@ export interface SettingsPatch {
   startup?: Partial<StartupSettings>;
   privacy?: Partial<PrivacySettings>;
   skillshot?: Partial<SkillshotSettings>;
+  fortnite?: Partial<Omit<FortniteSettings, 'card'>> & { card?: Partial<FortniteSettings['card']> };
   mcp?: Partial<McpSettings>;
 }
 
@@ -479,6 +482,16 @@ export interface ShotCallerApi {
   pickSkillshot(which: number | string): Promise<void>;
   setSkillshotGoal(skillIds: string[], locked: boolean): Promise<void>;
   setSkillshotClass(classId: string | null): Promise<void>;
+
+  /** Fortnite companion. Live state is pushed on every change. */
+  getFortnite(): Promise<FnLiveState>;
+  onFortnite(callback: (state: FnLiveState) => void): Unsubscribe;
+  getFortniteMatches(): Promise<FnMatchRecord[]>;
+  getFortniteScreen(): Promise<FnScreenStatus>;
+  onFortniteScreen(callback: (status: FnScreenStatus) => void): Unsubscribe;
+  getFortniteScreenPreview(): Promise<FnScreenPreview | null>;
+  /** Opens the folder of saved screenshots in Explorer. */
+  openFortniteShots(): Promise<void>;
   /** Opens a Steam or web-search link in the browser (allow-listed hosts only). */
   openExternal(url: string): Promise<void>;
   /** Popup window only. */

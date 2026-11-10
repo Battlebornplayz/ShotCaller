@@ -11,6 +11,7 @@ import {
   type Settings,
   type SettingsPatch,
 } from '../shared/types';
+import { DEFAULT_FORTNITE_SETTINGS } from '../shared/fortnite';
 
 const DEFAULTS: Settings = {
   channel: 'stable',
@@ -22,8 +23,14 @@ const DEFAULTS: Settings = {
   hotkeysOnlyInGame: true,
   startup: { launchAtLogin: true, onGameLaunch: 'overlay', closeToTray: true },
   skillshot: { offerSound: true, memoryReader: false, screenReader: true },
+  fortnite: { ...DEFAULT_FORTNITE_SETTINGS, card: { ...DEFAULT_FORTNITE_SETTINGS.card } },
   mcp: { enabled: false, allowActions: false },
 };
+
+function clamp(value: unknown, min: number, max: number, fallback: number): number {
+  const v = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+  return Math.round(Math.min(max, Math.max(min, v)) * 100) / 100;
+}
 
 let cache: Settings | null = null;
 const listeners = new Set<(next: Settings, prev: Settings) => void>();
@@ -82,6 +89,9 @@ function sanitize(input: unknown): Settings {
   const startup = obj(raw.startup);
   const privacy = obj(raw.privacy);
   const skillshot = obj(raw.skillshot);
+  const fortnite = obj(raw.fortnite);
+  const fnCard = obj(fortnite.card);
+  const FN = DEFAULTS.fortnite;
   const mcp = obj(raw.mcp);
   const hotkeysRaw = obj(raw.hotkeys);
   const popups = obj(raw.popups);
@@ -138,6 +148,18 @@ function sanitize(input: unknown): Settings {
       memoryReader: bool(skillshot.memoryReader, DEFAULTS.skillshot.memoryReader),
       screenReader: bool(skillshot.screenReader, DEFAULTS.skillshot.screenReader),
     },
+    fortnite: {
+      screenReader: bool(fortnite.screenReader, FN.screenReader),
+      recorder: bool(fortnite.recorder, FN.recorder),
+      cardOpacity: clamp(fortnite.cardOpacity, 0.3, 1, FN.cardOpacity),
+      cardScale: clamp(fortnite.cardScale, 0.8, 1.5, FN.cardScale),
+      card: {
+        match: bool(fnCard.match, FN.card.match),
+        session: bool(fnCard.session, FN.card.session),
+        today: bool(fnCard.today, FN.card.today),
+        allTime: bool(fnCard.allTime, FN.card.allTime),
+      },
+    },
   };
 }
 
@@ -168,6 +190,7 @@ export function updateSettings(patch: SettingsPatch): Settings {
     startup: { ...prev.startup, ...obj(p.startup) },
     privacy: { ...prev.privacy, ...obj(p.privacy) },
     skillshot: { ...prev.skillshot, ...obj(p.skillshot) },
+    fortnite: { ...prev.fortnite, ...obj(p.fortnite), card: { ...prev.fortnite.card, ...obj(obj(p.fortnite).card) } },
     mcp: { ...prev.mcp, ...obj(p.mcp) },
   };
   // Rebinding a combination another action already uses moves it: the old action is unbound.

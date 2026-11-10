@@ -82,7 +82,7 @@ Done when: the flow above works: owned skills + rarities detected without typing
 
 **Paused (user, 2026-11-10):** Fortnite (Phase F) goes next. Part 1 resumes after Phase F from `docs/handoff-skillshot-part1.md`.
 
-## Phase F — Fortnite companion (four parts)
+## Phase F — Fortnite companion (five parts)
 Added by the user (2026-11-10), design interview Q1-Q47 in DESIGN.md "Fortnite mode". Goal: the best Fortnite companion, TRN-style tracking, with ideas taken from TRN but never their data. **Screen reading, the Fortnite log (match start/end only) and fortnite-api.com only. Never memory, never the game's files or process beyond the log** (Easy Anti-Cheat + BattlEye). Every feature has its own on/off switch; overlay parts are see-through. Tuned for 1920x1080, default HUD, mouse and keyboard. Module in `games/fortnite/`, hub with tabs like Skillshot's.
 
 ### Phase F1 — Foundation, match tracking, chest counter
@@ -90,7 +90,7 @@ Deliverables:
 - Detect Fortnite (game list + running process), Windowed Fullscreen note for overlays.
 - Fortnite log tailer, for match start/end and mode only (find which lines exist in a real log first).
 - Screenshot recorder for building readers (opt-in switch, local only, capped), plus a Screen check tab like Skillshot's.
-- Chest counter: read the "chest opened" XP popup, chests and rare chests counted on their own; totals per match, session, today and all time.
+- Chest counter: read the "+XP / CHEST" popup; every label that says CHEST (rare, treasure, sprite…) counts as one chest; totals per match, session, today and all time.
 - Placement and eliminations read from the HUD and the end screen; time alive.
 - Overlay card: drag anywhere (saved), 60% opacity by default, size slider, always visible, a hotkey that hides every overlay, a switch per part. Navy style with Fortnite rarity colours.
 - Minimap feasibility test (for F3, done early because it's the riskiest part): 20-30 saved minimap shots from varied places, including water, inside the storm and the storm edge. Run a shape-based matcher and a storm-tinted map copy against the season map, then measure the hit rate. Check whether the minimap is north-up and whether it zooms. Report the result before F3.
@@ -123,6 +123,14 @@ Deliverables:
 - Fortnite achievements in the hub with the unlock popup.
 - Release a beta.
 Done when: inventory and ranked read right in real matches, and the beta installs and updates.
+
+### Phase F5 — Squad link (join code)
+Added by the user (2026-11-10). Deliverables:
+- "Start squad" gives a short join code; a friend types it to link. Lasts until someone leaves. No accounts.
+- A small online relay between the two apps (service picked at the start of the phase; nothing secret in the repo).
+- Shared live from each friend's own screen reading: inventory (F4), chests + eliminations this match (F1) with squad totals, map dot + path (F3). Shown on the second monitor and in a squad panel. Each part has its own switch, and sharing is off until you join.
+Done when: two PCs link with a code and each sees the other's inventory, chests, kills and dot during a real match.
+Later (Phase 9): the same sharing through the friends list once accounts are on.
 
 ### Phase 6 Part 2 — Weapons, items, counters, library, achievements
 Deliverables:

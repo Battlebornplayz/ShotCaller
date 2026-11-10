@@ -703,3 +703,35 @@ html.popup-window #root {
   background: rgba(79, 140, 255, 0.22);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
+
+/* ---------- Fortnite companion (.fn-*) ---------- */
+:root {
+  /* Fortnite rarity colours, for chests and (later) items. */
+  --fn-legendary: #f0a33c;
+  --fn-epic: #b65bff;
+  --fn-rare: #3da5ff;
+  --fn-uncommon: #6cc24a;
+}
+.fn-card { display: grid; gap: 4px; }
+.fn-card-head { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 4px; }
+.fn-card-mode { font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fn-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.25); flex: none; }
+.fn-dot[data-on='yes'] { background: var(--fn-uncommon); }
+.fn-section-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #8f93c9; }
+.fn-row { display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; }
+.fn-row-label { color: #8f93c9; }
+.fn-row-value { font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums; }
+.fn-row-value.fn-chest { font-size: 22px; }
+.fn-chest { color: var(--fn-legendary); font-weight: 800; }
+.fn-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.fn-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+.fn-tip { position: absolute; top: 0; right: 0; font-size: 12px; padding: 4px 8px; border-radius: 6px; background: #090a18; border: 1px solid var(--border); }
+.fn-match { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: 10px; }
+.fn-match:hover { background: rgba(255, 255, 255, 0.03); }
+.fn-match-place { width: 44px; font-size: 20px; font-weight: 800; }
+.fn-match-num { width: 80px; text-align: right; font-size: 13px; color: #8f93c9; }
+.fn-box { position: absolute; border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 4px; pointer-events: none; }
+.fn-box[data-hit='yes'] { border-color: var(--fn-uncommon); box-shadow: 0 0 0 2px rgba(108, 194, 74, 0.35); }
+.fn-switch { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 13px; }
+.fn-switch input { margin-top: 3px; }
+.fn-slider { display: grid; gap: 4px; font-size: 13px; max-width: 320px; }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ScreenReadStatus, SkillshotData, SkillshotLiveState } from '../../shared/skillshot';
 import type { SkillCollection } from '../../shared/skillshotCollection';
+import type { FnLiveState, FnScreenStatus } from '../../shared/fortnite';
 import type { AuthState, DetectionState, HotkeyStatus, HubState, Library, OverlayState, Settings } from '../../shared/types';
 
 /** Initial fetch plus live updates from the main process. */
@@ -37,6 +38,9 @@ export const useSkillCollection = (): SkillCollection | null =>
 export const useSkillshotData = (): SkillshotData | null => useLive(() => api().getSkillshotData(), () => () => undefined);
 
 export const useHub = (): HubState | null => useLive(() => api().getHub(), (cb) => api().onHub(cb));
+
+export const useFortnite = (): FnLiveState | null => useLive(() => api().getFortnite(), (cb) => api().onFortnite(cb));
+export const useFortniteScreen = (): FnScreenStatus | null => useLive(() => api().getFortniteScreen(), (cb) => api().onFortniteScreen(cb));
 
 /** Loads a value and reloads it whenever the hub's data changes (or `deps` change). */
 export function useHubQuery<T>(load: () => Promise<T>, deps: unknown[]): { value: T | null; loading: boolean; reload: () => void } {
