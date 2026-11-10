@@ -79,6 +79,25 @@ export interface FnMapState {
   route: [number, number][];
   chests: FnChestPin[];
   landing: FnPoint | null;
+  /** Squad-link friends' dots and paths (Phase F5 early build). */
+  squad: FnFriend[];
+}
+
+/** A friend linked by join code: their own ShotCaller reads their minimap and sends their dot. */
+export interface FnFriend {
+  id: string;
+  name: string;
+  dot: (FnPoint & { state: 'sure' | 'unsure'; at: number }) | null;
+  route: [number, number][];
+  /** When we last heard from them (our clock). */
+  seenAt: number;
+}
+
+export interface FnSquadState {
+  status: 'off' | 'connecting' | 'on' | 'error';
+  code: string | null;
+  error: string | null;
+  friends: { id: string; name: string; seenAt: number }[];
 }
 
 /** One match's landing and death spots, for drop stats. */

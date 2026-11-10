@@ -78,6 +78,7 @@
     "electron-updater": "^6.8.11",
     "firebase": "^12.19.0",
     "koffi": "^3.3.7",
+    "mqtt": "^5.16.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "uiohook-napi": "^1.5.5",

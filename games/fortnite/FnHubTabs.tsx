@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { FnDisplay, FnDrop, FnShopItem, FnStatBlock } from '../../shared/fortnite';
+import type { FnDisplay, FnDrop, FnShopItem, FnSquadState, FnStatBlock } from '../../shared/fortnite';
 import { useFortnite, useFortniteMap, useFortniteShop, useFortniteStats, useSettings } from '../../src/hooks/useLive';
 import { FnMap } from './FnMap';
 import { ChestsPanel, RecapPanel, SessionPanel, useMatches } from './FnPanels';
@@ -28,6 +28,7 @@ export function LobbyTab() {
   return (
     <div className="enter fn-lobby">
       <div className="fn-lobby-side">
+        <SquadPanel />
         <RecapPanel match={live.lastMatch} />
         <SessionPanel live={live} matches={matches} />
         <ChestsPanel live={live} goal={settings.fortnite.chestGoal} />
@@ -56,6 +57,73 @@ export function LobbyTab() {
         <div className="fn-note">Blue: where you landed. Gold: landed and won. Red cross: where you went down. Saved from now on, one per match.</div>
       </section>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Squad link: share map dots with a friend by join code
+
+function SquadPanel() {
+  const [squad, setSquad] = useState<FnSquadState | null>(null);
+  const [code, setCode] = useState('');
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void window.shotcaller.getFortniteSquad().then((s) => active && setSquad(s));
+    const off = window.shotcaller.onFortniteSquad(setSquad);
+    return () => {
+      active = false;
+      off();
+    };
+  }, []);
+  if (!squad) return null;
+  const linked = squad.status !== 'off';
+  const copy = () => {
+    if (!squad.code) return;
+    void navigator.clipboard.writeText(squad.code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  return (
+    <section className="fn-panel">
+      <div className="fn-panel-title">Squad link</div>
+      {!linked ? (
+        <>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn primary" onClick={() => void window.shotcaller.startFortniteSquad().then(setSquad)}>
+              Start squad
+            </button>
+            <input className="input" style={{ width: 110, textTransform: 'uppercase' }} placeholder="K7F-2QX" value={code} maxLength={8} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void window.shotcaller.joinFortniteSquad(code).then(setSquad)} />
+            <button className="btn" disabled={!code.trim()} onClick={() => void window.shotcaller.joinFortniteSquad(code).then(setSquad)}>
+              Join
+            </button>
+          </div>
+          {squad.error && <div className="fn-note" style={{ color: '#ff8a8a' }}>{squad.error}</div>}
+          <div className="fn-note">Start one and send the code to your friend, or type theirs. You'll see each other's map dot and path.</div>
+        </>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn" onClick={copy} title="Copy the code">
+              <b style={{ letterSpacing: 2 }}>{squad.code}</b> {copied ? 'Copied' : 'Copy'}
+            </button>
+            <span className="fn-note" style={{ margin: 0 }}>
+              {squad.status === 'on' ? 'Linked' : squad.status === 'connecting' ? 'Connecting…' : 'Problem'}
+            </span>
+            <button className="btn" style={{ marginLeft: 'auto' }} onClick={() => void window.shotcaller.leaveFortniteSquad().then(setSquad)}>
+              Leave
+            </button>
+          </div>
+          {squad.error && <div className="fn-note" style={{ color: '#ff8a8a' }}>{squad.error}</div>}
+          <div className="fn-note">
+            {squad.friends.length
+              ? `With you: ${squad.friends.map((f) => f.name).join(', ')}`
+              : 'Waiting for your friend to type the code…'}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

@@ -9,6 +9,7 @@ import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
 import { disposeFortnite, initFortnite, onFortniteChange, setFortniteRunning } from './fortnite/tracker';
 import { onFortniteScreen, setFortniteReaderRunning } from './fortnite/screenReader';
 import { initLiveMap, onLiveMap } from './fortnite/liveMap';
+import { initSquad, onSquad, stopSquad } from './fortnite/squad';
 import { ensureSeasonMap } from './fortnite/seasonMap';
 import { fortniteMonitorSettingsChanged, syncFortniteMonitor } from './fortnite/monitorWindow';
 import { disposeOnline, initOnline, onShop, onStats, refreshStats, wishlistChanged } from './fortnite/online';
@@ -199,6 +200,8 @@ if (!app.requestSingleInstanceLock()) {
     onFortniteScreen((s) => broadcast(IPC.fortniteScreenChanged, s));
     initLiveMap();
     onLiveMap((s) => broadcast(IPC.fortniteMapChanged, s));
+    initSquad();
+    onSquad((s) => broadcast(IPC.fortniteSquadChanged, s));
     onStats((s) => broadcast(IPC.fortniteStatsChanged, s));
     onShop((s) => broadcast(IPC.fortniteShopChanged, s));
     initOnline();
@@ -230,6 +233,7 @@ if (!app.requestSingleInstanceLock()) {
     flushSessions();
     disposeHub();
     setScreenReaderRunning(false, false);
+    stopSquad();
     setFortniteReaderRunning(false, false, false);
     disposeFortnite();
     disposeOnline();

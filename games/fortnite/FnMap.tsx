@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { FnChestPin, FnDrop, FnMapState, FnPoint } from '../../shared/fortnite';
 
 /**
@@ -51,19 +51,26 @@ export interface FnMapProps {
   className?: string;
 }
 
+/** Linked friends' colours (yours is the blue dot). */
+const FRIEND_COLORS = ['#3ddc84', '#ffcf3f', '#ff7ad9', '#ff9b3f'];
+
 export function FnMap({ live, follow, route, chests, landing, death, drops, className }: FnMapProps) {
   const image = useMapImage(live?.map.id ?? null);
   const dot = live?.dot ?? null;
   const path = route ?? live?.route ?? [];
   const pins = chests ?? live?.chests ?? [];
   const land = landing !== undefined ? landing : (live?.landing ?? null);
+  const squad = live?.squad ?? [];
+  // With no dot of your own (e.g. in the lobby), the map window follows your linked friend instead.
+  const center = dot ?? squad.find((f) => f.dot)?.dot ?? null;
   const view = useMemo(() => {
-    if (!follow || !dot) return { x: 0, y: 0, w: SIZE };
+    if (!follow || !center) return { x: 0, y: 0, w: SIZE };
     const w = 640;
-    const x = Math.min(SIZE - w, Math.max(0, dot.x - w / 2));
-    const y = Math.min(SIZE - w, Math.max(0, dot.y - w / 2));
+    const x = Math.min(SIZE - w, Math.max(0, center.x - w / 2));
+    const y = Math.min(SIZE - w, Math.max(0, center.y - w / 2));
     return { x, y, w };
-  }, [follow, dot]);
+  }, [follow, center]);
+  const shown = useSmoothView(view);
   // Marks keep the same size on screen whatever the zoom.
   const u = view.w / 1024;
 
@@ -83,7 +90,7 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, clas
 
   const cell = SIZE / 10;
   return (
-    <svg className={`fn-map ${className ?? ''}`} viewBox={`${view.x} ${view.y} ${view.w} ${view.w}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Season map">
+    <svg className={`fn-map ${className ?? ''}`} viewBox={`${shown.x} ${shown.y} ${shown.w} ${shown.w}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Season map">
       <image href={image} x={0} y={0} width={SIZE} height={SIZE} />
       {/* Grid: columns A-J left to right, rows 1-10 top to bottom. */}
       <g className="fn-grid">
@@ -121,14 +128,55 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, clas
       {live.teammates.map((t, i) => (
         <circle key={i} cx={t.x} cy={t.y} r={9 * u} fill={t.color} stroke="#0b0c1c" strokeWidth={3 * u} />
       ))}
+      {squad.map((f, i) => (
+        <g key={f.id} opacity={f.dot?.state === 'sure' ? 1 : 0.55}>
+          {f.route.length > 1 && (
+            <polyline points={f.route.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" stroke={FRIEND_COLORS[i % FRIEND_COLORS.length]} strokeOpacity={0.75} strokeWidth={3 * u} strokeLinejoin="round" />
+          )}
+          {f.dot && (
+            <g style={glide(f.dot)}>
+              <circle r={10 * u} fill={FRIEND_COLORS[i % FRIEND_COLORS.length]} stroke="#0b0c1c" strokeWidth={4 * u} />
+              <text y={-16 * u} textAnchor="middle" fontSize={22 * u} fontWeight={700} fill="#fff" stroke="#0b0c1c" strokeWidth={5 * u} paintOrder="stroke">
+                {f.name}
+              </text>
+            </g>
+          )}
+        </g>
+      ))}
       {dot && !route && (
-        <g>
-          <circle cx={dot.x} cy={dot.y} r={22 * u} className="fn-dot-halo" data-state={dot.state} />
-          <circle cx={dot.x} cy={dot.y} r={10 * u} className="fn-dot-me" data-state={dot.state} strokeWidth={4 * u} />
+        <g style={glide(dot)}>
+          <circle r={22 * u} className="fn-dot-halo" data-state={dot.state} />
+          <circle r={10 * u} className="fn-dot-me" data-state={dot.state} strokeWidth={4 * u} />
         </g>
       )}
     </svg>
   );
+}
+
+/** The camera pans smoothly to each new view instead of jumping. */
+function useSmoothView(target: { x: number; y: number; w: number }) {
+  const [shown, setShown] = useState(target);
+  const cur = useRef(target);
+  useEffect(() => {
+    let raf = 0;
+    const from = { ...cur.current };
+    const start = performance.now();
+    const step = (t: number) => {
+      const k = Math.min(1, (t - start) / 550);
+      const next = { x: from.x + (target.x - from.x) * k, y: from.y + (target.y - from.y) * k, w: from.w + (target.w - from.w) * k };
+      cur.current = next;
+      setShown(next);
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target.x, target.y, target.w]);
+  return shown;
+}
+
+/** Dots slide to each new reading instead of jumping (readings come about twice a second). */
+function glide(p: FnPoint): CSSProperties {
+  return { transform: `translate(${p.x}px, ${p.y}px)`, transition: 'transform 0.55s linear' };
 }
 
 function cross(p: FnPoint, r: number): string {

@@ -15,7 +15,7 @@ import { currentMatchInfo, onMatchSaved } from './tracker';
  * in team modes. Screen copies only.
  */
 
-const READ_EVERY_MS = 1000;
+const READ_EVERY_MS = 500;
 /** A route point is added when you've moved this far (map px) or this long has passed. */
 const ROUTE_STEP_PX = 2;
 const ROUTE_STEP_MS = 5000;
@@ -41,11 +41,16 @@ let state: FnMapState = emptyState();
 const listeners = new Set<(s: FnMapState) => void>();
 
 function emptyState(): FnMapState {
-  return { map: getSeasonMapStatus(), dot: null, teammates: [], route: [], chests: [], landing: null };
+  return { map: getSeasonMapStatus(), dot: null, teammates: [], route: [], chests: [], landing: null, squad: [] };
 }
 
 export function getLiveMap(): FnMapState {
   return state;
+}
+
+/** Squad-link friends changed (from squad.ts). */
+export function setSquadDots(squad: FnMapState['squad']): void {
+  push({ squad });
 }
 
 export function onLiveMap(fn: (s: FnMapState) => void): () => void {

@@ -5,6 +5,7 @@ import type { SkillCollection } from './skillshotCollection';
 import type {
   FnDisplay,
   FnDrop,
+  FnSquadState,
   FnLiveState,
   FnMapState,
   FnMatchRecord,
@@ -513,6 +514,12 @@ export interface ShotCallerApi {
   getFortniteRoute(matchId: string): Promise<FnRoute | null>;
   /** Landing/death spots of matches on the current season map. */
   getFortniteDrops(): Promise<FnDrop[]>;
+  /** Squad link: share map dots with a friend by join code. */
+  getFortniteSquad(): Promise<FnSquadState>;
+  onFortniteSquad(callback: (state: FnSquadState) => void): Unsubscribe;
+  startFortniteSquad(): Promise<FnSquadState>;
+  joinFortniteSquad(code: string): Promise<FnSquadState>;
+  leaveFortniteSquad(): Promise<FnSquadState>;
   getFortniteDisplays(): Promise<FnDisplay[]>;
   /** Opens the second-monitor map window now. */
   showFortniteMonitor(): Promise<void>;
