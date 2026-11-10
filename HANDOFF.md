@@ -1,4 +1,4 @@
-PHASE HANDOFF — ShotCaller — Phase F2 → Phase F3
+PHASE HANDOFF — ShotCaller — Phase F2 → Phase F3 (resume)
 
 Use the `phased-project` skill. You are starting Phase F3 (Fortnite: map history, pins and dot accuracy).
 First do the F2 real-play check below (it's F2's "done when" and wasn't possible without a match).
@@ -21,6 +21,12 @@ ShotCaller is a polished Electron desktop app: a cross-game achievement hub (Ste
   - Checked in the dev app: map downloads, map window opens on the second screen with Fortnite, Lobby/Stats/Shop tabs render, shop pictures load.
   - Test tools: node 24 runs the .ts files directly; scripts that pipe ffmpeg frames into the readers were in the session scratchpad (rewrite as needed). Recordings: `Videos\Captures\Fortnite   2026-11-10 12-56-32.mp4` and `... 14-08-09.mp4` (second one: chests, rare/sprite cluster at 8:38-8:50, death + "YOU PLACED #7" at 12:16).
 
+- Squad link pulled forward early (user, 2026-11-10, short on usage), shipped v0.0.4-beta.6/7:
+  - `electron/fortnite/squad.ts`: join code (XXX-XXX), public MQTT relay `mqtts://broker.emqx.io:8883`, topic `shotcaller/squad/v1/<code>`, no accounts/secrets. Sends own dot ~2/s (Epic name or "Friend"); friends' dots + paths go into `FnMapState.squad` (drawn in `FnMap.tsx` with names). Relay round trip tested (~1 s); NOT yet tried between two PCs.
+  - Inventory = a picture, not a reading: hotbar crop (x 1310-1890, y 830-1020 at 1080p: pickaxe, slots 1-5, Q item) every 2 s as JPEG, shown in `InventoryPanel` (map window + Lobby) for you and friends.
+  - Smoother: dots/camera glide (CSS transform + rAF viewBox), minimap read every 500 ms.
+  - Squad UI: `SquadPanel` in `FnHubTabs.tsx` Lobby (Start / Join / Leave / copy code).
+
 ## Phase F3 goal
 Map history, pins and dot accuracy.
 Deliverables:
@@ -37,12 +43,14 @@ Done when:
 - TRN is the model for ideas only. Look: navy + #4F8CFF, Fortnite theme scoped to `.fn-theme` / `.fn-card` (Impact italic caps, rarity tiles, yellow selected tab), no Fortnite logos or art.
 - Every feature has its own switch; overlay parts see-through; Alt+S hides all overlays.
 - User's setup: 1920x1080, default HUD, Windowed Fullscreen, mouse and keyboard, 3 screens (main HP X24ih in the middle, VG248 on the left, Artist 12 below).
-- **Publish each finished dev step as a beta** (user): commit, push, annotated tag `v0.0.4-beta.N` (next: beta.6) with plain patch notes; write messages to a file and use `-F`.
+- **Publish each finished dev step as a beta** (user): commit, push, annotated tag `v0.0.4-beta.N` (next: beta.8) with plain patch notes; write messages to a file and use `-F`.
 - Squad link is Phase F5; friends list Phase 9.
 - The user is new to things: plain explanations; question widgets with click-to-pick buttons. They test by recording matches (Win+Alt+R) and giving timestamps; frames via ffmpeg (`%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_*\ffmpeg-*\bin\`). Quit the installed ShotCaller before dev runs; `npm.cmd run dev`. The user approved closing it for checks in this chat.
 - Some files have CRLF line endings. `reports/` and `research_notes/` stay untracked.
 
 ## Loose ends / known issues
+- **Squad link real test:** user + friend on beta.7, linked by code during a real match: dots, names, paths, hotbar pictures. Fix whatever breaks first. F4's real hotbar *reading* (items, ammo numbers) and F5's remaining parts (squad chests/kills totals) still to do; update PROJECT_PLAN F4/F5 to say the picture version shipped.
+- Next beta tag: beta.8.
 - **F2 real-play check (do first):** play/record a match with ShotCaller running and check the dot + route + chest pins on the second screen against the minimap; paste the Epic name and the fortnite-api.com key in Fortnite → Stats (the user pastes it themselves) and compare the numbers with what the user knows; check the session panel updates after a match.
 - Teammates' arrows (team modes): written but never seen on a real squad match; colours/sizes are guesses. Pink/purple squad colour is skipped because of the storm.
 - Map grid A-J / 1-10 drawn over the whole 2048 picture; not compared with the in-game grid.
