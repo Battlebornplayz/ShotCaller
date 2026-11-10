@@ -80,6 +80,50 @@ Deliverables:
 - Release beta v0.0.4. First beta out as v0.0.4-beta.1 (2026-11-09, user's request, before Part 1 is finished); another at the end of Part 1.
 Done when: the flow above works: owned skills + rarities detected without typing, a goal build set in the builder, and a full 3-round match tracked end-to-end automatically with the optimal pick shown at each level-up, the round/synergy panel and a saved recap.
 
+**Paused (user, 2026-11-10):** Fortnite (Phase F) goes next. Part 1 resumes after Phase F from `docs/handoff-skillshot-part1.md`.
+
+## Phase F — Fortnite companion (four parts)
+Added by the user (2026-11-10), design interview Q1-Q47 in DESIGN.md "Fortnite mode". Goal: the best Fortnite companion, TRN-style tracking, with ideas taken from TRN but never their data. **Screen reading, the Fortnite log (match start/end only) and fortnite-api.com only. Never memory, never the game's files or process beyond the log** (Easy Anti-Cheat + BattlEye). Every feature has its own on/off switch; overlay parts are see-through. Tuned for 1920x1080, default HUD, mouse and keyboard. Module in `games/fortnite/`, hub with tabs like Skillshot's.
+
+### Phase F1 — Foundation, match tracking, chest counter
+Deliverables:
+- Detect Fortnite (game list + running process), Windowed Fullscreen note for overlays.
+- Fortnite log tailer, for match start/end and mode only (find which lines exist in a real log first).
+- Screenshot recorder for building readers (opt-in switch, local only, capped), plus a Screen check tab like Skillshot's.
+- Chest counter: read the "chest opened" XP popup, chests and rare chests counted on their own; totals per match, session, today and all time.
+- Placement and eliminations read from the HUD and the end screen; time alive.
+- Overlay card: drag anywhere (saved), 60% opacity by default, size slider, always visible, a hotkey that hides every overlay, a switch per part. Navy style with Fortnite rarity colours.
+- Minimap feasibility test (for F3, done early because it's the riskiest part): 20-30 saved minimap shots from varied places, including water, inside the storm and the storm edge. Run a shape-based matcher and a storm-tinted map copy against the season map, then measure the hit rate. Check whether the minimap is north-up and whether it zooms. Report the result before F3.
+- Match store + Fortnite hub: match history (trend charts on top, list below), filters by mode (Builds / Zero Build / Ranked / Reload, apart and combined) and team size; recap saved in the hub.
+Done when: a real match is tracked by itself, with chests, placement and eliminations right, shown on the card and saved in history.
+
+### Phase F2 — Online stats, second monitor, season map
+Deliverables:
+- fortnite-api.com key in Settings (local only, never in the repo); stats page: wins, K/D, win rate per mode, season vs lifetime, battle pass level.
+- Second-monitor window: fills the chosen monitor (remembered), opens and closes with Fortnite. Map on the left, panels stacked on the right (session, inventory placeholder, chests).
+- Season map with place names and the A-J / 1-10 grid; new season map downloaded by itself, old pins archived.
+- Live session panel (matches, wins, kills, K/D, chests since launch, arrows against your usual); goals ("50 chests today") with progress on the overlay card.
+- Lobby view: last recap, session panel, goals, map with drop stats; recap on the second monitor after each match.
+- Item shop + wishlist alert.
+Done when: the second monitor shows the map and session during real play, and the stats page matches the user's numbers.
+
+### Phase F3 — Live map from the minimap
+Deliverables:
+- Position from matching the minimap picture against the season map; checked and corrected from the full map (M) screen. Must work in the storm: shape-based matching plus a storm-tinted copy of the map (DESIGN.md).
+- Path this match, distance travelled, landing spot and death pins across matches; drop stats (average placement per place); death heat map.
+- Teammates in squad colours with their paths, pings and markers, and enemies only when the game reveals them.
+Done when: across a few real matches, the dot stays on the right spot most of the time (accuracy measured against the full-map reads) and landing/death pins are right.
+
+### Phase F4 — Inventory, ranked, bests, achievements, beta
+Deliverables:
+- Hotbar reading: 5 slots with item + rarity, ammo in each gun, reserve ammo, materials, health and shield, medallions and mythics; live inventory panel on the second monitor.
+- Loadout history: final loadout per match and "best loadouts" by placement.
+- Ranked rank + progress bar read after Ranked matches, chart over time.
+- 0-100 match score with the formula shown; personal bests and streaks (kills, chests, top-10 streak, win streak).
+- Fortnite achievements in the hub with the unlock popup.
+- Release a beta.
+Done when: inventory and ranked read right in real matches, and the beta installs and updates.
+
 ### Phase 6 Part 2 — Weapons, items, counters, library, achievements
 Deliverables:
 - Weapons (`data/weapons.ini`), items and counters data; counter tips in the recap and live (if the log records who hit you).

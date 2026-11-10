@@ -194,6 +194,65 @@ Code: `shared/skillshotVision.ts` (matching + layout, pure), `electron/skillshot
 - Records for checking accuracy: `userData/skillshot/vision/reads.jsonl` (each read and pick) and up to 200 `offer-*.png` + 20 `unsure-*.png` strips. Local only.
 - **Seeing that it works (user, 2026-11-09):** a one-line status at the top of the overlay in every view, plus a Screen check tab (`games/skillshot-city/ScreenCheckPage.tsx`): plain-language state with what to do about it, a live picture of the strip with where it looks marked, and each read marked right / wrong / missed against the log's `SKILL DRAFT` lines (`checkAgainstLog`). The read list is this session only.
 
+### Fortnite mode — design interview (started 2026-11-10)
+Goal (user): "the best Fortnite companion". A new game module, `games/fortnite/`, built after Skillshot Phase 6 Part 1.
+- **Hard rule: never read Fortnite's memory or touch its files/process.** Fortnite runs Easy Anti-Cheat + BattlEye; memory reading would very likely get the account banned. Screen reading only (plus online stats). Overlay needs Windowed Fullscreen; the second-monitor window works either way.
+- **Q1 home:** a game hub with tabs, like Skillshot's.
+- **Q2 modes played:** Battle Royale (builds), Zero Build, Ranked, Reload. Creative not needed.
+- **Q3 main job:** track my numbers (chests, kills, placements). Coaching is not the focus.
+- **Q4 data sources:** screen reading + online stats with the Epic name. The user left out the log file and replay files (see the batch 2 follow-up).
+- **Q5 first feature:** the chest counter (reads the "chest opened" XP popup).
+- **Live map from the minimap (user idea):** feasible without memory. The minimap is a crop of the same map art the public map service serves, so matching the minimap picture against the full season map gives your position. That could also give a trail and where you opened chests. Untested: may blur in the storm or while gliding.
+- **Q6 chest counter counts:** chests and rare chests, each kind on its own. Not supply drops, ammo boxes or other XP popups.
+- **Q7 totals:** this match, this session, today, all time.
+- **Q8 look:** a small overlay card (each kind + the session total).
+- **Q9 live map draws:** my position, my path this match, and pins for where I landed and died across matches.
+- **Q10:** the Fortnite log file may be read, only to find when a match starts and ends.
+- **Q11 online stats:** fortnite-api.com with the user's own free key. **The key is a secret: it goes in ShotCaller's settings (userData), never in the repo, DESIGN.md or the build.** The user has a key.
+- **Rule for every overlay part (user):** each feature the user agrees to has its own on/off switch, and overlay parts are see-through (not full opacity) so they don't block the game.
+- **Q12 inventory:** both a live copy (bigger, on the second monitor) and a loadout history (what I carried vs. how I placed, "best loadouts").
+- **Q13 inventory shows:** the 5 slots with item + rarity colour, ammo in each gun, reserve ammo, materials (builds), health and shield, medallions and mythics. All read from the screen.
+- **Q14:** no weapon info (damage, fire rate).
+- **Q15 map layers:** place names, my landing-spot stats (average placement per place), grid letters, death heat map.
+- **Q16 new season:** download the new map by itself and keep old seasons' pins archived.
+- **Q17:** Zero Build and Builds tracked apart, plus a combined view.
+- **Q18 each match records:** placement, eliminations, chests, time alive, landing spot, distance travelled (from the live map), damage dealt (if the end screen shows it), final loadout.
+- **Q19 recap:** on the second monitor, and saved in the hub.
+- **Q20 history page:** charts of trends on top, the list of matches below.
+- **Q21 online stats page:** wins, K/D and win rate per mode, and battle pass level.
+- **Q22 goals:** yes ("50 chests today"), with progress on the overlay card.
+- **Q23:** filter stats by team size (solo/duo/trio/squad).
+- **TRN as the model (user):** take as many feature ideas as possible from Tracker Network (fortnitetracker.com and its overlay). Ideas only: don't scrape their site, use their data without permission, or copy their look or branding. "Top X% of players" is out of reach (needs other players' data).
+- **Q24 Ranked:** rank + progress bar read from the screen after each Ranked match, with a chart over time.
+- **Q25 live session panel** (matches, wins, kills, K/D, chests since launch, arrows against your usual): on the second monitor.
+- **Q26:** a 0-100 match score blending placement, eliminations and time alive, with the formula shown.
+- **Q27 personal bests:** most kills in a match, most chests in a match, top-10 streak, win streak. No toast when a best is beaten.
+- **Q28 extras:** today's item shop and a wishlist alert when a chosen skin is back (fortnite-api.com). No news.
+- **Q29:** Fortnite achievements of ShotCaller's own in the achievement hub, with the unlock popup.
+- **Q30 overlay opacity:** 60% by default, adjustable.
+- **Q31 position:** drag the card anywhere (position saved).
+- **Q32:** the card is always visible (at the chosen opacity).
+- **Q33:** a hotkey hides and shows every overlay at once.
+- **Q34 style:** ShotCaller navy, with Fortnite's rarity colours for items.
+- **Q35 size:** medium, with a size slider in settings.
+- **Q36 second monitor:** the map on the left, panels stacked on the right (session, inventory, chests).
+- **Q37 map view:** the whole map with my dot (no zoom-follow).
+- **Q38 between matches:** last match recap, session panel, goals progress, and the map with my drop stats.
+- **Q39 window:** fills the chosen monitor, choice remembered.
+- **Q40:** opens when Fortnite starts and closes with it.
+- **Other players' dots (user):** only what Fortnite already shows on your own minimap can be copied: teammates' markers, and whatever the game itself shows you (pings, sound-visualizer marks if turned on). Enemies the game doesn't show you can't and won't be shown: that needs memory reading and would be cheating.
+- **Q41 other dots on the big map:** teammates in their squad colours, pings and markers, enemies only when the game itself reveals them, and teammates' paths.
+- **Q42 order (user):** Fortnite next. Skillshot Phase 6 Part 1 is paused where it stands (its handoff is kept in `docs/handoff-skillshot-part1.md`).
+- **Q43 first Fortnite version has everything:** match start/end, chest counter + card, placement + eliminations, match history, online stats, second-monitor map, live minimap tracking, inventory reading. It's split over several phases (PROJECT_PLAN "Phase F"), with a beta at the end.
+- **Q44-47 the user's setup:** 1920x1080, default HUD (scale and layout unchanged), mouse and keyboard. Screen readers are tuned for this first; other setups unchecked.
+- **Q46:** ShotCaller may save screenshots while the user plays (local only, with an off switch) to build and check the screen readers.
+- **Grid and tracking (user idea):** opening Fortnite's full map (M) shows the same A-J / 1-10 grid and your arrow on the whole map. Reading that screen gives an exact position, so it can check and correct the minimap tracking. On the second monitor, the grid also lets you read off spots to call out.
+- **Minimap tracking accuracy (estimate, unmeasured):** good on land in normal play; weak over open water and empty fields, where it should say "not sure" instead of guessing. It searches near the last position (you can't teleport), with a whole-map search only at landing. Things to check: does the minimap stay north-up, and does it zoom while skydiving or in vehicles? A feasibility test comes first, in F1.
+- **The storm is a must-work case (user, 2026-11-10).** Two ways, used together:
+  1. Shape over colour: match edges and outlines (roads, coasts, buildings) with brightness-normalised matching, so the purple tint barely matters. This is the main matcher everywhere.
+  2. A storm version of the map: measure the storm tint from real screenshots (its colour and blend) and apply it to a copy of the season map. Minimap pixels that look like storm are compared against the storm copy, the rest against the normal map. This covers the minimap half in and half out of the storm.
+  Whichever scores better counts. The test set must include in-storm and storm-edge screenshots.
+
 ## Technical notes
 - **Steam data (decided in Phase 5): local-first, no API key, no proxy.** For now ShotCaller is for the user's own PC. Achievement lists come from Steam's local schema cache (`appcache/stats/UserGameStatsSchema_<appid>.bin`), unlocks + unlock times from the local stats cache (`UserGameStats_<accountid>_<appid>.bin`, binary KeyValues), playtime from `userdata/<accountid>/config/localconfig.vdf`, the SteamID from `loginusers.vdf`, global rarity from the keyless `GetGlobalAchievementPercentagesForApp` endpoint, and achievement lists for games Steam hasn't cached from Steam's public achievement page. A Steam Web API key still never ships in the app; a proxy (Cloudflare Worker recommended) only becomes necessary if public users need data Steam doesn't keep locally (e.g. owned-but-never-played games).
 - Real-time unlocks: watch the Steam client's local stats cache (and local emulator achievement files) for changes and diff the unlocked set (no API round trip needed).
