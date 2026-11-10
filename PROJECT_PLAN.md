@@ -102,16 +102,17 @@ Deliverables:
 - fortnite-api.com key in Settings (local only, never in the repo); stats page: wins, K/D, win rate per mode, season vs lifetime, battle pass level.
 - Second-monitor window: fills the chosen monitor (remembered), opens and closes with Fortnite. Map on the left, panels stacked on the right (session, inventory placeholder, chests).
 - Season map with place names and the A-J / 1-10 grid; new season map downloaded by itself, old pins archived.
+- **Live dots (moved here from F3 by the user, 2026-11-10):** your dot from matching the minimap against the season map (north-up, fixed zoom on foot; search near the last spot, whole map at landing; say "not sure" over open water or when the minimap is covered), and your teammates' dots copied from where they show on your minimap, in squad colours.
 - Live session panel (matches, wins, kills, K/D, chests since launch, arrows against your usual); goals ("50 chests today") with progress on the overlay card.
 - Lobby view: last recap, session panel, goals, map with drop stats; recap on the second monitor after each match.
 - Item shop + wishlist alert.
-Done when: the second monitor shows the map and session during real play, and the stats page matches the user's numbers.
+Done when: the second monitor shows the map with your dot and your teammates' dots in the right places during real play, the session panel is live, and the stats page matches the user's numbers.
 
-### Phase F3 — Live map from the minimap
+### Phase F3 — Map history, pins and dot accuracy
 Deliverables:
-- Position from matching the minimap picture against the season map; checked and corrected from the full map (M) screen. Must work in the storm: shape-based matching plus a storm-tinted copy of the map (DESIGN.md).
+- Accuracy for the live dot (built in F2): checked and corrected from the full map (M) screen; vehicles, open water and the bus/skydive zoom. Must keep working in the storm (DESIGN.md).
 - Path this match, distance travelled, landing spot and death pins across matches; drop stats (average placement per place); death heat map.
-- Teammates in squad colours with their paths, pings and markers, and enemies only when the game reveals them.
+- Teammates' paths, pings and markers, and enemies only when the game reveals them.
 Done when: across a few real matches, the dot stays on the right spot most of the time (accuracy measured against the full-map reads) and landing/death pins are right.
 
 ### Phase F4 — Inventory, ranked, bests, achievements, beta
