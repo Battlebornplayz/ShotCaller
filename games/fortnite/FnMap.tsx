@@ -80,9 +80,37 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
     const y = Math.min(SIZE - w, Math.max(0, center.y - w / 2));
     return { x, y, w };
   }, [follow, center]);
-  const shown = useSmoothView(view);
+  const smooth = useSmoothView(view);
+  // Your own zoom/pan (scroll wheel, hold right-click and drag), like Fortnite's full map. Null = automatic view.
+  const [manual, setManual] = useState<{ x: number; y: number; w: number } | null>(null);
+  const cur = manual ?? view;
+  const shown = manual ?? smooth;
   // Marks keep the same size on screen whatever the zoom.
-  const u = view.w / 1024;
+  const u = cur.w / 1024;
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const drag = useRef<{ x: number; y: number; view: { x: number; y: number; w: number }; moved: boolean } | null>(null);
+  const curRef = useRef(cur);
+  useEffect(() => {
+    curRef.current = cur;
+  });
+  // The wheel needs a non-passive listener so the page doesn't scroll while you zoom.
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const v = curRef.current;
+      const r = el.getBoundingClientRect();
+      const side = Math.min(r.width, r.height);
+      // Point under the mouse, in map pixels (the map is centred in the box).
+      const mx = v.x + ((e.clientX - r.left - (r.width - side) / 2) / side) * v.w;
+      const my = v.y + ((e.clientY - r.top - (r.height - side) / 2) / side) * v.w;
+      const w = Math.min(SIZE, Math.max(160, v.w * (e.deltaY > 0 ? 1.2 : 1 / 1.2)));
+      setManual(w >= SIZE ? null : clampView({ x: mx - ((mx - v.x) / v.w) * w, y: my - ((my - v.y) / v.w) * w, w }));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [image, live?.map.status]);
 
   if (!live || live.map.status !== 'ready' || !image) {
     return (
@@ -109,10 +137,25 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
     const p = planning ? toMap(e) : null;
     if (p) void window.shotcaller.setFortnitePlan([...plan, p]);
   };
-  const dropStop = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!planning) return;
-    e.preventDefault();
-    void window.shotcaller.setFortnitePlan(plan.slice(0, -1));
+  // Right button: hold and drag to move the map; a plain right-click (no drag) in plan mode takes the last stop off.
+  const onDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.button === 2) drag.current = { x: e.clientX, y: e.clientY, view: cur, moved: false };
+  };
+  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    if (!d.moved && Math.hypot(dx, dy) < 4) return;
+    d.moved = true;
+    const r = e.currentTarget.getBoundingClientRect();
+    const k = d.view.w / Math.min(r.width, r.height);
+    setManual(clampView({ x: d.view.x - dx * k, y: d.view.y - dy * k, w: d.view.w }));
+  };
+  const onUp = (e: React.MouseEvent<SVGSVGElement>) => {
+    const d = drag.current;
+    drag.current = null;
+    if (e.button === 2 && d && !d.moved && planning) void window.shotcaller.setFortnitePlan(plan.slice(0, -1));
   };
   // GPS: a bright line from your dot to the next stop, then dashes through the rest.
   const ahead = plan.slice(step);
@@ -121,8 +164,15 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
     <svg
       className={`fn-map ${className ?? ''}`}
       data-planning={planning ? 'yes' : undefined}
+      ref={svgRef}
       onClick={addStop}
-      onContextMenu={dropStop} viewBox={`${shown.x} ${shown.y} ${shown.w} ${shown.w}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Season map">
+      onMouseDown={onDown}
+      onMouseMove={onMove}
+      onMouseUp={onUp}
+      onMouseLeave={() => (drag.current = null)}
+      onContextMenu={(e) => e.preventDefault()}
+      onDoubleClick={() => setManual(null)}
+      viewBox={`${shown.x} ${shown.y} ${shown.w} ${shown.w}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Season map">
       <image href={image} x={0} y={0} width={SIZE} height={SIZE} />
       {/* Grid: columns A-J left to right, rows 1-10 top to bottom. */}
       <g className="fn-grid">
@@ -134,10 +184,10 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
         ))}
         {Array.from({ length: 10 }, (_, i) => (
           <g key={`l${i}`} fontSize={22 * u}>
-            <text x={i * cell + cell / 2} y={view.y + 26 * u} textAnchor="middle">
+            <text x={i * cell + cell / 2} y={cur.y + 26 * u} textAnchor="middle">
               {COLS[i]}
             </text>
-            <text x={view.x + 10 * u} y={i * cell + cell / 2 + 8 * u}>
+            <text x={cur.x + 10 * u} y={i * cell + cell / 2 + 8 * u}>
               {i + 1}
             </text>
           </g>
@@ -228,6 +278,11 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
       )}
     </svg>
   );
+}
+
+/** Keeps a zoomed view on the map. */
+function clampView(v: { x: number; y: number; w: number }) {
+  return { x: Math.min(SIZE - v.w, Math.max(0, v.x)), y: Math.min(SIZE - v.w, Math.max(0, v.y)), w: v.w };
 }
 
 /** The camera pans smoothly to each new view instead of jumping. */

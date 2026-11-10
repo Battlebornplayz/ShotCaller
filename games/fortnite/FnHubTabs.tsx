@@ -59,7 +59,7 @@ export function LobbyTab() {
         </div>
         <div className="fn-note">
           {planning
-            ? 'Click the map to add stops in order. Right-click takes the last stop off. In a match, a green GPS line points from you to the next stop.'
+            ? 'Click the map to add stops in order. Right-click takes the last stop off. Scroll to zoom, hold right-click and drag to move, double-click to reset. In a match, a green GPS line points from you to the next stop.'
             : 'Parachute: where you landed (gold = won). Red X: where you went down. Plan route: set your own stops with a GPS line between them.'}
         </div>
       </section>
