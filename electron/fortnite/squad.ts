@@ -2,9 +2,11 @@ import { randomBytes } from 'node:crypto';
 import { nativeImage } from 'electron';
 import mqtt, { type MqttClient } from 'mqtt';
 import { type WindowArea } from '../skillshot/screenCapture';
-import type { FnChestPin, FnFriend, FnFriendMarks, FnMapState, FnPoint, FnSquadState } from '../../shared/fortnite';
+import type { FnChestPin, FnFriend, FnFriendLive, FnFriendMarks, FnMapState, FnPoint, FnSquadState } from '../../shared/fortnite';
 import { getSettings } from '../settings';
 import { gameSpace, grabGame } from './gameArea';
+import { getFortniteState } from './tracker';
+import { getFortniteScreen } from './screenReader';
 import { getLiveMap, onLiveMap, setSquadDots } from './liveMap';
 
 /**
@@ -36,6 +38,8 @@ interface Message {
   /** The sender's map marker choice; `pic` (their picture) rides along now and then, not every message. */
   look?: 'dot' | 'arrow' | 'image';
   pic?: string | null;
+  /** The sender's counts this match and reader status. */
+  live?: FnFriendLive;
 }
 
 /** Your picture is re-sent this often (and at once when it changes), so friends who join late get it. */
@@ -72,6 +76,7 @@ let state: FnSquadState = { status: 'off', code: null, error: null, friends: [],
 const inventories = new Map<string, string>();
 let lastHotbarAt = 0;
 const HOTBAR_EVERY_MS = 2000;
+const lives = new Map<string, FnFriendLive>();
 const friends = new Map<string, FnFriend & { match: number | null }>();
 const listeners = new Set<(s: FnSquadState) => void>();
 let lastSentAt = 0;
@@ -96,7 +101,7 @@ function setState(patch: Partial<FnSquadState>): void {
 function publishFriends(): void {
   const list: FnFriend[] = [...friends.values()].map((f) => ({ id: f.id, name: f.name, dot: f.dot, route: f.route, marks: f.marks, look: f.look, pic: f.pic, seenAt: f.seenAt }));
   setSquadDots(list);
-  setState({ friends: list.map((f) => ({ id: f.id, name: f.name, seenAt: f.seenAt, inventory: inventories.get(f.id) ?? null })) });
+  setState({ friends: list.map((f) => ({ id: f.id, name: f.name, seenAt: f.seenAt, inventory: inventories.get(f.id) ?? null, live: lives.get(f.id) ?? null })) });
 }
 
 function makeCode(): string {
@@ -125,13 +130,16 @@ function send(force = false): void {
   const fn = getSettings().fortnite;
   const look = fn.marker;
   const picDue = look === 'image' && (fn.markerImage !== lastPic || Date.now() - lastPicAt > PIC_EVERY_MS);
-  const key = `${look}|${picDue}|` + (dot ? `${dot.x},${dot.y},${dot.state}` : 'none') + `|${marks.chests.length},${marks.kills.length},${!!marks.landing},${!!marks.death},${JSON.stringify(marks.plan)}`;
+  const m = getFortniteState().match;
+  const scr = getFortniteScreen();
+  const liveInfo: FnFriendLive = { chests: m?.chests ?? 0, kills: m?.eliminations ?? null, reading: scr.mode === 'watching', width: scr.width, height: scr.height };
+  const key = `${look}|${picDue}|${liveInfo.chests},${liveInfo.kills},${liveInfo.reading}|` + (dot ? `${dot.x},${dot.y},${dot.state}` : 'none') + `|${marks.chests.length},${marks.kills.length},${!!marks.landing},${!!marks.death},${JSON.stringify(marks.plan)}`;
   const now = Date.now();
   if (!force && now - lastSentAt < SEND_EVERY_MS) return;
   if (!force && key === lastSentKey && now - lastSentAt < HEARTBEAT_MS) return;
   lastSentAt = now;
   lastSentKey = key;
-  const msg: Message = { id: myId, name: myName(), dot, match: matchMarker, marks, look };
+  const msg: Message = { id: myId, name: myName(), dot, match: matchMarker, marks, look, live: liveInfo };
   if (picDue) {
     msg.pic = fn.markerImage;
     lastPic = fn.markerImage;
@@ -166,6 +174,10 @@ function receive(raw: Buffer): void {
     if (msg.inv.startsWith('data:image/jpeg;base64,') && msg.inv.length < 200_000) inventories.set(msg.id, msg.inv);
     publishFriends();
     return;
+  }
+  if (msg.live && typeof msg.live === 'object') {
+    const l = msg.live;
+    lives.set(msg.id, { chests: Number(l.chests) || 0, kills: Number.isFinite(l.kills) ? Number(l.kills) : null, reading: !!l.reading, width: Number(l.width) || 0, height: Number(l.height) || 0 });
   }
   if (msg.look === 'dot' || msg.look === 'arrow' || msg.look === 'image') f.look = msg.look;
   if (typeof msg.pic === 'string' && msg.pic.startsWith('data:image/png;base64,') && msg.pic.length < 150_000) f.pic = msg.pic;

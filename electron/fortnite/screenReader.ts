@@ -18,6 +18,7 @@ import {
   type ChestWords,
   type GreyTemplate,
   type HudGlyphs,
+  resizeBgra,
 } from '../../shared/fortniteVision';
 import { captureScreen, foregroundGameArea, type WindowArea } from '../skillshot/screenCapture';
 import { getSettings } from '../settings';
@@ -118,9 +119,11 @@ function recordShot(area: WindowArea): void {
 function readEliminations(area: WindowArea): void {
   const g = gameSpace(area);
   const box = hudArea(g.width, g.height);
-  const pixels = grabGame(area, g, box);
-  if (!pixels) return;
-  const hud = readHud(pixels, box.width, box.height, glyphs);
+  const raw = grabGame(area, g, box);
+  if (!raw) return;
+  const at1080 = hudArea(1920, 1080);
+  const pixels = resizeBgra(raw, box.width, box.height, at1080.width, at1080.height);
+  const hud = readHud(pixels, at1080.width, at1080.height, glyphs);
   if (hud.state) lifeState = hud.state;
   if (hud.state === 'alive') {
     const left = playersLeft.update(hud.playersLeft);
@@ -163,9 +166,13 @@ function tick(): void {
   status.width = area.width;
   status.height = area.height;
   const g = gameSpace(area);
-  const box = chestArea(g.width, g.height);
-  const pixels = grabGame(area, g, box);
-  if (!pixels) return setMode('no-picture');
+  const screenBox = chestArea(g.width, g.height);
+  const raw = grabGame(area, g, screenBox);
+  if (!raw) return setMode('no-picture');
+  // The chest label and words are 1080p-sized pictures, so every screen size is brought to that first.
+  const at1080 = chestArea(1920, 1080);
+  const box = { ...screenBox, width: at1080.width, height: at1080.height };
+  const pixels = resizeBgra(raw, screenBox.width, screenBox.height, box.width, box.height);
   const half = toGreyHalf(pixels, box.width, box.height);
   const lines = readChestLines(half.grey, half.width, half.height, template, words);
   const top = lines.reduce<(typeof lines)[number] | null>((b, l) => (!b || l.score > b.score ? l : b), null);

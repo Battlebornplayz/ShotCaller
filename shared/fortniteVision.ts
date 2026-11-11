@@ -570,3 +570,27 @@ export class ChestCounter {
     this.lastHit = 0;
   }
 }
+
+/** Resizes BGRA pixels (bilinear). The readers' templates are 1080p-sized, so other screen sizes are brought to that first. */
+export function resizeBgra(src: Uint8Array, w: number, h: number, W: number, H: number): Uint8Array {
+  if (w === W && h === H) return src;
+  const out = new Uint8Array(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    const fy = Math.min(h - 1, Math.max(0, ((y + 0.5) * h) / H - 0.5));
+    const y0 = Math.floor(fy);
+    const y1 = Math.min(h - 1, y0 + 1);
+    const ty = fy - y0;
+    for (let x = 0; x < W; x++) {
+      const fx = Math.min(w - 1, Math.max(0, ((x + 0.5) * w) / W - 0.5));
+      const x0 = Math.floor(fx);
+      const x1 = Math.min(w - 1, x0 + 1);
+      const tx = fx - x0;
+      for (let c = 0; c < 4; c++) {
+        const top = src[(y0 * w + x0) * 4 + c] * (1 - tx) + src[(y0 * w + x1) * 4 + c] * tx;
+        const bot = src[(y1 * w + x0) * 4 + c] * (1 - tx) + src[(y1 * w + x1) * 4 + c] * tx;
+        out[(y * W + x) * 4 + c] = top * (1 - ty) + bot * ty;
+      }
+    }
+  }
+  return out;
+}

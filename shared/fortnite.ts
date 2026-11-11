@@ -142,11 +142,20 @@ export interface FnFriendMarks {
   plan: FnPoint[];
 }
 
+/** A friend's own counts this match, and whether their screen reading is working (beta.14+). */
+export interface FnFriendLive {
+  chests: number;
+  kills: number | null;
+  reading: boolean;
+  width: number;
+  height: number;
+}
+
 export interface FnSquadState {
   status: 'off' | 'connecting' | 'on' | 'error';
   code: string | null;
   error: string | null;
-  friends: { id: string; name: string; seenAt: number; inventory: string | null }[];
+  friends: { id: string; name: string; seenAt: number; inventory: string | null; live: FnFriendLive | null }[];
   /** Your own hotbar picture (JPEG data URL), cropped from the screen about every 2 s in a match. */
   mine: string | null;
 }

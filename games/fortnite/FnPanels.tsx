@@ -144,8 +144,8 @@ export function InventoryPanel() {
     return () => clearInterval(t);
   }, []);
   const rows = [
-    ...(squad?.friends ?? []).map((f) => ({ key: f.id, name: f.name, img: f.inventory, old: now - f.seenAt > 15_000 })),
-    { key: 'me', name: 'You', img: squad?.mine ?? null, old: false },
+    ...(squad?.friends ?? []).map((f) => ({ key: f.id, name: f.name, img: f.inventory, old: now - f.seenAt > 15_000, note: f.live ? ` · ${f.live.chests} chests · ${f.live.kills ?? 0} elims${f.live.reading ? '' : ' · not reading their screen'}` : ' · needs the latest ShotCaller' })),
+    { key: 'me', name: 'You', img: squad?.mine ?? null, old: false, note: '' },
   ];
   return (
     <section className="fn-panel">
@@ -154,6 +154,7 @@ export function InventoryPanel() {
         <div key={r.key} style={{ marginBottom: 8 }}>
           <div className="fn-note" style={{ margin: '0 0 4px' }}>
             {r.name}
+            {r.note}
             {r.old ? ' (not updating)' : ''}
           </div>
           {r.img ? (

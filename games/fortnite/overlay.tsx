@@ -109,7 +109,9 @@ function CardExtras() {
           {squad.friends.map((f) => (
             <div key={f.id} className="fn-row">
               <span className="fn-row-label">{f.name}</span>
-              <span className="fn-row-value muted">linked</span>
+              <span className="fn-row-value">
+                {!f.live ? 'needs update' : f.live.reading ? `${f.live.chests} chests · ${f.live.kills ?? 0} elims` : `${f.live.chests} chests · not reading`}
+              </span>
             </div>
           ))}
         </>

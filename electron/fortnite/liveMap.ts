@@ -6,6 +6,7 @@ import { DotTracker, MINIMAP_SPAN, minimapArea, minimapGrey } from '../../shared
 import type { FnChestKind, FnChestPin, FnKillPin, FnDrop, FnMapState, FnMatchRecord, FnPoint, FnRoute } from '../../shared/fortnite';
 import { type WindowArea } from '../skillshot/screenCapture';
 import { gameSpace, grabGame } from './gameArea';
+import { resizeBgra } from '../../shared/fortniteVision';
 import { getLocator, getSeasonMapStatus, onSeasonMap } from './seasonMap';
 import { currentMatchInfo, onMatchSaved } from './tracker';
 
@@ -106,9 +107,13 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
   if (now - lastReadAt < READ_EVERY_MS) return;
   lastReadAt = now;
   const g = gameSpace(area);
-  const box = minimapArea(g.width, g.height);
-  const pixels = grabGame(area, g, box);
-  if (!pixels) return;
+  const screenBox = minimapArea(g.width, g.height);
+  const raw = grabGame(area, g, screenBox);
+  if (!raw) return;
+  // Same size on every screen, so the map matching and teammate arrows see what they were tuned on.
+  const at1080 = minimapArea(1920, 1080);
+  const box = { width: at1080.width, height: at1080.height };
+  const pixels = resizeBgra(raw, screenBox.width, screenBox.height, box.width, box.height);
   const fix = tracker!.update(minimapGrey(pixels, box.width, box.height), now);
   if (!fix) return;
   const x = Math.round(fix.x);
