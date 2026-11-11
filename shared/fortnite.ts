@@ -8,7 +8,20 @@ export interface FortniteCardParts {
   session: boolean;
   today: boolean;
   allTime: boolean;
+  /** Session stats: matches, wins, eliminations. */
+  stats: boolean;
+  /** Last match: placement, eliminations, chests. */
+  recap: boolean;
+  /** Your planned route's next stop. */
+  gps: boolean;
+  /** Linked friends. */
+  squad: boolean;
+  /** Your hotbar picture (and friends'). */
+  hotbar: boolean;
 }
+
+/** Where the Fortnite info shows: the in-game overlay card, the second-monitor window, or both. 'ask' = ask on launch. */
+export type FnShowOn = 'ask' | 'overlay' | 'monitor' | 'both';
 
 export interface FortniteSettings {
   /** Read the screen (a copy of small areas, offline) for chests. On by default. */
@@ -20,6 +33,7 @@ export interface FortniteSettings {
   /** Card size, 0.8-1.5. Default 1. */
   cardScale: number;
   card: FortniteCardParts;
+  display: FnShowOn;
   /** Find your spot on the map from the minimap (and teammates' from their arrows on it). On by default. */
   liveMap: boolean;
   /** How you show on the map: a dot, a Fortnite-style arrow, or your own picture (`markerImage`, a small PNG data URL). */
@@ -43,7 +57,8 @@ export const DEFAULT_FORTNITE_SETTINGS: FortniteSettings = {
   recorder: false,
   cardOpacity: 0.6,
   cardScale: 1,
-  card: { match: true, session: true, today: true, allTime: false },
+  card: { match: true, session: true, today: true, allTime: false, stats: true, recap: true, gps: true, squad: true, hotbar: false },
+  display: 'ask',
   liveMap: true,
   marker: 'arrow',
   resolution: 'auto',

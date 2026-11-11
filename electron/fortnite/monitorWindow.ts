@@ -61,14 +61,14 @@ function close(): void {
 /** Keeps the window in line with Fortnite running and the setting. */
 export function syncFortniteMonitor(running: boolean): void {
   fortniteRunning = running;
-  const want = running && getSettings().fortnite.monitor.on;
+  const want = running && getSettings().fortnite.monitor.on && getSettings().fortnite.display !== 'overlay';
   if (want) open(false);
   else if (!running) close();
 }
 
 /** Settings changed (screen or on/off): move, open or close. */
 export function fortniteMonitorSettingsChanged(): void {
-  const on = getSettings().fortnite.monitor.on;
+  const on = getSettings().fortnite.monitor.on && getSettings().fortnite.display !== 'overlay';
   if (!on) return close();
   if (fortniteRunning || (win && !win.isDestroyed())) open(false);
 }

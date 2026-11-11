@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FnDrop, FnRoute } from '../../shared/fortnite';
 import { FnMap, gridCell } from '../../games/fortnite/FnMap';
 import { PlanButtons } from '../../games/fortnite/FnHubTabs';
+import { DisplayChoice } from '../../games/fortnite/overlay';
 import { ChestsPanel, InventoryPanel, RecapPanel, SessionPanel, useMatches } from '../../games/fortnite/FnPanels';
 import { useFortnite, useFortniteMap, useSettings } from '../hooks/useLive';
 
@@ -78,6 +79,11 @@ export function FnMonitorApp() {
           )}
         </div>
         <aside className="fnm-side">
+          {settings.fortnite.display === 'ask' && (
+            <section className="fn-panel">
+              <DisplayChoice />
+            </section>
+          )}
           {!inMatch && <RecapPanel match={last} />}
           <SessionPanel live={live} matches={matches} />
           <ChestsPanel live={live} goal={settings.fortnite.chestGoal} />

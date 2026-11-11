@@ -159,7 +159,9 @@ function sync(): void {
     return;
   }
   const w = ensureWindow();
-  if (shown) {
+  // Fortnite set to "second monitor only": no overlay card.
+  const fnMonitorOnly = game?.moduleId === 'fortnite' && !preview && getSettings().fortnite.display === 'monitor';
+  if (shown && !fnMonitorOnly) {
     if (!w.isVisible()) {
       if (isCorner()) w.showInactive(); // never steal focus from the game
       else w.show();
@@ -264,6 +266,7 @@ export function cornerOverlayVisible(): boolean {
 
 /** Re-applies settings (mode, opacity, display) to an open overlay. */
 export function applyOverlaySettings(next: Settings, prev: Settings): void {
+  if (next.fortnite.display !== prev.fortnite.display) sync();
   const a = next.overlay;
   const b = prev.overlay;
   if (a.mode !== b.mode || (a.mode === 'monitor' && a.monitorDisplayId !== b.monitorDisplayId)) {

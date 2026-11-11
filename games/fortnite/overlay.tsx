@@ -1,6 +1,9 @@
 import { modeLabel } from '../../shared/fortniteLog';
 import { useFortnite, useFortniteScreen, useSettings } from '../../src/hooks/useLive';
-import { GoalBar } from './FnPanels';
+import { useFortniteMap } from '../../src/hooks/useLive';
+import { gridCell } from './FnMap';
+import { GoalBar, useSquad } from './FnPanels';
+import type { FnShowOn } from '../../shared/fortnite';
 
 /**
  * The Fortnite overlay card: chests this match, this session, today and all time, each part with its own
@@ -53,6 +56,91 @@ export function FortniteCard() {
       {parts.allTime && <Row label="All time" value={live.chests.allTime} />}
       {!parts.match && !parts.session && !parts.today && !parts.allTime && <div className="muted">Every part is switched off.</div>}
       {settings.fortnite.chestGoal > 0 && <GoalBar done={live.chests.today} goal={settings.fortnite.chestGoal} />}
+      <CardExtras />
+      {settings.fortnite.display === 'ask' && <DisplayChoice />}
+    </div>
+  );
+}
+
+/** Session stats, last match, GPS next stop, linked friends and hotbars: each with its own switch. */
+function CardExtras() {
+  const live = useFortnite();
+  const settings = useSettings();
+  const map = useFortniteMap();
+  const squad = useSquad();
+  const parts = settings?.fortnite.card;
+  if (!live || !parts) return null;
+  const s = live.session;
+  const last = live.lastMatch;
+  const next = map && map.planStep < map.plan.length ? map.plan[map.planStep] : null;
+  return (
+    <>
+      {parts.stats && (
+        <>
+          <div className="fn-section-label">Session</div>
+          <div className="fn-row">
+            <span className="fn-row-label">
+              {s.matches} played · {s.wins} won
+            </span>
+            <span className="fn-row-value">{s.eliminations} elims</span>
+          </div>
+        </>
+      )}
+      {parts.recap && last && (
+        <>
+          <div className="fn-section-label">Last match</div>
+          <div className="fn-row">
+            <span className="fn-row-label">{last.placement ? `#${last.placement}` : 'Placed —'}</span>
+            <span className="fn-row-value">
+              {last.eliminations ?? 0} elims · {last.chests} chests
+            </span>
+          </div>
+        </>
+      )}
+      {parts.gps && next && (
+        <div className="fn-row">
+          <span className="fn-row-label">Next stop {map!.planStep + 1}</span>
+          <span className="fn-row-value">{gridCell(next)}</span>
+        </div>
+      )}
+      {parts.squad && !!squad?.friends.length && (
+        <>
+          <div className="fn-section-label">Squad</div>
+          {squad.friends.map((f) => (
+            <div key={f.id} className="fn-row">
+              <span className="fn-row-label">{f.name}</span>
+              <span className="fn-row-value muted">linked</span>
+            </div>
+          ))}
+        </>
+      )}
+      {parts.hotbar && squad?.mine && <img src={squad.mine} alt="Your hotbar" style={{ width: '100%', borderRadius: 4, marginTop: 6 }} />}
+      {parts.hotbar &&
+        squad?.friends.map((f) => f.inventory && <img key={f.id} src={f.inventory} alt={`${f.name}'s hotbar`} title={f.name} style={{ width: '100%', borderRadius: 4, marginTop: 4 }} />)}
+    </>
+  );
+}
+
+/** First launch: where should the Fortnite info go? (Hold Alt to click the overlay.) */
+export function DisplayChoice() {
+  const pick = (display: FnShowOn) => void window.shotcaller.updateSettings({ fortnite: { display } });
+  return (
+    <div className="fn-display-choice">
+      <div className="fn-section-label">Where should this show?</div>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        <button className="btn" onClick={() => pick('overlay')}>
+          Overlay
+        </button>
+        <button className="btn" onClick={() => pick('monitor')}>
+          Second monitor
+        </button>
+        <button className="btn primary" onClick={() => pick('both')}>
+          Both
+        </button>
+      </div>
+      <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+        Hold Alt to click. Change it any time in Fortnite settings.
+      </div>
     </div>
   );
 }

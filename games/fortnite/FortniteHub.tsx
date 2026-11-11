@@ -376,10 +376,29 @@ function Options() {
       <MapOptions />
       <section className="card" style={{ display: 'grid', gap: 10 }}>
         <div className="section-label">Overlay card</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 600 }}>Show Fortnite info on</span>
+          {(
+            [
+              ['overlay', 'Overlay'],
+              ['monitor', 'Second monitor'],
+              ['both', 'Both'],
+            ] as const
+          ).map(([v, label]) => (
+            <button key={v} className={`btn ${fn.display === v ? 'primary' : ''}`} onClick={() => set({ display: v })}>
+              {label}
+            </button>
+          ))}
+        </div>
         <Switch label="This match" on={fn.card.match} onChange={(v) => set({ card: { match: v } })} />
         <Switch label="This session" on={fn.card.session} onChange={(v) => set({ card: { session: v } })} />
         <Switch label="Today" on={fn.card.today} onChange={(v) => set({ card: { today: v } })} />
         <Switch label="All time" on={fn.card.allTime} onChange={(v) => set({ card: { allTime: v } })} />
+        <Switch label="Session stats (played, won, elims)" on={fn.card.stats} onChange={(v) => set({ card: { stats: v } })} />
+        <Switch label="Last match" on={fn.card.recap} onChange={(v) => set({ card: { recap: v } })} />
+        <Switch label="Next stop on your planned route" on={fn.card.gps} onChange={(v) => set({ card: { gps: v } })} />
+        <Switch label="Linked friends" on={fn.card.squad} onChange={(v) => set({ card: { squad: v } })} />
+        <Switch label="Hotbar pictures" on={fn.card.hotbar} onChange={(v) => set({ card: { hotbar: v } })} />
         <label className="fn-slider">
           <span>See-through: {Math.round(fn.cardOpacity * 100)}%</span>
           <input type="range" min={30} max={100} step={5} value={Math.round(fn.cardOpacity * 100)} onChange={(e) => set({ cardOpacity: Number(e.target.value) / 100 })} />
