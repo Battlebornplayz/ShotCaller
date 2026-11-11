@@ -19,6 +19,8 @@ import {
   type GreyTemplate,
   type HudGlyphs,
   resizeBgra,
+  CHEST_THRESHOLD,
+  CHEST_THRESHOLD_RESIZED,
 } from '../../shared/fortniteVision';
 import { captureScreen, foregroundGameArea, type WindowArea } from '../skillshot/screenCapture';
 import { getSettings } from '../settings';
@@ -174,7 +176,9 @@ function tick(): void {
   const box = { ...screenBox, width: at1080.width, height: at1080.height };
   const pixels = resizeBgra(raw, screenBox.width, screenBox.height, box.width, box.height);
   const half = toGreyHalf(pixels, box.width, box.height);
-  const lines = readChestLines(half.grey, half.width, half.height, template, words);
+  const minScore = screenBox.width === box.width ? CHEST_THRESHOLD : CHEST_THRESHOLD_RESIZED;
+  counter.minScore = minScore;
+  const lines = readChestLines(half.grey, half.width, half.height, template, words, minScore);
   const top = lines.reduce<(typeof lines)[number] | null>((b, l) => (!b || l.score > b.score ? l : b), null);
   const score = top ? Math.round(top.score * 100) / 100 : 0;
   status.lastScore = score;

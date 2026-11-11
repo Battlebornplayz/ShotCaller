@@ -5,6 +5,7 @@ import { type WindowArea } from '../skillshot/screenCapture';
 import type { FnChestPin, FnFriend, FnFriendLive, FnFriendMarks, FnMapState, FnPoint, FnSquadState } from '../../shared/fortnite';
 import { getSettings } from '../settings';
 import { gameSpace, grabGame } from './gameArea';
+import { hudScale } from '../../shared/fortniteVision';
 import { getFortniteState } from './tracker';
 import { getFortniteScreen } from './screenReader';
 import { getLiveMap, onLiveMap, setSquadDots } from './liveMap';
@@ -246,7 +247,7 @@ export function readHotbar(area: WindowArea): void {
   if (now - lastHotbarAt < HOTBAR_EVERY_MS) return;
   lastHotbarAt = now;
   const g = gameSpace(area);
-  const k = g.height / 1080;
+  const k = hudScale(g.width, g.height);
   const box = {
     x: Math.round(g.width - (1920 - 1310) * k),
     y: Math.round(g.height - (1080 - 830) * k),

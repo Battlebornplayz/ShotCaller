@@ -25,7 +25,7 @@ export interface Box {
 
 /** The minimap square at 1080p; it hangs off the top-right corner, so other sizes scale from there. */
 export function minimapArea(width: number, height: number): Box {
-  const k = height / 1080;
+  const k = Math.min(width / 1920, height / 1080); // see hudScale in fortniteVision
   const size = Math.round(252 * k);
   return { x: Math.round(width - (1920 - 1636) * k), y: Math.round(32 * k), width: size, height: size };
 }

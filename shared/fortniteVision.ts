@@ -22,11 +22,21 @@ export interface GreyTemplate {
 }
 
 /** Where the XP popup can show at 1080p (full resolution), scaled to the game's height. */
+/**
+ * How big Fortnite draws its HUD compared with 1920x1080: it fits a 16:9 shape inside the screen, so screens
+ * narrower than 16:9 (16:10 and 3:2 laptops, 4:3) scale by width and wider ones by height. Measured on a
+ * 2304x1440 laptop recording: minimap 302 px = 252 x 1.2.
+ */
+export function hudScale(width: number, height: number): number {
+  return Math.min(width / 1920, height / 1080);
+}
+
 export function chestArea(width: number, height: number): Box {
-  const k = height / 1080;
+  const k = hudScale(width, height);
   const cx = width / 2;
   // At 1080p: x 1150-1550, y 250-450 (the label sat at x ~1255-1400, y ~315-400).
-  return { x: Math.round(cx + 190 * k), y: Math.round(250 * k), width: Math.round(400 * k) & ~1, height: Math.round(200 * k) & ~1 };
+  // The popups sit relative to the middle of the screen, so y is measured from there (290 above it at 1080p).
+  return { x: Math.round(cx + 190 * k), y: Math.round(height / 2 - 290 * k), width: Math.round(400 * k) & ~1, height: Math.round(200 * k) & ~1 };
 }
 
 /** Top-down BGRA pixels -> grey at half size (2x2 averages). */
@@ -102,7 +112,7 @@ export interface HudGlyphs {
 
 /** The stack at 1080p is x 1490-1620, y 24-200; it hangs off the top-right corner, so scale from there. */
 export function hudArea(width: number, height: number): Box {
-  const k = height / 1080;
+  const k = hudScale(width, height);
   return { x: Math.round(width - 430 * k), y: Math.round(24 * k), width: Math.round(130 * k), height: Math.round(176 * k) };
 }
 
@@ -142,7 +152,7 @@ function matchAt(grey: Float32Array, width: number, x: number, y: number, tpl: G
 function findIcon(grey: Float32Array, width: number, height: number, tpl: GreyTemplate): { y: number; score: number } {
   let best = { y: 0, score: -1 };
   for (let y = 0; y + tpl.height <= height; y++) {
-    for (let dx = -2; dx <= 2; dx++) {
+    for (let dx = -4; dx <= 4; dx++) {
       const s = matchAt(grey, width, ICON_X + dx, y, tpl);
       if (s > best.score) best = { y, score: s };
     }
@@ -271,7 +281,7 @@ export function readHud(bgra: Uint8Array, width: number, height: number, glyphs:
   // The skull row is always the top row when it shows, and it must look clearly more like the skull than the
   // person icon, or the team-eliminations / players-left rows get read as yours.
   let personThere = -1;
-  for (let dx = -2; dx <= 2; dx++) personThere = Math.max(personThere, matchAt(grey, width, ICON_X + dx, skull.y, glyphs.icons.person));
+  for (let dx = -4; dx <= 4; dx++) personThere = Math.max(personThere, matchAt(grey, width, ICON_X + dx, skull.y, glyphs.icons.person));
   const skullOk = skull.score >= ICON_THRESHOLD && skull.y <= SKULL_MAX_Y && skull.score - personThere >= 0.15;
   // Down or spectating: the skull and team rows vanish, so the players-left icon moves up to the top row.
   const personTop = !skullOk && person.score >= ICON_THRESHOLD && person.y <= SKULL_MAX_Y;
@@ -316,6 +326,8 @@ export class SteadyNumber {
 export const CHEST_THRESHOLD = 0.8;
 /** A CHEST word this good counts when a second word (RARE, SPRITE, X2...) backs it up. "X2" lines score ~0.76. */
 const CHEST_BACKED_THRESHOLD = 0.68;
+/** On screens that aren't 1080p the picture is resized first, which softens it: real chests scored 0.77-0.79 on a 2304x1440 recording, other text at most 0.70. */
+export const CHEST_THRESHOLD_RESIZED = 0.75;
 const WORD_THRESHOLD = 0.75;
 
 // ---------------------------------------------------------------------------------------------
@@ -369,7 +381,7 @@ const SUFFIX_W = SUFFIX_WIDTH + 2 * SUFFIX_MARGIN;
 const SUFFIX_H = 10 + 2 * SUFFIX_MARGIN_Y;
 
 /** Every CHEST line in the half-size grey picture of `chestArea`, top to bottom. */
-export function readChestLines(grey: Float32Array, width: number, height: number, chest: GreyTemplate, words: ChestWords): ChestLine[] {
+export function readChestLines(grey: Float32Array, width: number, height: number, chest: GreyTemplate, words: ChestWords, minScore = CHEST_THRESHOLD): ChestLine[] {
   const hits: { x: number; y: number; score: number }[] = [];
   for (let y = 0; y + chest.height <= height; y++) {
     for (let x = 0; x + chest.width <= width; x++) {
@@ -387,7 +399,7 @@ export function readChestLines(grey: Float32Array, width: number, height: number
     const xMark = bestNear(grey, width, height, p.x + words.x.dx, p.y, words.x);
     const kind: ChestKind = rare >= WORD_THRESHOLD && rare >= sprite ? 'rare' : sprite >= WORD_THRESHOLD ? 'sprite' : 'chest';
     const hasX = xMark >= WORD_THRESHOLD;
-    if (p.score < CHEST_THRESHOLD && kind === 'chest' && !hasX) continue;
+    if (p.score < minScore && kind === 'chest' && !hasX) continue;
     let suffix: Float32Array | null = null;
     if (hasX) {
       // With a margin all round, so two reads can be lined up when the popup shifts by a pixel.
@@ -469,6 +481,8 @@ export class ChestPopupCounter {
   private lines = new Map<ChestKind, LineState>();
   private lastSeen = 0;
   private readonly gapMs: number;
+  /** Set lower on resized screens (see CHEST_THRESHOLD_RESIZED). */
+  minScore = CHEST_THRESHOLD;
 
   constructor(gapMs = 1200) {
     this.gapMs = gapMs;
@@ -488,7 +502,7 @@ export class ChestPopupCounter {
       let kind = line.kind;
       // A shaky read of a RARE/SPRITE line can miss its first word: a weak plain line where another kind's line
       // sits keeps that kind.
-      if (kind === 'chest' && line.score < CHEST_THRESHOLD) {
+      if (kind === 'chest' && line.score < this.minScore) {
         for (const [k, st] of this.lines) if (k !== 'chest' && Math.abs(st.y - line.y) <= 3) kind = k;
         if (kind === 'chest' && !this.lines.has('chest')) continue;
       }
@@ -571,9 +585,44 @@ export class ChestCounter {
   }
 }
 
-/** Resizes BGRA pixels (bilinear). The readers' templates are 1080p-sized, so other screen sizes are brought to that first. */
+/** Shrinks by averaging every source pixel each output pixel covers (plain sampling loses thin text). */
+function shrinkBgra(src: Uint8Array, w: number, h: number, W: number, H: number): Uint8Array {
+  const out = new Uint8Array(W * H * 4);
+  const sx = w / W;
+  const sy = h / H;
+  for (let y = 0; y < H; y++) {
+    const y0 = y * sy;
+    const y1 = y0 + sy;
+    for (let x = 0; x < W; x++) {
+      const x0 = x * sx;
+      const x1 = x0 + sx;
+      let b = 0, g = 0, r = 0, a = 0, total = 0;
+      for (let yy = Math.floor(y0); yy < Math.min(h, Math.ceil(y1)); yy++) {
+        const wy = Math.min(yy + 1, y1) - Math.max(yy, y0);
+        for (let xx = Math.floor(x0); xx < Math.min(w, Math.ceil(x1)); xx++) {
+          const wt = wy * (Math.min(xx + 1, x1) - Math.max(xx, x0));
+          const i = (yy * w + xx) * 4;
+          b += src[i] * wt;
+          g += src[i + 1] * wt;
+          r += src[i + 2] * wt;
+          a += src[i + 3] * wt;
+          total += wt;
+        }
+      }
+      const o = (y * W + x) * 4;
+      out[o] = b / total;
+      out[o + 1] = g / total;
+      out[o + 2] = r / total;
+      out[o + 3] = a / total;
+    }
+  }
+  return out;
+}
+
+/** Resizes BGRA pixels (averaging when shrinking, bilinear when growing). The readers' templates are 1080p-sized, so other screen sizes are brought to that first. */
 export function resizeBgra(src: Uint8Array, w: number, h: number, W: number, H: number): Uint8Array {
   if (w === W && h === H) return src;
+  if (w > W && h > H) return shrinkBgra(src, w, h, W, H);
   const out = new Uint8Array(W * H * 4);
   for (let y = 0; y < H; y++) {
     const fy = Math.min(h - 1, Math.max(0, ((y + 0.5) * h) / H - 0.5));
