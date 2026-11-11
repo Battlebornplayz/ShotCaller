@@ -21,6 +21,7 @@ import {
 } from '../../shared/fortniteVision';
 import { captureScreen, foregroundGameArea, type WindowArea } from '../skillshot/screenCapture';
 import { getSettings } from '../settings';
+import { gameSpace, grabGame } from './gameArea';
 import { pinChest, pinKill, readLiveMap } from './liveMap';
 import { readHotbar } from './squad';
 import { addChest, busHasLeft, inFortniteMatch, setEliminations, setPlayersLeftAlive, setTimeAlive } from './tracker';
@@ -115,8 +116,9 @@ function recordShot(area: WindowArea): void {
 
 /** The top-right stack: the number next to the skull. Skipped while it isn't showing (down, spectating). */
 function readEliminations(area: WindowArea): void {
-  const box = hudArea(area.width, area.height);
-  const pixels = captureScreen({ x: area.x + box.x, y: area.y + box.y, width: box.width, height: box.height });
+  const g = gameSpace(area);
+  const box = hudArea(g.width, g.height);
+  const pixels = grabGame(area, g, box);
   if (!pixels) return;
   const hud = readHud(pixels, box.width, box.height, glyphs);
   if (hud.state) lifeState = hud.state;
@@ -160,8 +162,9 @@ function tick(): void {
   if (!area) return setMode('not-front');
   status.width = area.width;
   status.height = area.height;
-  const box = chestArea(area.width, area.height);
-  const pixels = captureScreen({ x: area.x + box.x, y: area.y + box.y, width: box.width, height: box.height });
+  const g = gameSpace(area);
+  const box = chestArea(g.width, g.height);
+  const pixels = grabGame(area, g, box);
   if (!pixels) return setMode('no-picture');
   const half = toGreyHalf(pixels, box.width, box.height);
   const lines = readChestLines(half.grey, half.width, half.height, template, words);

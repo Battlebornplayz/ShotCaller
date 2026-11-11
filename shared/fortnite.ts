@@ -24,6 +24,9 @@ export interface FortniteSettings {
   liveMap: boolean;
   /** How you show on the map: a dot, a Fortnite-style arrow, or your own picture (`markerImage`, a small PNG data URL). */
   marker: 'dot' | 'arrow' | 'image';
+  /** Fortnite's resolution: 'auto' (the window's size) or 'WxH'; `stretched` = a narrower one stretched to fill the screen (otherwise black bars). */
+  resolution: string;
+  stretched: boolean;
   markerImage: string | null;
   /** The second-monitor window: opens and closes with Fortnite on the chosen screen. */
   monitor: { on: boolean; displayId: number | null };
@@ -43,6 +46,8 @@ export const DEFAULT_FORTNITE_SETTINGS: FortniteSettings = {
   card: { match: true, session: true, today: true, allTime: false },
   liveMap: true,
   marker: 'arrow',
+  resolution: 'auto',
+  stretched: true,
   markerImage: null,
   monitor: { on: true, displayId: null },
   epicName: '',

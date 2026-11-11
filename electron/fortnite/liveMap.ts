@@ -4,7 +4,8 @@ import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 import { DotTracker, MINIMAP_SPAN, minimapArea, minimapGrey } from '../../shared/fortniteMap';
 import type { FnChestKind, FnChestPin, FnKillPin, FnDrop, FnMapState, FnMatchRecord, FnPoint, FnRoute } from '../../shared/fortnite';
-import { captureScreen, type WindowArea } from '../skillshot/screenCapture';
+import { type WindowArea } from '../skillshot/screenCapture';
+import { gameSpace, grabGame } from './gameArea';
 import { getLocator, getSeasonMapStatus, onSeasonMap } from './seasonMap';
 import { currentMatchInfo, onMatchSaved } from './tracker';
 
@@ -104,8 +105,9 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
   const now = Date.now();
   if (now - lastReadAt < READ_EVERY_MS) return;
   lastReadAt = now;
-  const box = minimapArea(area.width, area.height);
-  const pixels = captureScreen({ x: area.x + box.x, y: area.y + box.y, width: box.width, height: box.height });
+  const g = gameSpace(area);
+  const box = minimapArea(g.width, g.height);
+  const pixels = grabGame(area, g, box);
   if (!pixels) return;
   const fix = tracker!.update(minimapGrey(pixels, box.width, box.height), now);
   if (!fix) return;

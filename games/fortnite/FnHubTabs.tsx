@@ -67,6 +67,63 @@ export function LobbyTab() {
   );
 }
 
+/** Every common Fortnite resolution, by shape (monitors and laptops). Only the shape matters for reading the screen. */
+const RESOLUTIONS: [string, string[]][] = [
+  ['16:9 (most monitors)', ['1280x720', '1360x768', '1366x768', '1600x900', '1920x1080', '2560x1440', '3200x1800', '3840x2160']],
+  ['Laptops 16:9', ['1366x768', '1536x864', '1600x900', '1920x1080', '2560x1440', '2880x1620', '3840x2160']],
+  ['Laptops 16:10', ['1280x800', '1440x900', '1680x1050', '1920x1200', '2240x1400', '2560x1600', '2880x1800', '3840x2400']],
+  ['Laptops 3:2 (Surface, Framework)', ['1920x1280', '2160x1440', '2256x1504', '2496x1664', '2736x1824', '2880x1920', '3000x2000']],
+  ['MacBook', ['1440x900', '2560x1600', '2560x1664', '2880x1800', '2880x1864', '3024x1964', '3456x2234']],
+  ['Stretched (1080 tall)', ['1154x1080', '1280x1080', '1440x1080', '1600x1080', '1650x1080', '1680x1080', '1720x1080', '1750x1080', '1800x1080']],
+  ['4:3', ['800x600', '1024x768', '1152x864', '1280x960', '1400x1050', '1600x1200']],
+  ['5:4', ['1280x1024']],
+  ['Ultrawide 21:9', ['2560x1080', '3440x1440', '3840x1600', '5120x2160']],
+  ['Super ultrawide 32:9', ['3840x1080', '5120x1440']],
+];
+
+/** Fortnite's resolution, so the screen reading finds the HUD. Auto works unless you play stretched or with black bars. */
+function ResolutionPicker({ resolution, stretched }: { resolution: string; stretched: boolean }) {
+  const [custom, setCustom] = useState('');
+  const known = RESOLUTIONS.some(([, list]) => list.includes(resolution));
+  const applyCustom = () => {
+    const m = /^\s*(\d{3,4})\s*[x×*]\s*(\d{3,4})\s*$/i.exec(custom);
+    if (m) setFn({ resolution: `${m[1]}x${m[2]}` });
+  };
+  return (
+    <div style={{ display: 'grid', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontWeight: 600 }}>Fortnite resolution</span>
+        <select value={known || resolution === 'auto' ? resolution : 'custom'} onChange={(e) => e.target.value !== 'custom' && setFn({ resolution: e.target.value })}>
+          <option value="auto">Auto (match the game window)</option>
+          {RESOLUTIONS.map(([group, list]) => (
+            <optgroup key={group} label={group}>
+              {list.map((r) => (
+                <option key={`${group}-${r}`} value={r}>
+                  {r.replace('x', ' × ')}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+          <option value="custom">{!known && resolution !== 'auto' ? `Custom: ${resolution.replace('x', ' × ')}` : 'Custom…'}</option>
+        </select>
+        <input placeholder="e.g. 1440x1080" value={custom} onChange={(e) => setCustom(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && applyCustom()} style={{ width: 120 }} />
+        <button className="btn" onClick={applyCustom}>
+          Set custom
+        </button>
+        {resolution !== 'auto' && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox" checked={stretched} onChange={(e) => setFn({ stretched: e.target.checked })} />
+            Stretched to fill the screen (untick for black bars)
+          </label>
+        )}
+      </div>
+      <span className="muted" style={{ fontSize: 12 }}>
+        Auto works for any monitor or laptop when the game fills the screen normally. Pick your resolution if you play stretched or with black bars. ShotCaller uses it to find your minimap, chests, kills and hotbar.
+      </span>
+    </div>
+  );
+}
+
 /** How you show on the map: dot, arrow (turns the way you're moving) or your own picture. */
 function MarkerPicker({ marker, image }: { marker: 'dot' | 'arrow' | 'image'; image: string | null }) {
   const pick = (file: File | undefined) => {
@@ -445,6 +502,7 @@ export function MapOptions() {
         </span>
       </label>
       <MarkerPicker marker={fn.marker} image={fn.markerImage} />
+      <ResolutionPicker resolution={fn.resolution} stretched={fn.stretched} />
       <label className="fn-switch">
         <input type="checkbox" checked={fn.monitor.on} onChange={(e) => setFn({ monitor: { on: e.target.checked } })} />
         <span>

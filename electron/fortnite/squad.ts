@@ -1,9 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { nativeImage } from 'electron';
 import mqtt, { type MqttClient } from 'mqtt';
-import { captureScreen, type WindowArea } from '../skillshot/screenCapture';
+import { type WindowArea } from '../skillshot/screenCapture';
 import type { FnChestPin, FnFriend, FnFriendMarks, FnMapState, FnPoint, FnSquadState } from '../../shared/fortnite';
 import { getSettings } from '../settings';
+import { gameSpace, grabGame } from './gameArea';
 import { getLiveMap, onLiveMap, setSquadDots } from './liveMap';
 
 /**
@@ -232,14 +233,15 @@ export function readHotbar(area: WindowArea): void {
   const now = Date.now();
   if (now - lastHotbarAt < HOTBAR_EVERY_MS) return;
   lastHotbarAt = now;
-  const k = area.height / 1080;
+  const g = gameSpace(area);
+  const k = g.height / 1080;
   const box = {
-    x: Math.round(area.width - (1920 - 1310) * k),
-    y: Math.round(area.height - (1080 - 830) * k),
+    x: Math.round(g.width - (1920 - 1310) * k),
+    y: Math.round(g.height - (1080 - 830) * k),
     width: Math.round(580 * k),
     height: Math.round(190 * k),
   };
-  const pixels = captureScreen({ x: area.x + box.x, y: area.y + box.y, width: box.width, height: box.height });
+  const pixels = grabGame(area, g, box);
   if (!pixels) return;
   const opaque = Buffer.from(pixels);
   for (let i = 3; i < opaque.length; i += 4) opaque[i] = 255;
