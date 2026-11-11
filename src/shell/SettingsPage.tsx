@@ -437,11 +437,11 @@ function UpdateStatus({ state, info }: { state: UpdateState; info: AppInfo | nul
       case 'up-to-date':
         return `You're on the latest version (v${state.version}).`;
       case 'available':
-        return `Version ${state.version} is available. Open the launcher to update.`;
+        return `Version ${state.version} is available.`;
       case 'downloading':
         return `Downloading ${state.version}… ${state.percent}%`;
       case 'downloaded':
-        return `Version ${state.version} is ready. Restart ShotCaller to apply it.`;
+        return `Version ${state.version} is ready to install. ShotCaller will restart.`;
       case 'dev':
         return 'Development build: updates are disabled.';
       case 'error':
@@ -454,6 +454,29 @@ function UpdateStatus({ state, info }: { state: UpdateState; info: AppInfo | nul
     <div className="muted" style={{ fontSize: 13 }}>
       {text}
     </div>
+  );
+}
+
+/** One button that follows the update: check, then download, then restart to install. */
+function UpdateButton({ state }: { state: UpdateState }) {
+  if (state.status === 'available') {
+    return (
+      <button className="btn primary" onClick={() => void window.shotcaller.downloadUpdate()}>
+        Update to {state.version}
+      </button>
+    );
+  }
+  if (state.status === 'downloaded') {
+    return (
+      <button className="btn primary" onClick={() => void window.shotcaller.installUpdate()}>
+        Restart and install
+      </button>
+    );
+  }
+  return (
+    <button className="btn" onClick={() => void window.shotcaller.checkForUpdates()} disabled={state.status === 'checking' || state.status === 'downloading'}>
+      {state.status === 'downloading' ? `Downloading… ${state.percent}%` : 'Check for updates'}
+    </button>
   );
 }
 
@@ -539,9 +562,7 @@ export function SettingsPage() {
         <ChoiceCards options={CHANNELS} value={settings?.channel} onPick={(channel) => update({ channel })} columns={2} />
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <UpdateStatus state={updateState} info={info} />
-          <button className="btn" onClick={() => void window.shotcaller.checkForUpdates()} disabled={updateState.status === 'checking'}>
-            Check for updates
-          </button>
+          <UpdateButton state={updateState} />
         </div>
       </Section>
 
