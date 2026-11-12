@@ -138,6 +138,52 @@ export function MapStatsPanel({ live }: { live: FnMapState | null }) {
   );
 }
 
+/**
+ * What Fortnite's full map (M) panel showed the last time it was open: the storm timer (counted down from
+ * that read), players and teams left, and each squad member's eliminations with their name as a picture.
+ */
+export function MapPanelPanel({ live }: { live: FnMapState | null }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const p = live?.panel;
+  if (!p) {
+    return (
+      <section className="fn-panel">
+        <div className="fn-panel-title">Squad</div>
+        <div className="fn-note">Open your map (M) and the storm timer, players left and everyone's eliminations show here.</div>
+      </section>
+    );
+  }
+  const ago = Math.round((now - p.at) / 1000);
+  const storm = p.stormSecs === null ? null : Math.max(0, p.stormSecs - ago);
+  const total = p.squad.reduce((a, s) => a + s.count, 0);
+  return (
+    <section className="fn-panel">
+      <div className="fn-panel-title">Squad</div>
+      <div className="fn-cells">
+        <Cell label="Storm" value={storm === null ? '—' : `${Math.floor(storm / 60)}:${String(storm % 60).padStart(2, '0')}`} />
+        <Cell label="Players left" value={p.playersLeft === null ? '—' : String(p.playersLeft)} />
+        {p.teamsLeft !== null && <Cell label="Teams left" value={String(p.teamsLeft)} />}
+        {p.squad.length > 1 && <Cell label="Squad elims" value={String(total)} />}
+      </div>
+      {p.squad.length > 0 && (
+        <div className="fn-squad-rows">
+          {p.squad.map((s, i) => (
+            <div className="fn-squad-row" key={i}>
+              {s.name ? <img src={s.name} alt={`Squad member ${i + 1}`} /> : <span>Player {i + 1}</span>}
+              <b>{s.count}</b>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="fn-note">From your map (M), {ago < 60 ? `${ago} s` : `${Math.round(ago / 60)} min`} ago.</div>
+    </section>
+  );
+}
+
 /** Drop stats: for each place you've landed this season, how often and how you placed. */
 export function DropStatsPanel({ drops }: { drops: FnDrop[] }) {
   const byPlace = new Map<string, { n: number; wins: number; placed: number[] }>();

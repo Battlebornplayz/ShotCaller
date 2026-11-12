@@ -1,9 +1,10 @@
+import { nativeImage } from 'electron';
 import type { WindowArea } from '../skillshot/screenCapture';
 import { resizeBgra } from '../../shared/fortniteVision';
-import { FullMapLocator, defaultView, heightAt1920, VIEW_THRESHOLD, isFullMap, readFullMapMarks, readStorm, type MapView } from '../../shared/fortniteFullMap';
+import { FullMapLocator, defaultView, heightAt1920, VIEW_THRESHOLD, isFullMap, readFullMapMarks, readMapPanel, readStorm, type MapView } from '../../shared/fortniteFullMap';
 import { currentFrame, gameSpace, grabGame } from './gameArea';
 import { getSeasonMapStatus, getSeasonMapGrey, onSeasonMap } from './seasonMap';
-import { fromFullMap, getSquadColors, setFullMapView } from './liveMap';
+import { fromFullMap, getSquadColors, setFullMapView, setMapPanel } from './liveMap';
 import { getSettings } from '../settings';
 import { placeMapLayer } from './mapLayerWindow';
 
@@ -112,15 +113,50 @@ export function readFullMapScreen(area: WindowArea): boolean {
   if (now - lastMarksAt >= MARKS_EVERY_MS) {
     lastMarksAt = now;
     const colours = getSquadColors();
-    const marks = readFullMapMarks(px, view!, colours.mates, loc.greySampler(view!));
+    // Yours too: your own marker is a pin in your colour.
+    const squad = colours.me ? [...colours.mates, colours.me] : colours.mates;
+    const marks = readFullMapMarks(px, view!, squad, loc.greySampler(view!));
     let storm: ReturnType<typeof readStorm> | null = null;
     if (now - lastStormAt >= STORM_EVERY_MS) {
       lastStormAt = now;
       storm = readStorm(px, view!);
     }
     fromFullMap(marks, storm);
+    readPanel(px, now);
   }
   return true;
+}
+
+/** Name pictures are cut again at most this often (they don't change in a match, but rows can reorder). */
+const NAMES_EVERY_MS = 15000;
+let names: { at: number; list: (string | null)[] } = { at: 0, list: [] };
+
+/** The left panel: storm timer, players left, each squad member's eliminations with their name as a picture. */
+function readPanel(px: Uint8Array, now: number): void {
+  const p = readMapPanel(px);
+  if (p.stormSecs === null && p.playersLeft === null) return;
+  if (p.elims.length !== names.list.length || now - names.at > NAMES_EVERY_MS) {
+    names = { at: now, list: p.elims.map((e) => cutOut(px, e.name)) };
+  }
+  setMapPanel({
+    stormSecs: p.stormSecs,
+    playersLeft: p.playersLeft,
+    teamsLeft: p.teamsLeft,
+    squad: p.elims.map((e, i) => ({ count: e.count, name: names.list[i] ?? null })),
+    at: now,
+  });
+}
+
+/** A box of the 1920-wide picture as a PNG data URL. */
+function cutOut(px: Uint8Array, b: { x: number; y: number; width: number; height: number }): string | null {
+  const h = Math.round(px.length / (1920 * 4));
+  if (b.x < 0 || b.y < 0 || b.x + b.width > 1920 || b.y + b.height > h) return null;
+  const out = Buffer.alloc(b.width * b.height * 4);
+  for (let y = 0; y < b.height; y++) {
+    const from = ((b.y + y) * 1920 + b.x) * 4;
+    out.set(px.subarray(from, from + b.width * 4), y * b.width * 4);
+  }
+  return nativeImage.createFromBitmap(out, { width: b.width, height: b.height }).toDataURL();
 }
 
 export function initFullMap(): void {

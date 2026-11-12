@@ -189,6 +189,20 @@ export interface FnMapState {
   accuracy: { checks: number; close: number; avgErr: number | null };
   /** Distance travelled this match, in map px. */
   distance: number;
+  /** The panel on the left of Fortnite's full map, from the last time it was open (null until then). */
+  panel: FnMapPanel | null;
+}
+
+/** What the full map's left panel showed: storm timer, players left and each squad member's eliminations. */
+export interface FnMapPanel {
+  /** Storm timer in seconds when read (`at`); count down from there. */
+  stormSecs: number | null;
+  playersLeft: number | null;
+  /** Team modes: teams left (the number in brackets). */
+  teamsLeft: number | null;
+  /** Top to bottom as Fortnite lists them: the name (portrait + name, cut out as a picture) and eliminations. */
+  squad: { count: number; name: string | null }[];
+  at: number;
 }
 
 /** A friend linked by join code: their own ShotCaller reads their minimap and sends their dot. */

@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 import { DotTracker, MINIMAP_SPAN, minimapArea, minimapGrey } from '../../shared/fortniteMap';
-import type { FnChestKind, FnChestPin, FnDotCheck, FnKillPin, FnDrop, FnMapState, FnMapView, FnMatchRecord, FnPoint, FnRoute, FnStorm } from '../../shared/fortnite';
-import type { Circle, FullMapMarks, SquadColor } from '../../shared/fortniteFullMap';
+import type { FnChestKind, FnChestPin, FnDotCheck, FnKillPin, FnDrop, FnMapPanel, FnMapState, FnMapView, FnMatchRecord, FnPoint, FnRoute, FnStorm } from '../../shared/fortnite';
+import { hueGap, readMinimapMarkers, type Circle, type FullMapMarks, type SquadColor } from '../../shared/fortniteFullMap';
 import { type WindowArea } from '../skillshot/screenCapture';
 import { gameSpace, grabGame } from './gameArea';
 import { resizeBgra } from '../../shared/fortniteVision';
@@ -79,6 +79,7 @@ function emptyState(): FnMapState {
     colors: { me: null, mates: [] },
     accuracy: { checks: 0, close: 0, avgErr: null },
     distance: 0,
+    panel: null,
   };
 }
 
@@ -135,6 +136,14 @@ export function setFullMapView(view: FnMapView | null, open: boolean, height = 1
   push({ fullMap: { open, view: open ? view : null, height } });
 }
 
+/** The full map's left panel was read (from fullMap.ts). */
+export function setMapPanel(panel: FnMapPanel): void {
+  const info = currentMatchInfo();
+  if (!info) return;
+  if (info.startedAt !== matchStartedAt) resetMatch(info.startedAt);
+  push({ panel });
+}
+
 /** A storm read from a full map (yours, or a linked friend's): the newest wins. */
 export function offerStorm(storm: FnStorm | null | undefined): void {
   if (!storm || (!storm.next && !storm.edge)) return;
@@ -154,6 +163,9 @@ export function fromFullMap(marks: FullMapMarks, storm: { next: Circle | null; e
   const patch: Partial<FnMapState> = {};
   // Your arrow far from a sure dot is only believed when it's seen in the same spot twice in a row.
   let me = marks.me;
+  // A strong, fresh minimap match beats an M "arrow" that disagrees: on the bus Fortnite draws a big ship icon
+  // instead of your arrow, and its white outline reads as an arrow (75-130 px off, a different spot each look).
+  if (me && miniStrong && now - miniStrong.at < 1500 && Math.hypot(miniStrong.x - me.x, miniStrong.y - me.y) > DISAGREE_PX) me = null;
   if (me && state.dot?.state === 'sure' && now - state.dot.at < 3000 && Math.hypot(state.dot.x - me.x, state.dot.y - me.y) > FAR_ARROW_PX) {
     const same = farArrow && Math.hypot(farArrow.x - me.x, farArrow.y - me.y) < 12;
     farArrow = { x: me.x, y: me.y };
@@ -174,14 +186,23 @@ export function fromFullMap(marks: FullMapMarks, storm: { next: Circle | null; e
     tracker?.fix(x, y, now);
     patch.dot = { x, y, state: 'sure', at: now };
   }
-  if (marks.mates.length) {
-    patch.teammates = marks.mates.map((m) => ({ x: Math.round(m.x), y: Math.round(m.y), color: m.color }));
-    for (const m of marks.mates) matchFriendColor(m, m.color);
+  // Your own colour can't be a teammate's arrow (yours is white), only your marker.
+  const mates = marks.mates.filter((m) => !colors.me || hueGap(m.hue, colors.me.hue) >= 12);
+  if (mates.length) {
+    patch.teammates = mates.map((m) => ({ x: Math.round(m.x), y: Math.round(m.y), color: m.color }));
+    for (const m of mates) matchFriendColor(m, m.color);
   }
-  if (marks.markers.length) patch.markers = marks.markers.map((m) => ({ x: Math.round(m.x), y: Math.round(m.y), color: m.color, at: now }));
+  // M shows every marker: what it shows is the whole list (one marker per player).
+  if (marks.markers.length || state.markers.length) patch.markers = marks.markers.map((m) => ({ x: Math.round(m.x), y: Math.round(m.y), color: m.color, at: now }));
   if (storm && (storm.next || storm.edge)) patch.storm = { next: round(storm.next), edge: round(storm.edge), at: now };
   push(patch);
 }
+
+/** A minimap match this strong is trusted over a disagreeing M arrow (on-foot matches are 0.33-0.9). */
+const STRONG_MINI = 0.6;
+/** An M arrow this far (map px, ~58 m) from a strong minimap match is not taken. */
+const DISAGREE_PX = 40;
+let miniStrong: { x: number; y: number; at: number } | null = null;
 
 /** A full-map arrow this far (map px, ~290 m) from a sure dot needs a second look to be taken. */
 const FAR_ARROW_PX = 200;
@@ -220,8 +241,9 @@ function resetMatch(startedAt: number | null): void {
   lastLife = null;
   checks = [];
   distance = 0;
+  miniStrong = null;
   tracker?.reset();
-  push({ dot: null, teammates: [], route: [], chests: [], landing: null, death: null, kills: [], planStep, markers: [], storm: null, accuracy: accuracyOf([]), distance: 0 });
+  push({ dot: null, teammates: [], route: [], chests: [], landing: null, death: null, kills: [], planStep, markers: [], storm: null, accuracy: accuracyOf([]), distance: 0, panel: null });
 }
 
 /** Called by the screen reader on each look while a match is on and Fortnite is in front. */
@@ -258,6 +280,7 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
   const x = Math.round(fix.x);
   const y = Math.round(fix.y);
   const patch: Partial<FnMapState> = { dot: { x, y, state: fix.state, at: now } };
+  miniStrong = fix.state === 'sure' && fix.score >= STRONG_MINI ? { x, y, at: now } : null;
   if (fix.state === 'sure') {
     // The first sure spot after the bus is where you landed (the skydive zoom doesn't match, so this comes
     // once you're on foot).
@@ -284,6 +307,8 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
       planStep++;
       patch.planStep = planStep;
     }
+    const mk = markersFromMinimap(pixels, box.width, box.height, x, y, now);
+    if (mk) patch.markers = mk;
     if (info.teamSize && info.teamSize !== 'solo') {
       const mates = readTeammates(pixels, box.width, box.height, x, y);
       patch.teammates = mates;
@@ -292,6 +317,47 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
   }
   push(patch);
 }
+
+/**
+ * Marker pins on the minimap (yours and teammates'), put on the map from your sure dot. Each player has one
+ * marker, so a pin in a colour replaces that colour's last one. A kept marker that should be in view but
+ * hasn't been seen on 3 looks in a row was taken down.
+ */
+function markersFromMinimap(bgra: Uint8Array, w: number, h: number, meX: number, meY: number, now: number): FnMapState['markers'] | null {
+  const squad = colors.me ? [...colors.mates, colors.me] : colors.mates;
+  const seen = readMinimapMarkers(bgra, w, h, squad);
+  const scale = MINIMAP_SPAN / 252;
+  let list = state.markers;
+  let changed = false;
+  for (const m of seen) {
+    const x = Math.round(meX + m.dx * scale);
+    const y = Math.round(meY + m.dy * scale);
+    const old = list.find((o) => o.color === m.color);
+    if (old && Math.hypot(old.x - x, old.y - y) < 6) {
+      missed.delete(old.color);
+      continue;
+    }
+    list = [...list.filter((o) => o.color !== m.color), { x, y, color: m.color, at: now }];
+    missed.delete(m.color);
+    changed = true;
+  }
+  // Markers well inside the minimap's view but not seen.
+  const inside = (MINIMAP_SPAN / 2) * 0.6;
+  for (const o of list) {
+    if (seen.some((m) => m.color === o.color)) continue;
+    if (Math.abs(o.x - meX) > inside || Math.abs(o.y - meY) > inside) continue;
+    const n = (missed.get(o.color) ?? 0) + 1;
+    missed.set(o.color, n);
+    if (n >= 3) {
+      list = list.filter((k) => k !== o);
+      missed.delete(o.color);
+      changed = true;
+    }
+  }
+  return changed ? list : null;
+}
+
+const missed = new Map<string, number>();
 
 /** A chest just counted: pin it where your dot is, if the dot is sure and fresh. */
 export function pinChest(kind: FnChestKind): void {

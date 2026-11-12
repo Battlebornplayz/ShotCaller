@@ -807,3 +807,297 @@ export function readStorm(bgra: Uint8Array, view: MapView): { next: Circle | nul
   };
   return { next: toMap(next), edge: toMap(edge) };
 }
+
+// ---------- Markers on the minimap ----------
+
+/** A marker pin seen on the minimap: where its tip points, in minimap px from the centre (you), and its colour. */
+export interface MiniMarker {
+  dx: number;
+  dy: number;
+  hue: number;
+  color: string;
+}
+
+/** A pin whose head is farther than this from the centre (252-px minimap) may be stuck to the edge. */
+const MINI_PIN_INSIDE = 88;
+
+/**
+ * Marker pins on the minimap (`bgra` w x h, the 1080p minimap is 252 px): a white teardrop with a black outline
+ * and a small diamond in the placer's squad colour inside, tip at the marked spot. Pins for markers off the
+ * minimap are stuck to its edge and turned toward them (about 96 px out at 252); only pins well inside with
+ * the tip pointing down are taken. `squad` gives the colours to name them by (yours included); without it the
+ * diamond's own colour is used.
+ */
+export function readMinimapMarkers(bgra: Uint8Array, w: number, h: number, squad: SquadColor[]): MiniMarker[] {
+  const k = w / 252;
+  const n = w * h;
+  const sat = new Uint8Array(n);
+  const white = new Uint8Array(n);
+  const hue = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const r = bgra[i * 4 + 2];
+    const g = bgra[i * 4 + 1];
+    const b = bgra[i * 4];
+    if (Math.min(r, g, b) > 215) white[i] = 1;
+    const [hh, s, v] = hsv(r, g, b);
+    if (s > 0.5 && v > 0.6) {
+      sat[i] = 1;
+      hue[i] = hh;
+    }
+  }
+  const out: MiniMarker[] = [];
+  const ring = Math.round(8 * k);
+  for (const d of blobs(sat, w, h, Math.round(8 * k * k), Math.round(60 * k * k))) {
+    const bw = d.x1 - d.x0 + 1;
+    const bh = d.y1 - d.y0 + 1;
+    if (bw > 10 * k || bh > 10 * k) continue;
+    const cx = Math.round(d.cx);
+    const cy = Math.round(d.cy);
+    if (Math.abs(cx - w / 2) > MINI_PIN_INSIDE * k || Math.abs(cy - h / 2) > MINI_PIN_INSIDE * k) continue;
+    // White all round the diamond (the pin's head).
+    let all = 0;
+    let wh = 0;
+    for (let a = 0; a < 24; a++) {
+      const x = Math.round(cx + ring * Math.cos((a * Math.PI) / 12));
+      const y = Math.round(cy + ring * Math.sin((a * Math.PI) / 12));
+      if (x < 0 || y < 0 || x >= w || y >= h) continue;
+      all++;
+      if (white[y * w + x]) wh++;
+    }
+    if (!all || wh / all < 0.6) continue;
+    // The tip: the lowest white pixel joined to the head, walking down from the diamond.
+    let tipX = cx;
+    let tipY = cy + ring;
+    let tipped = false;
+    for (let y = cy + ring; y < Math.min(h, cy + 26 * k); y++) {
+      let sx = 0;
+      let c = 0;
+      for (let x = Math.max(0, tipX - Math.round(6 * k)); x <= Math.min(w - 1, tipX + Math.round(6 * k)); x++) {
+        if (white[y * w + x]) {
+          sx += x;
+          c++;
+        }
+      }
+      if (!c) {
+        tipped = true;
+        break;
+      }
+      tipX = Math.round(sx / c);
+      tipY = y;
+    }
+    // The tip points down (pins turned toward the edge are the stuck ones).
+    if (!tipped || tipY - cy < 12 * k || Math.abs(tipX - cx) * 2 > tipY - cy) continue;
+    let hx = 0;
+    let hy = 0;
+    let rr = 0;
+    let gg = 0;
+    let bb = 0;
+    let m = 0;
+    for (let y = d.y0; y <= d.y1; y++) {
+      for (let x = d.x0; x <= d.x1; x++) {
+        const i = y * w + x;
+        if (!sat[i]) continue;
+        hx += Math.cos((hue[i] * Math.PI) / 180);
+        hy += Math.sin((hue[i] * Math.PI) / 180);
+        rr += bgra[i * 4 + 2];
+        gg += bgra[i * 4 + 1];
+        bb += bgra[i * 4];
+        m++;
+      }
+    }
+    const hh = ((Math.atan2(hy, hx) * 180) / Math.PI + 360) % 360;
+    const match = squad.reduce<SquadColor | null>((best, c) => (hueGap(c.hue, hh) < 16 && (!best || hueGap(c.hue, hh) < hueGap(best.hue, hh)) ? c : best), null);
+    if (squad.length && !match) continue;
+    const hex = (v: number) => Math.round(v / m).toString(16).padStart(2, '0');
+    out.push({ dx: (tipX - w / 2) / k, dy: (tipY - h / 2) / k, hue: match?.hue ?? hh, color: match?.color ?? `#${hex(rr)}${hex(gg)}${hex(bb)}` });
+  }
+  // Teammates' markers: a solid pin in their colour with a dark hole in its head, tip at the spot.
+  const dark = new Uint8Array(n);
+  for (let i = 0; i < n; i++) if (Math.max(bgra[i * 4], bgra[i * 4 + 1], bgra[i * 4 + 2]) < 70) dark[i] = 1;
+  for (const c of squad) {
+    const mask = new Uint8Array(n);
+    for (let i = 0; i < n; i++) if (sat[i] && hueGap(hue[i], c.hue) < 14) mask[i] = 1;
+    // About 20x30 px at 252 (measured).
+    for (const b of blobs(mask, w, h, Math.round(80 * k * k), Math.round(560 * k * k))) {
+      const bw = b.x1 - b.x0 + 1;
+      const bh = b.y1 - b.y0 + 1;
+      if (bw < 12 * k || bw > 28 * k || bh < 18 * k || bh > 38 * k || bh < bw) continue;
+      const cx = Math.round((b.x0 + b.x1) / 2);
+      if (Math.abs(cx - w / 2) > MINI_PIN_INSIDE * k || Math.abs(b.y1 - h / 2) > MINI_PIN_INSIDE * k || Math.abs(b.y0 - h / 2) > MINI_PIN_INSIDE * k) continue;
+      // The hole: dark pixels in the upper middle, ringed by the pin's colour.
+      const hy = Math.round(b.y0 + bh * 0.36);
+      let hole = 0;
+      const r = Math.max(1, Math.round(1.5 * k));
+      for (let y = hy - r; y <= hy + r; y++) for (let x = cx - r; x <= cx + r; x++) if (dark[y * w + x]) hole++;
+      if (hole < (2 * r + 1) * (2 * r + 1) * 0.4) continue;
+      let ringed = 0;
+      for (const [dx, dy] of [[-0.38 * bw, 0], [0.38 * bw, 0], [0, -0.28 * bh]]) if (mask[(hy + Math.round(dy)) * w + cx + Math.round(dx)]) ringed++;
+      if (ringed < 2) continue;
+      out.push({ dx: (cx - w / 2) / k, dy: (b.y1 - h / 2) / k, hue: c.hue, color: c.color });
+    }
+  }
+  return out.slice(0, 6);
+}
+
+// ---------- The left panel on the full map: storm timer, players left, eliminations ----------
+
+/** Digits 0-9 of the panel font (white, bold), as 10x14 pictures; built from real M screens. */
+const DIGITS = [
+  '0000111000/0011111110/0111001110/0110000110/0110000111/1110000111/1100000111/1100000111/1110000111/0110000111/0111000110/0111001110/0011111110/0000111000',
+  '0000111111/0111111111/1111111111/1111111111/0000011111/0000011111/0000011111/0000011111/0000011111/0000011111/0000011111/0000011111/0000011111/0000011111',
+  '0001111000/0111111110/0111001110/1111000111/1110000111/0100001111/0000001110/0000011110/0000111100/0011111000/0111100000/1111100110/1111111111/1111111111',
+  '0001111000/0111111110/0111000111/1110000111/0000000111/0000001110/0001111100/0000011110/0000000111/0110000111/1110000111/0111111111/0111111110/0000111000',
+  '0000011110/0000111110/0001110110/0001100110/0001100110/0011000110/0111000110/0110000110/1110000110/1111111111/1111111111/0000001110/0000000110/0000000110',
+  '0111111110/0111111110/0110000000/0110000000/0110011100/0111111110/0111111110/0110000111/0000000111/0000000111/1110000110/0111111110/0111111110/0000000000',
+  '0000111000/0011111110/0111001110/0110000110/0110000000/1110001000/1111111110/1111001110/1110000111/0110000111/0111000110/0111111110/0011111110/0000110000',
+  '0000011111/1111111111/1111111111/0000001111/0000011110/0000011100/0000011100/0000111000/0001111000/0001111000/0001110000/0001110000/0011110000/0011110000',
+  '0001111000/0111111110/0111001110/1110000110/0110000110/0111001110/0011111000/0111111110/1110000110/1100000111/1110000111/0111001110/0111111110/0000110000',
+  '0011111000/0111111110/1111001110/1110000111/1110000111/1110000111/0111011111/0011110111/0000000111/0000000111/1110001110/0111111110/0111111110/0000110000',
+].map((s) => s.replace(/\//g, '').split('').map(Number));
+const GW = 10;
+const GH = 14;
+/** A digit counts when it differs from its template in at most this many of 140 cells (real ones: ~9, worst 20). */
+const DIGIT_MAX_DIFF = 28;
+
+export interface MapPanel {
+  /** Storm timer in seconds (the "0:33" by the storm icon). */
+  stormSecs: number | null;
+  playersLeft: number | null;
+  /** Team modes: squads (or duos, trios) left, the number in brackets. */
+  teamsLeft: number | null;
+  /** One row per squad member, top to bottom: their eliminations and where the row's name is (1080p screen). */
+  elims: { count: number; name: { x: number; y: number; width: number; height: number } }[];
+}
+
+/**
+ * Reads the panel on the left of the full map (`bgra` 1920 wide): the right-hand column holds right-aligned
+ * values, one per line: the storm timer (has a ':'), players left ("80 (20)" in team modes), then each squad
+ * member's eliminations. Lines are found by their bright text; each value's characters are matched to the
+ * digit pictures. The name in each eliminations row isn't read as text: its box is returned to cut out.
+ */
+export function readMapPanel(bgra: Uint8Array): MapPanel {
+  heightFrom(bgra);
+  const X0 = 240;
+  const X1 = 432;
+  const Y0 = 250;
+  const Y1 = Math.min(H - 20, 820);
+  const w = X1 - X0;
+  const h = Y1 - Y0;
+  const on = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = ((Y0 + y) * W + X0 + x) * 4;
+      if (0.299 * bgra[i + 2] + 0.587 * bgra[i + 1] + 0.114 * bgra[i] > 150) on[y * w + x] = 1;
+    }
+  }
+  const lines: { y: number; text: string; x0: number }[] = [];
+  let y = 0;
+  const rowOn = (yy: number) => {
+    for (let x = 0; x < w; x++) if (on[yy * w + x]) return true;
+    return false;
+  };
+  while (y < h) {
+    if (!rowOn(y)) {
+      y++;
+      continue;
+    }
+    const a = y;
+    while (y < h && rowOn(y)) y++;
+    const b = y;
+    if (b - a < 14 || b - a > 40) continue;
+    // Characters, right to left: stop at a wide gap or at anything that isn't part of a value.
+    const colOn = (x: number) => {
+      for (let yy = a; yy < b; yy++) if (on[yy * w + x]) return true;
+      return false;
+    };
+    let text = '';
+    let x = w - 1;
+    let lastX0 = -1;
+    while (x >= 0) {
+      if (!colOn(x)) {
+        x--;
+        if (lastX0 >= 0 && lastX0 - x > 16) break;
+        continue;
+      }
+      const c1 = x + 1;
+      while (x >= 0 && colOn(x)) x--;
+      const c0 = x + 1;
+      let ya = b;
+      let yb = a;
+      for (let yy = a; yy < b; yy++) {
+        for (let xx = c0; xx < c1; xx++) {
+          if (on[yy * w + xx]) {
+            if (yy < ya) ya = yy;
+            if (yy > yb) yb = yy;
+          }
+        }
+      }
+      const cw = c1 - c0;
+      const ch = yb - ya + 1;
+      let c: string | null = null;
+      if (ch >= 23 && ch <= 28 && cw >= 4 && cw <= 9) {
+        // A bracket: which way it opens.
+        let left = 0;
+        let right = 0;
+        const mid = Math.round((ya + yb) / 2);
+        for (let xx = c0; xx < c1; xx++) {
+          if (!on[mid * w + xx]) continue;
+          if (xx - c0 < cw / 2) left++;
+          else right++;
+        }
+        c = left >= right ? '(' : ')';
+      } else if (ch >= 9 && ch <= 15 && cw <= 7) c = ':';
+      else if (ch >= 16 && ch <= 22 && cw >= 6 && cw <= 18) c = digitAt(on, w, c0, ya, cw, ch);
+      if (c === null) break;
+      text = c + text;
+      lastX0 = c0;
+    }
+    if (text) lines.push({ y: Y0 + (a + b) / 2, text, x0: X0 + lastX0 });
+  }
+
+  const out: MapPanel = { stormSecs: null, playersLeft: null, teamsLeft: null, elims: [] };
+  const t = lines.findIndex((l) => /^\d{1,2}:\d\d$/.test(l.text));
+  if (t >= 0) {
+    const [m, s] = lines[t].text.split(':').map(Number);
+    out.stormSecs = m * 60 + s;
+  }
+  const rest = lines.slice(t + 1);
+  const p = rest.findIndex((l) => /^\d{1,3}(\(\d{1,3}\))?$/.test(l.text));
+  if (p >= 0) {
+    const m = /^(\d{1,3})(?:\((\d{1,3})\))?$/.exec(rest[p].text)!;
+    out.playersLeft = Number(m[1]);
+    out.teamsLeft = m[2] ? Number(m[2]) : null;
+    for (const l of rest.slice(p + 1, p + 9)) {
+      if (!/^\d{1,3}$/.test(l.text)) break;
+      const top = Math.round(l.y - 18);
+      out.elims.push({ count: Number(l.text), name: { x: 84, y: top, width: Math.max(40, l.x0 - 92), height: 36 } });
+    }
+  }
+  return out;
+}
+
+/** The digit whose picture best fits this glyph, or null when none fits well enough. */
+function digitAt(on: Uint8Array, w: number, x0: number, y0: number, cw: number, ch: number): string | null {
+  // A one is about half as wide as the other digits.
+  if (cw <= 10) return '1';
+  const v: number[] = [];
+  for (let j = 0; j < GH; j++) {
+    for (let i = 0; i < GW; i++) {
+      const yy = y0 + Math.min(ch - 1, Math.floor(((j + 0.5) * ch) / GH));
+      const xx = x0 + Math.min(cw - 1, Math.floor(((i + 0.5) * cw) / GW));
+      v.push(on[yy * w + xx]);
+    }
+  }
+  let best = -1;
+  let bd = Infinity;
+  DIGITS.forEach((t, d) => {
+    if (d === 1) return;
+    let diff = 0;
+    for (let i = 0; i < t.length; i++) if (t[i] !== v[i]) diff++;
+    if (diff < bd) {
+      bd = diff;
+      best = d;
+    }
+  });
+  return bd <= DIGIT_MAX_DIFF ? String(best) : null;
+}

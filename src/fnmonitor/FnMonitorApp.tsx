@@ -3,7 +3,7 @@ import type { FnDrop, FnRoute } from '../../shared/fortnite';
 import { FnMap, gridCell } from '../../games/fortnite/FnMap';
 import { PlanButtons } from '../../games/fortnite/FnHubTabs';
 import { DisplayChoice } from '../../games/fortnite/overlay';
-import { ChestsPanel, InventoryPanel, MapStatsPanel, RecapPanel, SessionPanel, useMatches } from '../../games/fortnite/FnPanels';
+import { ChestsPanel, InventoryPanel, MapPanelPanel, MapStatsPanel, RecapPanel, SessionPanel, useMatches } from '../../games/fortnite/FnPanels';
 import { useFortnite, useFortniteMap, useSettings } from '../hooks/useLive';
 
 /**
@@ -86,6 +86,7 @@ export function FnMonitorApp() {
           )}
           {!inMatch && <RecapPanel match={last} />}
           <SessionPanel live={live} matches={matches} />
+          {inMatch && <MapPanelPanel live={map} />}
           {inMatch && <MapStatsPanel live={map} />}
           <ChestsPanel live={live} goal={settings.fortnite.chestGoal} />
           <InventoryPanel />
