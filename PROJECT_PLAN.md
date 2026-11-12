@@ -110,7 +110,7 @@ Deliverables:
 - Item shop + wishlist alert.
 Done when: the second monitor shows the map with your dot and your teammates' dots in the right places during real play, the session panel is live, and the stats page matches the user's numbers.
 
-### Phase F3 — Map history, pins and dot accuracy
+### Phase F3 — Map history, pins and dot accuracy ✅ (beta.17)
 Deliverables:
 - Accuracy for the live dot (built in F2): checked and corrected from the full map (M) screen; vehicles, open water and the bus/skydive zoom. Must keep working in the storm (DESIGN.md).
 - Path this match, distance travelled, landing spot and death pins across matches; drop stats (average placement per place); death heat map.
