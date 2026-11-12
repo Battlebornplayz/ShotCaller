@@ -12,7 +12,7 @@ ShotCaller is a polished Electron desktop app: a cross-game achievement hub plus
 
 ## Done so far
 - Phases 1-3, 5 done; Phase 4 dormant; Skillshot paused. Phase F1, F2 done; squad link pulled forward (beta.6-16). Setup overhaul planned as Phase S (after Phase F).
-- Phase F3 (just finished, v0.0.4-beta.17, branch `phaseF1/fortnite-foundation`): one whole-window copy per look (`gameArea.ts`); Fortnite's full map (M) found at any zoom/pan and 16:10 (`shared/fortniteFullMap.ts`, `electron/fortnite/fullMap.ts`): your arrow fixes the dot, teammates/markers/storm in real squad colours; ShotCaller's map drawn over M (`mapLayerWindow.ts`, `src/fnmaplayer/`, 13 layer switches); places, drop stats, distance, death heat map. Last session: bus dot bug fixed (it was M misreading the ship icon; strong minimap match ≥0.6 now wins over an M arrow >40 px away, `liveMap.ts`); markers read from the minimap (`readMinimapMarkers`: own white pin with diamond, teammates' solid pins; edge-stuck pins skipped; newest per colour); M left panel read (`readMapPanel`: storm timer, players/teams left, kills per member, names cut out as pictures) shown in the new Squad panel (`MapPanelPanel` in `games/fortnite/FnPanels.tsx`). User played a live match on the dev app: dot, markers and Squad panel all right.
+- Phase F3 (just finished, v0.0.4-beta.17, branch `phaseF1/fortnite-foundation`): one whole-window copy per look (`gameArea.ts`); Fortnite's full map (M) found at any zoom/pan and 16:10 (`shared/fortniteFullMap.ts`, `electron/fortnite/fullMap.ts`): your arrow fixes the dot, teammates/markers/storm in real squad colours; ShotCaller's map drawn over M (`mapLayerWindow.ts`, `src/fnmaplayer/`, 13 layer switches); places, drop stats, distance, death heat map. Last session: bus dot bug fixed (it was M misreading the ship icon; strong minimap match ≥0.6 now wins over an M arrow >40 px away, `liveMap.ts`); markers read from the minimap (`readMinimapMarkers`: own white pin with diamond, teammates' solid pins; edge-stuck pins skipped; newest per colour); M left panel read (`readMapPanel`: storm timer, players/teams left, kills per member, names cut out as pictures) shown in the new Squad panel (`MapPanelPanel` in `games/fortnite/FnPanels.tsx`). User played a live match on the dev app: dot, markers and Squad panel all right. beta.18: the M layer hides the moment the map stops lining up (zoom, reopen) and re-finds it by trying the nearest 1.5x zoom steps first (`locateAsync(px, lastGood)`, ~0.8 s vs 15-20 s).
 
 ## Phase F4 goal
 Inventory, ranked, bests, achievements, beta (see PROJECT_PLAN.md "Phase F4").
@@ -22,7 +22,7 @@ Deliverables:
 - Ranked rank + progress bar read after Ranked matches, chart over time.
 - 0-100 match score with the formula shown; personal bests and streaks (kills, chests, top-10 streak, win streak).
 - Fortnite achievements in the hub with the unlock popup.
-- Release a beta (next: **beta.18**).
+- Release a beta (next: **beta.19**).
 Done when:
 - Inventory and ranked read right in real matches, and the beta installs and updates.
 
