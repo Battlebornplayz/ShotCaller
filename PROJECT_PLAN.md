@@ -96,6 +96,7 @@ Deliverables:
 - Sort (recently played default), filters (store, installed, achievements, overlay, genre), favourites and collections, top rows (Continue playing, Favourites, Recently added), genres from Steam store info (editable), search bar and Ctrl+K (games, pages, settings), tray menu with the last 5 games, "Added [game]" toast, Continue playing strip on Home.
 - Playtime from the store, else ShotCaller's own tracking from game detection. Achievement corner card and unlock popups for every game started from the tab.
 Done when: on the user's PC every installed Steam, Epic and Xbox game shows with art, starts from Play through its store, and the existing Library data (pins, hand-added games, achievement links) carries over.
+**Status (2026-11-12): done, beta.20.** User checked it in the dev app. Not possible from local files: Steam owned-not-installed (Steam now needs sign-in), Game Pass tag, Xbox install size (see DESIGN.md "Found while building L1").
 
 ### Phase L2 — More tab: Anker, other stores, emulators, extras
 Deliverables:
