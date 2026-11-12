@@ -26,6 +26,8 @@ let locatorFor: string | null = null;
 let view: MapView | null = null;
 let open = false;
 let searching = false;
+/** The last view that lined up: its zoom is the hint for finding the map again. */
+let lastGood: MapView | null = null;
 let lastMarksAt = 0;
 let lastStormAt = 0;
 
@@ -93,9 +95,14 @@ export function readFullMapScreen(area: WindowArea): boolean {
       view = near;
       setFullMapView(view, true, height);
     } else {
+      // Lost (zoomed, panned far, or still opening): hide the layer at once rather than draw it in the wrong
+      // place, and find the map again (nearby zoom steps first).
+      if (view) lastGood = view;
+      view = null;
+      setFullMapView(null, true, height);
       searching = true;
       void loc
-        .locateAsync(px)
+        .locateAsync(px, lastGood)
         .then((v) => {
           if (v && v.score >= VIEW_THRESHOLD) {
             view = v;
@@ -164,5 +171,6 @@ export function initFullMap(): void {
     locator = null;
     locatorFor = null;
     view = null;
+    lastGood = null;
   });
 }

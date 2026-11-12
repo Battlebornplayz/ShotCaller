@@ -228,6 +228,8 @@ for (let s = 0.3; s <= 3.2; s *= 1.08) SCALES.push(s);
 
 /** A view counts at this score or more (on the 8-px grid). */
 export const VIEW_THRESHOLD = 0.35;
+/** A view found this well needs no further search (real views score 0.76-0.90). */
+const SURE_VIEW = 0.6;
 
 export class FullMapLocator {
   private readonly scales: MapScales;
@@ -273,18 +275,36 @@ export class FullMapLocator {
    * Searches every zoom level (about 1-3 s of work), giving the event loop a turn after each level so the
    * app never stalls. Used when the map was zoomed or moved too far for `locate`.
    */
-  async locateAsync(bgra: Uint8Array): Promise<ViewFix | null> {
+  async locateAsync(bgra: Uint8Array, last?: MapView | null): Promise<ViewFix | null> {
     heightFrom(bgra);
     const grids = prepare(bgra);
+    // Fortnite zooms in steps of 1.5x: after a zoom the map is nearly always one or two steps from the last view,
+    // so those few zoom levels are tried first (a fraction of the whole search).
+    if (last) {
+      // One step in or out is the usual case: stop at the first zoom level that clearly fits.
+      const steps = [1.5, 1 / 1.5, 1, 2.25, 1 / 2.25].map((k) => last.scale * k).filter((s) => s >= SCALES[0] * 0.95 && s <= SCALES[SCALES.length - 1] * 1.05);
+      let best: ViewFix | null = null;
+      for (const s of steps) {
+        const f = await this.searchScales(grids, [s], 2);
+        if (f && (!best || f.score > best.score)) best = f;
+        if (best && best.score >= SURE_VIEW) return best;
+      }
+      if (best && best.score >= VIEW_THRESHOLD) return best;
+    }
+    return this.searchScales(grids, SCALES);
+  }
+
+  /** Every offset (or every `stride`th) at each of these zoom levels on the coarse grid, then the best few refined. */
+  private async searchScales(grids: ReturnType<typeof prepare>, scales: number[], stride = 1): Promise<ViewFix | null> {
     const coarse = grids.coarse();
     const found: ViewFix[] = [];
     const minCells = coarse.ok.reduce((a, b) => a + b, 0) * 0.3;
-    for (const s of SCALES) {
+    for (const s of scales) {
       await new Promise((r) => setImmediate(r));
       const map = this.scales.get(s, coarse.g);
       let best: ViewFix = { scale: s, x: 0, y: 0, score: -2 };
-      for (let oy = -map.height + 4; oy < coarse.h - 4; oy++) {
-        for (let ox = -map.width + 4; ox < coarse.w - 4; ox++) {
+      for (let oy = -map.height + 4; oy < coarse.h - 4; oy += stride) {
+        for (let ox = -map.width + 4; ox < coarse.w - 4; ox += stride) {
           const sc = scoreAt(coarse, map, ox, oy, minCells);
           if (sc > best.score) best = { scale: s, x: ox * coarse.g, y: oy * coarse.g, score: sc };
         }
