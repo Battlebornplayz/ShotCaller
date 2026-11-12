@@ -284,6 +284,44 @@ Goal (user): "the best Fortnite companion". A new game module, `games/fortnite/`
 - **Online (`electron/fortnite/online.ts`):** the key is stored encrypted with Electron safeStorage (Windows DPAPI) in `userData/fortnite/key.bin`, never in settings, logs or the renderer. Stats: `/v2/stats/br/v2?name=&timeWindow=season|lifetime` (all inputs; no Builds/Zero Build split). Shop: `/v2/shop` (public), checked every 30 min; wishlist from `/v2/cosmetics/br/search/all` and the shop; one Windows notification per shop day. CSP allows images from fortnite-api.com.
 - **Grid:** A-J left to right, 1-10 top to bottom over the whole 2048 picture. Not yet compared with the in-game map grid.
 
+### Setup overhaul — design interview (started 2026-11-11)
+Goal: a friendlier first-run and default experience that works on laptops and PC monitors, with screen sizes detected automatically. Planning only in this chat; built in a later phase.
+- S-Q1: **B** — a short app-wide welcome once, then each game's own setup the first time you open or play that game.
+- S-Q2: **A** — the Fortnite setup appears the first time you open the Fortnite page (not when the game launches).
+- S-Q3: **A** — step-by-step pages: one question per page, Next / Back, progress dots.
+- S-Q4: **A + calibration (user)** — apply what it detects and show what it found ("Laptop, 1920x1200, 125%") with a Change link. Plus: show a frame of the game with the chest popup on screen and a box over the area it reads, which you can move if it's in the wrong place (details in batch 2).
+- S-Q5: **A** — existing users (you, your friend) get the new setup once after updating; choices already made are the starting picks.
+- S-Q6: **B** — the full Fortnite setup (5-6 steps: screens, layout, what the card shows, Epic name, hotkeys, test check), with Skip on each step.
+- S-Q4a: **C** — the "where it reads" step shows a drawn sketch of the HUD (no real Fortnite frames ship with the app) until a screenshot from your own game exists; "Use my screen" swaps it in. The screenshot stays on your PC.
+- S-Q4b: **B** — every reading area has a movable box: chest popup, minimap, eliminations, hotbar. "Reset boxes" puts them back to the detected spots.
+- S-Q4c: **A** — move only; each box's size follows the screen automatically (the readers expect a set size).
+- S-Q4d: **A** — while Fortnite runs, each box turns green when it sees its thing (minimap right away, chest popup when you open one).
+- S-Q7: **B** — on a laptop the card starts at the left middle (emptiest part of the default HUD). S-Q7b: **A** — on a PC monitor it keeps today's spot (right, under the minimap). Always draggable.
+- S-Q8: **A** — card size is automatic from the screen size (smaller on laptops, bigger on 1440p/4K) and never runs into the hotbar.
+- S-Q9: **A** — mid-match the card shrinks to one line while you're alive ("4 chests · 2 elims"); full in the lobby, on the bus and after you die.
+- S-Q10: **A (user)** — with one screen, the live map goes to a phone or tablet: a QR code on the map screen, tied to squad link: the squad link host (whoever pressed Start for the join code) hosts the map and shows its QR code on the map screen; scanning it opens the party's live map. S-Q10c answered by this: the leader is the squad link host (details in batch 3).
+- S-Q11: **C** — keep the dropdown list for choosing the map's screen.
+- S-Q10a: **B** — the phone map works anywhere: the host's ShotCaller sends the party's map data through the squad link relay, and the phone opens a web page (hosted free, e.g. GitHub Pages) that reads it. Works on any Wi-Fi or mobile data.
+- S-Q10b: **A** — the phone shows the map with everyone's dots, big and simple, pinch to zoom.
+- S-Q10c: **A** — the leader is whoever pressed Start for the squad code.
+- S-Q10d: **A** — playing alone, your own PC acts as the host, so the QR works just for you.
+- S-Q12: **B** — a manual Low power switch only (slower reads); no automatic battery switching.
+- S-Q13: **A + engine (user)** — no manual resolution guessing: build an auto-locate engine that finds where each HUD part is on any screen (minimap, eliminations, chest popup area, hotbar) so it works on every screen size. The current resolution picker stays as an override under Advanced.
+- S-Q13b (user): the engine also finds the individual inventory slots, so the shared hotbar picture shows only the slots, not the whole bottom-right area ("looks sloppy").
+- S-Q14: **A** — Fortnite settings split into Simple and Advanced (resolution override, read rates, recorder under Advanced).
+- S-Q15: **A** — when something isn't being read, a plain tip on the card ("Can't see your minimap. Fix it") opens the where-it-reads step.
+- S-Q16: **C** — no separate test step at the end of setup. (The live green boxes in the where-it-reads step, S-Q4d, still show it working.)
+- Fortnite has a HUD Scale setting and a HUD Layout Tool (players can move HUD parts), so fixed boxes can't be trusted; the engine handles both.
+- S-E1: **A** — the engine looks at the start of each match and again whenever a reader stops seeing its thing.
+- S-E2: **A** — it finds HUD parts at any size and anywhere on screen (HUD Scale + HUD Layout Tool).
+- S-E3: **B** — the shared hotbar is rebuilt: each slot cut out and set in ShotCaller's own neat row with matching rarity borders (details below).
+- S-E4: **A** — a box you moved by hand wins over the engine until you press Reset boxes.
+- S-E3a: **A** — the row holds slots 1-5 only (no pickaxe, no Q item).
+- S-E3b: **A** — each tile shows the item picture cut from the screen; ammo/count numbers and item names come later with F4's hotbar reading.
+- S-E3c: **A** — the slot being held is raised.
+- S-E3d: **A** — empty slots show as faint empty tiles, so the row is always five long.
+- S-E3e (user): the layout should be closer to Tracker Network's Fortnite teammate-loadout overlay (ideas only, not their look or branding). TRN's page can't be read automatically, so the exact layout is open: settle it from a screenshot or description from the user at the start of the build phase. Shown on: the overlay card (friends only), map window, phone map and lobby squad panel unless the user says otherwise.
+
 ## Technical notes
 - **Steam data (decided in Phase 5): local-first, no API key, no proxy.** For now ShotCaller is for the user's own PC. Achievement lists come from Steam's local schema cache (`appcache/stats/UserGameStatsSchema_<appid>.bin`), unlocks + unlock times from the local stats cache (`UserGameStats_<accountid>_<appid>.bin`, binary KeyValues), playtime from `userdata/<accountid>/config/localconfig.vdf`, the SteamID from `loginusers.vdf`, global rarity from the keyless `GetGlobalAchievementPercentagesForApp` endpoint, and achievement lists for games Steam hasn't cached from Steam's public achievement page. A Steam Web API key still never ships in the app; a proxy (Cloudflare Worker recommended) only becomes necessary if public users need data Steam doesn't keep locally (e.g. owned-but-never-played games).
 - Real-time unlocks: watch the Steam client's local stats cache (and local emulator achievement files) for changes and diff the unlocked set (no API round trip needed).

@@ -135,6 +135,33 @@ Added by the user (2026-11-10). Deliverables:
 Done when: two PCs link with a code and each sees the other's inventory, chests, kills and dot during a real match.
 Later (Phase 9): the same sharing through the friends list once accounts are on.
 
+## Phase S — Setup overhaul: laptops, monitors, auto-detect (three parts)
+Planned 2026-11-11 (DESIGN.md "Setup overhaul"). **Order (user):** after Phase F (F3, F4, F5) is finished. Goal: a friendly first run and good defaults on any screen, laptop or PC monitor, with HUD positions found automatically. Each part ends in a beta.
+
+### Phase S1 — HUD auto-locate engine
+Deliverables:
+- An engine that finds Fortnite's HUD parts on any screen: minimap, eliminations, chest popup area, hotbar, and each of the 5 inventory slots. Works at any screen size and aspect, with black bars or stretched, at any Fortnite HUD Scale and with parts moved by the HUD Layout Tool.
+- Runs at the start of each match and again when a reader stops seeing its thing. Results saved per screen size; the readers (chests, eliminations, minimap, hotbar) use the found spots instead of fixed boxes.
+- Fortnite resolution worked out from the screen; the old picker moves to Advanced as an override.
+- Hand-moved boxes (from S2) win over the engine until Reset boxes.
+- Test set: the two recordings plus frames resized/padded to laptop and monitor shapes (1366x768, 1536x864, 1920x1200, 2560x1440, 3840x2160, stretched 4:3) and lower HUD scale.
+Done when: every HUD part is found on every test shape, chest and elimination counts on the recordings are unchanged, and the hotbar picture is cropped to the slots.
+
+### Phase S2 — Setup flow, layouts and simpler settings
+Deliverables:
+- Short app-wide welcome once; Fortnite setup the first time the Fortnite page opens, as step-by-step pages with Back / Next / Skip: screens found (applied, with Change), where the info shows (overlay / second monitor / both; second-screen choice stays a dropdown), where it reads, what the card shows, Epic name, hotkeys.
+- "Where it reads" step: HUD sketch until your own screenshot exists ("Use my screen"), movable boxes (move only) for minimap, eliminations, chest popup, hotbar; each turns green live when it sees its thing; Reset boxes.
+- Existing users get the setup once after updating, with their current choices pre-filled.
+- Layouts: laptop card starts at left middle, PC monitor keeps the right side under the minimap; card size automatic from screen size and never over the hotbar; mid-match the card shrinks to one line while alive.
+- Fortnite settings split Simple / Advanced; manual Low power switch; plain fix-it tips on the card that open the where-it-reads step.
+Done when: a fresh install and an existing install both walk through setup in a laptop-size and a monitor-size check, and the card lands in the right spot at the right size on each.
+
+### Phase S3 — Rebuilt hotbar and phone map
+Deliverables:
+- Rebuilt hotbar: slots 1-5 as tiles with matched rarity borders, held slot raised, empty slots faint; layout modelled on TRN's teammate-loadout overlay (settle from the user's screenshot first). Shown on the card (friends), map window, phone map and lobby squad panel.
+- Phone map: the squad link host's map screen shows a QR code; it opens a web page (free hosting such as GitHub Pages) that reads the party's dots through the squad link relay, so it works on any Wi-Fi or mobile data. Big map with everyone's dots, pinch to zoom. Playing alone, your own PC is the host.
+Done when: a phone on mobile data shows the live squad map from a QR scan, and two PCs see each other's rebuilt hotbar rows.
+
 ### Phase 6 Part 2 — Weapons, items, counters, library, achievements
 Deliverables:
 - Weapons (`data/weapons.ini`), items and counters data; counter tips in the recap and live (if the log records who hit you).
