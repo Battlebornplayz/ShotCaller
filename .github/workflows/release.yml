@@ -42,7 +42,11 @@ jobs:
           if [ -z "$NOTES" ]; then NOTES="ShotCaller $TAG"; fi
           PRE=""
           case "$TAG" in *-*) PRE="--prerelease" ;; esac
-          gh release create "$TAG" --title "ShotCaller $TAG" --notes "$NOTES" $PRE --verify-tag
+          # The tag's first line is the release title (e.g. "ShotCaller v0.0.4-beta.21 - More Stores").
+          TITLE="$(printf '%s
+' "$NOTES" | head -n 1)"
+          case "$TITLE" in *"$TAG"*) ;; *) TITLE="ShotCaller $TAG" ;; esac
+          gh release create "$TAG" --title "$TITLE" --notes "$NOTES" $PRE --verify-tag
 
   build:
     needs: create-release

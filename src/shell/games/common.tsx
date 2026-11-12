@@ -10,6 +10,17 @@ export const SOURCE_LABEL: Record<GameSource, string> = {
   manual: 'Added by you',
   anker: 'Anker Games',
   emulator: 'Found on this PC',
+  gog: 'GOG',
+  ea: 'EA app',
+  ubisoft: 'Ubisoft Connect',
+  battlenet: 'Battle.net',
+  riot: 'Riot Games',
+  rockstar: 'Rockstar Games',
+  amazon: 'Amazon Games',
+  itch: 'itch.io',
+  rpcs3: 'RPCS3 (PS3)',
+  ryujinx: 'Ryujinx (Switch)',
+  mgba: 'mGBA (Game Boy Advance)',
 };
 
 /** Small coloured store badge (letters, not the stores' own logos). */
@@ -21,6 +32,17 @@ const BADGE: Record<GameSource, { text: string; bg: string; fg: string }> = {
   manual: { text: '+', bg: '#2b2f5a', fg: '#c7cbff' },
   module: { text: 'SC', bg: '#4f8cff', fg: '#ffffff' },
   emulator: { text: 'PC', bg: '#2b2f5a', fg: '#c7cbff' },
+  gog: { text: 'G', bg: '#5c2d91', fg: '#ffffff' },
+  ea: { text: 'EA', bg: '#ff4747', fg: '#ffffff' },
+  ubisoft: { text: 'U', bg: '#0070ff', fg: '#ffffff' },
+  battlenet: { text: 'B', bg: '#0e86ca', fg: '#ffffff' },
+  riot: { text: 'R', bg: '#d13639', fg: '#ffffff' },
+  rockstar: { text: 'R*', bg: '#fcaf17', fg: '#111111' },
+  amazon: { text: 'a', bg: '#232f3e', fg: '#ff9900' },
+  itch: { text: 'i', bg: '#fa5c5c', fg: '#ffffff' },
+  rpcs3: { text: 'P3', bg: '#1b1b1b', fg: '#ffd400' },
+  ryujinx: { text: 'NS', bg: '#e60012', fg: '#ffffff' },
+  mgba: { text: 'GB', bg: '#6a5acd', fg: '#ffffff' },
 };
 
 export function StoreBadge({ source, size = 20, title }: { source: GameSource; size?: number; title?: string }) {

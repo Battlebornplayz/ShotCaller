@@ -15,6 +15,24 @@ export interface AnkerGame {
   exePath?: string;
   steamAppId?: number;
   poster?: string;
+  /** Arguments from the launcher's first launch profile. */
+  args?: string;
+  /** Playtime and last play the Anker launcher recorded. */
+  playMinutes?: number;
+  lastPlayed?: number;
+}
+
+/** The Anker launcher's own program, for Open in Anker. */
+export function ankerLauncherExe(): string | undefined {
+  const local = process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local');
+  for (const p of [path.join(local, 'AnkerLauncher', 'anker-launcher.exe'), path.join(local, 'AnkerLauncher', 'current', 'anker-launcher.exe')]) {
+    if (fs.existsSync(p)) return p;
+  }
+  return undefined;
+}
+
+export function ankerFound(): boolean {
+  return !!ankerLauncherExe() || fs.existsSync(ankerLibraryFile());
 }
 
 export function ankerLibraryFile(): string {
@@ -72,8 +90,20 @@ export function readAnkerLibrary(): AnkerGame[] {
     if (!title || !root || !fs.existsSync(root)) continue;
     const source = (g.source as { source?: { steam_app_id?: unknown } } | undefined)?.source;
     const steamAppId = Number(source?.steam_app_id ?? g.steam_app_id);
-    const exe = typeof g.executable === 'string' && g.executable ? cleanPath(g.executable) : undefined;
-    const exePath = exe ? (path.isAbsolute(exe) ? exe : path.join(root, exe)) : guessExe(root);
+    // The launcher's own choice first: its executable, then its first launch profile, then a guess.
+    const profile = Array.isArray(g.launch_profiles)
+      ? (g.launch_profiles as { executable?: unknown; arguments?: unknown }[]).find((p) => p && typeof p.executable === 'string' && p.executable)
+      : undefined;
+    const exe =
+      typeof g.executable === 'string' && g.executable
+        ? cleanPath(g.executable)
+        : typeof profile?.executable === 'string'
+          ? cleanPath(profile.executable)
+          : undefined;
+    const resolved = exe ? (path.isAbsolute(exe) ? exe : path.join(root, exe)) : undefined;
+    const exePath = resolved && fs.existsSync(resolved) ? resolved : guessExe(root);
+    const minutes = Number(g.playtime_minutes);
+    const last = Number(g.last_played_at);
     out.push({
       id,
       title,
@@ -81,6 +111,10 @@ export function readAnkerLibrary(): AnkerGame[] {
       exePath: exePath && fs.existsSync(exePath) ? exePath : undefined,
       steamAppId: Number.isInteger(steamAppId) && steamAppId > 0 ? steamAppId : undefined,
       poster: typeof g.poster === 'string' && g.poster.startsWith('https://') ? g.poster : undefined,
+      args: !g.executable && typeof profile?.arguments === 'string' && profile.arguments.trim() ? profile.arguments.trim() : undefined,
+      playMinutes: Number.isFinite(minutes) && minutes > 0 ? minutes : undefined,
+      // Seconds since 1970 (ms when it's already that big).
+      lastPlayed: Number.isFinite(last) && last > 0 ? (last < 1e11 ? last * 1000 : last) : undefined,
     });
   }
   return out.sort((a, b) => a.title.localeCompare(b.title));

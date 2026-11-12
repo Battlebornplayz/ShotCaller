@@ -1,10 +1,22 @@
-import { app, dialog, type BrowserWindow } from 'electron';
+import { app, dialog, shell, type BrowserWindow } from 'electron';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { games, moduleForSteamApp } from '../games';
-import type { GameCollection, Library, LibraryGame, SteamImportInfo, StoreId, StoreStatus } from '../shared/types';
-import { readAnkerLibrary, type AnkerGame } from './anker';
+import type {
+  EmulatorId,
+  EmulatorOp,
+  ExtraStoreId,
+  GameCollection,
+  GameSource,
+  Library,
+  LibraryGame,
+  MoreSource,
+  SteamImportInfo,
+  StoreId,
+  StoreStatus,
+} from '../shared/types';
+import { ankerFound, ankerLauncherExe, ankerLibraryFile, readAnkerLibrary, type AnkerGame } from './anker';
 import { scanEmulatorApps } from './emulators';
 import { getSessions } from './sessions';
 import { findSteamPath, readInstalledApps, readLibraryFolders, type SteamApp } from './steam';
@@ -24,6 +36,29 @@ import {
 import { defaultEpicDataDir, epicFound, epicWatchDir, readEpicGames, type EpicGame } from './stores/epic';
 import { cachedGridArt, fetchGridArt, hasSteamGridKey } from './stores/steamGrid';
 import { fileToDataUrl, readXboxGames, xboxGamingRoots, type XboxGame } from './stores/xbox';
+import { readAmazon } from './stores/amazon';
+import { readBattleNet } from './stores/battlenet';
+import { readEa } from './stores/ea';
+import type { ExtraGame, ExtraStoreResult } from './stores/extra';
+import { readGog } from './stores/gog';
+import { readItch } from './stores/itch';
+import { readRegistry, type RegistrySnapshot } from './stores/registry';
+import { readRiot } from './stores/riot';
+import { readRockstar } from './stores/rockstar';
+import { defaultFolders, EMULATORS, emulatorForFile, findEmulatorExe, scanRoms, type EmulatorConfig, type RomGame } from './stores/roms';
+import { readUbisoft } from './stores/ubisoft';
+
+/** The smaller stores of the More section, in the order they're listed. */
+export const EXTRA_STORES: { id: ExtraStoreId; name: string }[] = [
+  { id: 'gog', name: 'GOG' },
+  { id: 'ea', name: 'EA app' },
+  { id: 'ubisoft', name: 'Ubisoft Connect' },
+  { id: 'battlenet', name: 'Battle.net' },
+  { id: 'riot', name: 'Riot Games' },
+  { id: 'rockstar', name: 'Rockstar Games' },
+  { id: 'amazon', name: 'Amazon Games' },
+  { id: 'itch', name: 'itch.io' },
+];
 
 /**
  * The user's games, from every source: supported modules, Steam (installed, played, and owned
@@ -47,6 +82,13 @@ interface Stored {
   anker: AnkerGame[];
   epic: EpicGame[];
   xbox: XboxGame[];
+  /** The smaller stores (Phase L2), as last read. */
+  extra: Partial<Record<ExtraStoreId, ExtraStoreResult>>;
+  /** Emulator settings: program and game folders. */
+  emulators: Partial<Record<EmulatorId, EmulatorConfig>>;
+  /** Emulator programs found on their own (when not picked). */
+  emulatorFound: Partial<Record<EmulatorId, string>>;
+  roms: RomGame[];
   /** App ids with local emulator achievement files. */
   emulatorApps: number[];
   /** Game key → Steam app id whose achievement list it uses (games added by hand). */
@@ -92,6 +134,10 @@ function load(): Stored {
     anker: [],
     epic: [],
     xbox: [],
+    extra: {},
+    emulators: {},
+    emulatorFound: {},
+    roms: [],
     emulatorApps: [],
     links: {},
     steam: { found: false, libraryFolders: [] },
@@ -119,6 +165,10 @@ function load(): Stored {
       anker: Array.isArray(raw.anker) ? raw.anker.filter((g) => g && typeof g.id === 'string' && typeof g.title === 'string') : [],
       epic: Array.isArray(raw.epic) ? raw.epic.filter((g) => g && typeof g.appName === 'string') : [],
       xbox: Array.isArray(raw.xbox) ? raw.xbox.filter((g) => g && typeof g.pfn === 'string') : [],
+      extra: obj<ExtraStoreResult>(raw.extra),
+      emulators: obj<EmulatorConfig>(raw.emulators),
+      emulatorFound: obj<string>(raw.emulatorFound),
+      roms: Array.isArray(raw.roms) ? raw.roms.filter((r) => r && typeof r.key === 'string' && typeof r.file === 'string') : [],
       emulatorApps: ids(raw.emulatorApps),
       links,
       steam: raw.steam && typeof raw.steam === 'object' ? { ...empty.steam, ...raw.steam } : empty.steam,
@@ -139,6 +189,8 @@ function load(): Stored {
   }
   return store;
 }
+
+const extraKey = (g: ExtraGame) => `${g.store}:${g.id}`;
 
 function isManualGame(g: unknown): g is LibraryGame {
   const v = g as LibraryGame;
@@ -322,10 +374,28 @@ function build(): Library {
     });
   }
 
+  for (const { id } of EXTRA_STORES) {
+    for (const e of s.extra[id]?.games ?? []) {
+      addStoreGame({
+        key: extraKey(e),
+        name: e.name,
+        source: e.store,
+        installDir: e.installDir,
+        exeNames: e.exeNames,
+        installed: true,
+        sizeBytes: e.sizeBytes,
+        cover: e.cover,
+      });
+    }
+  }
+
   const nonSteamApps = new Set<number>();
+  /** Playtime the Anker launcher recorded, per card key. */
+  const ankerPlay = new Map<string, AnkerGame>();
   for (const g of s.anker) {
     if (g.steamAppId) nonSteamApps.add(g.steamAppId);
     const key = `anker:${g.id}`;
+    ankerPlay.set(key, g);
     list.push({
       key,
       name: g.title,
@@ -333,10 +403,27 @@ function build(): Library {
       installDir: g.installDir,
       exePath: g.exePath,
       exeNames: g.exePath ? [path.basename(g.exePath)] : [],
-      achievementAppId: s.links[key] ?? g.steamAppId,
+      // Achievements: a list you linked, else the Steam app Anker names, else a Steam game with the same name.
+      achievementAppId: s.links[key] ?? g.steamAppId ?? cachedNameMatch(g.title) ?? undefined,
       poster: g.poster,
       installed: true,
       copies: [{ source: 'anker', key, installed: true }],
+    });
+  }
+
+  // Emulator games: each file in your game folders is a card that opens in its emulator.
+  for (const r of s.roms) {
+    const installed = fs.existsSync(r.file);
+    list.push({
+      key: r.key,
+      name: r.name,
+      source: r.emu,
+      installDir: r.installDir,
+      romPath: r.file,
+      exeNames: [],
+      installed,
+      sizeBytes: r.sizeBytes,
+      copies: [{ source: r.emu, key: r.key, installed }],
     });
   }
 
@@ -374,9 +461,10 @@ function build(): Library {
     const steamPt = g.steamAppId ? s.steamPlaytime[g.steamAppId] : undefined;
     const sessions = getSessions(g.key);
     const tracked = Math.round(sessions.reduce((n, x) => n + (x.end - x.start), 0) / 60000);
-    const storeMinutes = steamPt?.minutes ?? (g.steamAppId ? owned.get(g.steamAppId)?.minutes : undefined);
-    g.playMinutes = storeMinutes || tracked || undefined;
-    const last = Math.max(steamPt?.lastPlayed ?? 0, sessions[0]?.end ?? 0, s.launched[g.key] ?? 0);
+    const anker = ankerPlay.get(g.key);
+    const storeMinutes = steamPt?.minutes ?? (g.steamAppId ? owned.get(g.steamAppId)?.minutes : undefined) ?? anker?.playMinutes;
+    g.playMinutes = Math.max(storeMinutes ?? 0, tracked) || undefined;
+    const last = Math.max(steamPt?.lastPlayed ?? 0, sessions[0]?.end ?? 0, s.launched[g.key] ?? 0, anker?.lastPlayed ?? 0);
     g.lastPlayed = last || undefined;
 
     const genreApp = g.steamAppId ?? g.achievementAppId;
@@ -396,7 +484,57 @@ function build(): Library {
 
   const rank = (g: LibraryGame) => (g.moduleId ? 0 : g.pinned ? 1 : 2);
   list.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
-  return { games: list, steam: s.steam, stores: storeStatus(s, list), collections: s.collections, scannedAt: s.scannedAt, justAdded };
+  return { games: list, steam: s.steam, stores: storeStatus(s, list), more: moreStatus(s, list), collections: s.collections, scannedAt: s.scannedAt, justAdded };
+}
+
+/** The More section: Anker, the smaller stores, the emulators and games added by hand. */
+function moreStatus(s: Stored, list: LibraryGame[]): MoreSource[] {
+  const count = (source: GameSource) => list.filter((g) => !g.isTool && !g.hidden && g.copies?.some((c) => c.source === source)).length;
+  const anker = ankerLauncherExe();
+  const out: MoreSource[] = [
+    {
+      id: 'anker',
+      name: 'Anker Games',
+      kind: 'launcher',
+      found: ankerFound(),
+      path: anker ? path.dirname(anker) : undefined,
+      count: count('anker'),
+      note: 'Games start from their own file. Achievements use the Steam version’s list.',
+    },
+  ];
+  for (const { id, name } of EXTRA_STORES) {
+    const r = s.extra[id];
+    out.push({ id, name, kind: 'store', found: !!r?.found, path: r?.path, count: count(id), note: r?.note });
+  }
+  for (const e of EMULATORS) {
+    const exe = emulatorExe(s, e.id);
+    out.push({
+      id: e.id,
+      name: e.name,
+      kind: 'emulator',
+      found: !!exe,
+      path: exe,
+      count: count(e.id),
+      folders: emulatorFolders(s, e.id),
+      note: `${e.console} · ${e.exts.filter((x) => x !== '.pkg').join(' ')}${s.emulators[e.id]?.exe ? ' · program you picked' : ''}`,
+    });
+  }
+  out.push({ id: 'manual', name: 'Added by you', kind: 'other', found: true, count: count('manual') });
+  return out;
+}
+
+function emulatorExe(s: Stored, emu: EmulatorId): string | undefined {
+  const picked = s.emulators[emu]?.exe;
+  if (picked && fs.existsSync(picked)) return picked;
+  return s.emulatorFound[emu];
+}
+
+function emulatorFolders(s: Stored, emu: EmulatorId): string[] {
+  return s.emulators[emu]?.folders ?? defaultFolders(emu, emulatorExe(s, emu));
+}
+
+function scanAllRoms(s: Stored): void {
+  s.roms = EMULATORS.flatMap((e) => scanRoms(e.id, emulatorFolders(s, e.id), s.emulators[e.id]?.files ?? []));
 }
 
 function storeStatus(s: Stored, list: LibraryGame[]): StoreStatus[] {
@@ -487,6 +625,36 @@ async function scan(): Promise<Library> {
   } catch (err) {
     console.error('Anker import failed:', err);
   }
+  let reg: RegistrySnapshot | null = null;
+  try {
+    const snap = await readRegistry();
+    reg = snap;
+    const readers: Record<ExtraStoreId, () => ExtraStoreResult> = {
+      gog: () => readGog(snap),
+      ea: () => readEa(snap),
+      ubisoft: () => readUbisoft(snap),
+      battlenet: () => readBattleNet(snap),
+      riot: () => readRiot(),
+      rockstar: () => readRockstar(snap),
+      amazon: () => readAmazon(),
+      itch: () => readItch(),
+    };
+    for (const { id } of EXTRA_STORES) {
+      try {
+        s.extra[id] = readers[id]();
+      } catch (err) {
+        console.error(`${id} scan failed:`, err);
+      }
+    }
+  } catch (err) {
+    console.error('Store scan failed:', err);
+  }
+  for (const e of EMULATORS) {
+    const found = findEmulatorExe(e.id, reg);
+    if (found) s.emulatorFound[e.id] = found;
+    else delete s.emulatorFound[e.id];
+  }
+  scanAllRoms(s);
   s.emulatorApps = [...scanEmulatorApps().keys()];
 
   // New games since the last scan (the first scan just records what's there).
@@ -530,9 +698,15 @@ async function fillDetails(): Promise<void> {
     for (const id of missingNames) await fetchAppName(id); // sequential: the store endpoint rate-limits
     if (missingNames.length) emit();
 
-    for (const g of [...s.epic, ...s.xbox]) {
-      if (cachedNameMatch(g.name) === undefined) {
-        await matchSteamByName(g.name);
+    const names = [
+      ...s.epic.map((g) => g.name),
+      ...s.xbox.map((g) => g.name),
+      ...Object.values(s.extra).flatMap((r) => r?.games.map((g) => g.name) ?? []),
+      ...s.anker.filter((g) => !g.steamAppId).map((g) => g.title),
+    ];
+    for (const name of names) {
+      if (cachedNameMatch(name) === undefined) {
+        await matchSteamByName(name);
         await pause(300);
       }
     }
@@ -571,6 +745,7 @@ const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // ---------- Watching store files ----------
 
 const watchers = new Map<string, fs.FSWatcher>();
+const ROM_FILE = /\.(nsp|xci|nro|gba|gbc|gb|iso)$/i;
 let rescanTimer: NodeJS.Timeout | null = null;
 
 function scheduleRescan(): void {
@@ -588,6 +763,8 @@ function watchStores(): void {
   for (const f of s.steam.libraryFolders ?? []) dirs.add(path.join(f, 'steamapps'));
   dirs.add(epicWatchDir(s.storePaths.epic ?? defaultEpicDataDir()));
   for (const r of xboxGamingRoots()) dirs.add(r);
+  dirs.add(path.dirname(ankerLibraryFile()));
+  for (const e of EMULATORS) for (const f of emulatorFolders(s, e.id)) dirs.add(f);
   for (const [dir, w] of watchers) {
     if (!dirs.has(dir)) {
       w.close();
@@ -599,7 +776,7 @@ function watchStores(): void {
     try {
       const w = fs.watch(dir, (_event, name) => {
         const n = String(name ?? '');
-        if (!n || /^appmanifest_\d+\.acf$/i.test(n) || /\.item$/i.test(n) || !n.includes('.')) scheduleRescan();
+        if (!n || /^appmanifest_\d+\.acf$/i.test(n) || /\.item$/i.test(n) || /^library\.json$/i.test(n) || ROM_FILE.test(n) || !n.includes('.')) scheduleRescan();
       });
       w.on('error', () => {
         w.close();
@@ -628,32 +805,109 @@ export async function addGameManually(parent: BrowserWindow | null): Promise<Lib
   const result = parent ? await dialog.showOpenDialog(parent, opts) : await dialog.showOpenDialog(opts);
   if (result.canceled || result.filePaths.length === 0) return null;
 
-  const exePath = result.filePaths[0];
-  const s = load();
-  const existing = s.manual.find((g) => g.exePath?.toLowerCase() === exePath.toLowerCase());
-  if (existing) return existing;
+  const r = addGameFromPath(result.filePaths[0]);
+  return r.game ?? null;
+}
 
-  const base = path.basename(exePath);
-  const name = base
-    .replace(/\.(exe|x86_64|x86|sh|AppImage)$/i, '')
+const niceName = (file: string) =>
+  path
+    .basename(file)
+    .replace(/\.(exe|lnk|url|x86_64|x86|sh|AppImage)$/i, '')
     .replace(/[-_.]+/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .trim();
+    .trim() || path.basename(file);
+
+/**
+ * Adds a game from a file you browsed to or dropped on the Games tab: an exe, a Windows shortcut
+ * (.lnk, read to its exe and options), an internet shortcut (.url, e.g. steam:// or a store link,
+ * opened as it is), or a game file an emulator opens (added to that emulator's list).
+ */
+export function addGameFromPath(filePath: string): { game?: LibraryGame; error?: string } {
+  const s = load();
+  const file = path.normalize(String(filePath ?? ''));
+  if (!file || !fs.existsSync(file)) return { error: 'That file isn’t there.' };
+  if (fs.statSync(file).isDirectory()) return { error: 'Drop the game’s .exe or a shortcut, not a folder.' };
+  const ext = path.extname(file).toLowerCase();
+
+  const emu = emulatorForFile(file);
+  if (emu) {
+    const cfg = (s.emulators[emu] ??= {});
+    cfg.files = [...new Set([...(cfg.files ?? []), file])];
+    scanAllRoms(s);
+    for (const r of s.roms) s.firstSeen[r.key] ??= Date.now();
+    save();
+    emit();
+    const rom = s.roms.find((r) => r.file.toLowerCase() === file.toLowerCase());
+    const game = rom ? getLibrary().games.find((g) => g.key === rom.key) : undefined;
+    return game ? { game } : { error: 'Added, but it looks like an update or DLC, not a game of its own.' };
+  }
+
+  let exePath = file;
+  let options: string | undefined;
+  if (ext === '.lnk') {
+    try {
+      const link = shell.readShortcutLink(file);
+      if (!link.target) return { error: 'That shortcut doesn’t point at a program.' };
+      exePath = link.target;
+      options = link.args?.trim() || undefined;
+    } catch {
+      return { error: 'Windows couldn’t read that shortcut.' };
+    }
+  } else if (ext !== '.url' && ext !== '.exe' && process.platform === 'win32') {
+    return { error: 'ShotCaller can add an .exe, a shortcut (.lnk or .url) or a game file for RPCS3, Ryujinx or mGBA.' };
+  }
+
+  const existing = s.manual.find((g) => g.exePath?.toLowerCase() === exePath.toLowerCase());
+  if (existing) return { game: existing };
   const game: LibraryGame = {
     key: `manual:${randomUUID()}`,
-    name: name || base,
+    name: niceName(ext === '.lnk' || ext === '.url' ? file : exePath),
     source: 'manual',
     exePath,
-    installDir: path.dirname(exePath),
-    exeNames: [base],
+    installDir: ext === '.url' ? undefined : path.dirname(exePath),
+    exeNames: ext === '.url' ? [] : [path.basename(exePath)],
     installed: true,
   };
   s.manual.push(game);
   s.pinned.push(game.key); // hand-added games show in the rail
   s.firstSeen[game.key] = Date.now();
+  if (options) s.launchOptions[game.key] = options;
   save();
   emit();
-  return game;
+  return { game };
+}
+
+/** Emulator settings from the More section: pick its program, add or remove a game folder. */
+export async function emulatorOp(op: EmulatorOp, parent: BrowserWindow | null): Promise<Library> {
+  const s = load();
+  const def = EMULATORS.find((e) => e.id === op.emu);
+  if (!def) return getLibrary();
+  const cfg = (s.emulators[op.emu] ??= {});
+  const ask = async (opts: Electron.OpenDialogOptions) => {
+    const r = parent ? await dialog.showOpenDialog(parent, opts) : await dialog.showOpenDialog(opts);
+    return r.canceled ? undefined : r.filePaths[0];
+  };
+  if (op.op === 'pickExe') {
+    const p = await ask({ title: `Choose ${def.name} (${def.exeName})`, properties: ['openFile'], filters: [{ name: def.name, extensions: ['exe'] }] });
+    if (!p) return getLibrary();
+    cfg.exe = p;
+  } else if (op.op === 'resetExe') {
+    delete cfg.exe;
+  } else if (op.op === 'addFolder') {
+    const p = await ask({ title: `Choose a folder with your ${def.console} games`, properties: ['openDirectory'] });
+    if (!p) return getLibrary();
+    cfg.folders = [...new Set([...emulatorFolders(s, op.emu), path.normalize(p)])];
+  } else if (op.op === 'removeFolder') {
+    cfg.folders = emulatorFolders(s, op.emu).filter((f) => f !== op.folder);
+    cfg.files = (cfg.files ?? []).filter((f) => !f.startsWith(op.folder));
+  }
+  const before = new Set(s.roms.map((r) => r.key));
+  scanAllRoms(s);
+  for (const r of s.roms) if (!before.has(r.key)) s.firstSeen[r.key] ??= Date.now();
+  save();
+  emit();
+  watchStores();
+  return getLibrary();
 }
 
 /** Favourite (also shows the game in the rail). */
@@ -781,6 +1035,13 @@ export function setSteamLink(key: string, appId: number | null): boolean {
 export function removeGame(key: string): Library {
   const s = load();
   s.manual = s.manual.filter((g) => g.key !== key);
+  // An emulator game you dropped in by itself leaves that emulator's list.
+  const rom = s.roms.find((r) => r.key === key);
+  if (rom) {
+    const cfg = s.emulators[rom.emu];
+    if (cfg?.files) cfg.files = cfg.files.filter((f) => f.toLowerCase() !== rom.file.toLowerCase());
+    scanAllRoms(s);
+  }
   s.pinned = s.pinned.filter((k) => k !== key);
   delete s.links[key];
   save();
@@ -789,10 +1050,20 @@ export function removeGame(key: string): Library {
 }
 
 /** Raw store records, for launching. */
-export function storeRecords(): { epic: EpicGame[]; xbox: XboxGame[]; anker: AnkerGame[]; manual: LibraryGame[] } {
+export function storeRecords(): {
+  epic: EpicGame[];
+  xbox: XboxGame[];
+  anker: AnkerGame[];
+  manual: LibraryGame[];
+  extra: Partial<Record<ExtraStoreId, ExtraStoreResult>>;
+  roms: RomGame[];
+  emulatorExe: (emu: EmulatorId) => string | undefined;
+} {
   const s = load();
-  return { epic: s.epic, xbox: s.xbox, anker: s.anker, manual: s.manual };
+  return { epic: s.epic, xbox: s.xbox, anker: s.anker, manual: s.manual, extra: s.extra, roms: s.roms, emulatorExe: (emu) => emulatorExe(s, emu) };
 }
+
+export const extraGameKey = extraKey;
 
 /** Rebuild now (e.g. after a play session ends, so playtime updates). */
 export function refreshLibrary(): void {

@@ -2,8 +2,10 @@ import { app, shell } from 'electron';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { GameSource, LibraryGame, StoreCopy } from '../shared/types';
-import { getLibrary, recordLaunch, removeGame, storeRecords } from './library';
+import type { EmulatorId, ExtraStoreId, GameSource, LibraryGame, StoreCopy } from '../shared/types';
+import { ankerLauncherExe } from './anker';
+import { extraGameKey, getLibrary, recordLaunch, removeGame, storeRecords } from './library';
+import { emulatorArgs, EMULATORS } from './stores/roms';
 import { markLaunchedFromTab } from './overlay';
 import { EPIC_LIBRARY_URI, epicLaunchUri } from './stores/epic';
 import { xboxLaunchTarget } from './stores/xbox';
@@ -20,6 +22,14 @@ export interface LaunchResult {
 }
 
 const steamId = (key: string) => Number(key.split(':')[1]);
+
+const EXTRA: ExtraStoreId[] = ['gog', 'ea', 'ubisoft', 'battlenet', 'riot', 'rockstar', 'amazon', 'itch'];
+const isExtra = (s: GameSource): s is ExtraStoreId => (EXTRA as string[]).includes(s);
+const isEmulator = (s: GameSource): s is EmulatorId => EMULATORS.some((e) => e.id === s);
+
+function startProgram(exe: string): void {
+  spawn(exe, [], { cwd: path.dirname(exe), detached: true, stdio: 'ignore' }).on('error', () => undefined).unref();
+}
 
 /** Splits launch options like a shell would (quotes keep spaces). */
 function splitArgs(s: string | undefined): string[] {
@@ -51,7 +61,9 @@ function startExe(exePath: string, args: string[]): LaunchResult {
 }
 
 function openTarget(target: string): void {
-  if (target.startsWith('shell:')) {
+  if (/^[a-z]:\\/i.test(target)) {
+    void shell.openPath(target);
+  } else if (target.startsWith('shell:')) {
     spawn('explorer.exe', [target], { detached: true, stdio: 'ignore' }).unref();
   } else {
     void shell.openExternal(target);
@@ -77,14 +89,29 @@ function launchTarget(g: LibraryGame, copy: StoreCopy): { target?: string; exe?:
     }
     case 'anker': {
       const a = recs.anker.find((r) => `anker:${r.id}` === copy.key);
-      return a?.exePath ? { exe: a.exePath, args: splitArgs(g.launchOptions) } : null;
+      return a?.exePath ? { exe: a.exePath, args: splitArgs(g.launchOptions ?? a.args) } : null;
     }
     case 'manual': {
       const m = recs.manual.find((r) => r.key === copy.key);
-      return m?.exePath ? { exe: m.exePath, args: splitArgs(g.launchOptions) } : null;
+      if (!m?.exePath) return null;
+      // An internet shortcut (.url) opens whatever link it holds (steam://, a store page…).
+      if (/\.url$/i.test(m.exePath)) return { target: m.exePath };
+      return { exe: m.exePath, args: splitArgs(g.launchOptions) };
     }
-    default:
+    default: {
+      if (isExtra(copy.source)) {
+        const e = recs.extra[copy.source]?.games.find((x) => extraGameKey(x) === copy.key);
+        if (!e || (!e.launch.exe && !e.launch.target)) return null;
+        return e.launch.exe ? { exe: e.launch.exe, args: e.launch.args ?? [] } : { target: e.launch.target };
+      }
+      if (isEmulator(copy.source)) {
+        const r = recs.roms.find((x) => x.key === copy.key);
+        const exe = recs.emulatorExe(copy.source);
+        if (!r || !exe) return null;
+        return { exe, args: [...emulatorArgs(copy.source, r.file), ...splitArgs(g.launchOptions)] };
+      }
       return null;
+    }
   }
 }
 
@@ -94,7 +121,13 @@ export function playGame(key: string, source?: GameSource): LaunchResult {
   const copy = pickCopy(g, source);
   if (!copy || !copy.installed) return { ok: false, error: 'It isn’t installed. Use Install first.' };
   const t = launchTarget(g, copy);
-  if (!t) return { ok: false, error: 'ShotCaller can’t start this one. Start it from its own launcher.' };
+  if (!t) {
+    if (isEmulator(copy.source)) {
+      const name = EMULATORS.find((e) => e.id === copy.source)?.name;
+      return { ok: false, error: `Show ShotCaller where ${name} is: Games › More › ${name} › Pick program.` };
+    }
+    return { ok: false, error: 'ShotCaller can’t start this one. Start it from its own launcher.' };
+  }
   if (t.exe) {
     const r = startExe(t.exe, t.args ?? []);
     if (!r.ok) return r;
@@ -132,7 +165,22 @@ export function uninstallGame(key: string): LaunchResult {
     case 'manual':
       removeGame(copy.key);
       return { ok: true };
+    case 'anker': {
+      const exe = ankerLauncherExe();
+      if (!exe) return { ok: false, error: 'Uninstall it from the Anker launcher.' };
+      startProgram(exe);
+      return { ok: true };
+    }
     default:
+      if (isExtra(copy.source)) {
+        // The store does the uninstall; ShotCaller opens it.
+        const r = openStoreApp(copy.source);
+        return r.ok ? r : { ok: false, error: 'Uninstall it from its own launcher.' };
+      }
+      if (isEmulator(copy.source)) {
+        removeGame(copy.key);
+        return { ok: true };
+      }
       return { ok: false, error: 'Uninstall it from its own launcher.' };
   }
 }
@@ -151,7 +199,25 @@ export function openInStore(key: string): LaunchResult {
   if (copy.source === 'steam') void shell.openExternal(`steam://nav/games/details/${steamId(copy.key)}`);
   else if (copy.source === 'epic') void shell.openExternal(EPIC_LIBRARY_URI);
   else if (copy.source === 'xbox') void shell.openExternal('xbox://');
-  else return { ok: false, error: 'This game has no store page.' };
+  else if (copy.source === 'anker') {
+    const exe = ankerLauncherExe();
+    if (!exe) return { ok: false, error: 'The Anker launcher isn’t installed.' };
+    startProgram(exe);
+  } else if (isExtra(copy.source)) return openStoreApp(copy.source);
+  else if (isEmulator(copy.source)) {
+    const exe = storeRecords().emulatorExe(copy.source);
+    if (!exe) return { ok: false, error: 'Pick the emulator’s program first (Games › More).' };
+    startProgram(exe);
+  } else return { ok: false, error: 'This game has no store page.' };
+  return { ok: true };
+}
+
+/** Opens one of the smaller stores' own app. */
+function openStoreApp(store: ExtraStoreId): LaunchResult {
+  const t = storeRecords().extra[store]?.openTarget;
+  if (t?.exe && fs.existsSync(t.exe)) startProgram(t.exe);
+  else if (t?.target) void shell.openExternal(t.target);
+  else return { ok: false, error: 'That store’s app wasn’t found.' };
   return { ok: true };
 }
 
@@ -180,6 +246,10 @@ export function createDesktopShortcut(key: string): LaunchResult {
         iconIndex: 0,
       });
       return ok ? { ok: true } : { ok: false, error: 'Windows didn’t make the shortcut.' };
+    }
+    if (t.target && /^[a-z]:\\/i.test(t.target)) {
+      fs.copyFileSync(t.target, path.join(desktop, `${name}.url`));
+      return { ok: true };
     }
     if (t.target?.startsWith('shell:')) {
       const ok = shell.writeShortcutLink(path.join(desktop, `${name}.lnk`), { target: 'explorer.exe', args: t.target });

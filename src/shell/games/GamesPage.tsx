@@ -6,6 +6,7 @@ import { GameTile } from '../pages';
 import { Art, coverSources } from '../hub/art';
 import { formatPlaytime, formatSize, mainSource, play, SOURCE_LABEL, StoreBadge, TextPrompt, toast, Confirm, Modal } from './common';
 import { useGameMenu } from './gameMenu';
+import { MorePanel, SourceSetup } from './MorePanel';
 
 /**
  * The Games tab (Phase L1): a GOG Galaxy-style list on the left (All games, Installed, each store,
@@ -58,7 +59,6 @@ const STORES: { id: StoreId; source: GameSource }[] = [
   { id: 'epic', source: 'epic' },
   { id: 'xbox', source: 'xbox' },
 ];
-const MORE: GameSource[] = ['anker', 'manual', 'emulator'];
 
 const inSource = (g: LibraryGame, s: GameSource) => (g.copies ?? [{ source: g.source }]).some((c) => c.source === s);
 
@@ -73,6 +73,7 @@ function matchesView(g: LibraryGame, view: string, lib: Library): boolean {
   if (view === 'favourites') return !!g.pinned;
   if (view.startsWith('src:')) return inSource(g, view.slice(4) as GameSource);
   if (view.startsWith('col:')) return !!lib.collections.find((c) => c.id === view.slice(4))?.keys.includes(g.key);
+  if (view === 'more') return false;
   return true;
 }
 
@@ -93,6 +94,7 @@ export function GamesPage({ onOpenGame }: { onOpenGame: (key: string) => void })
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [newCollection, setNewCollection] = useState(false);
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
+  const [dropping, setDropping] = useState(false);
   const menu = useGameMenu(library?.collections ?? []);
   const summaries = useMemo(() => hub?.summaries ?? {}, [hub]);
   const runningKeys = useMemo(() => new Set(detection?.running.map((r) => r.key)), [detection]);
@@ -102,7 +104,17 @@ export function GamesPage({ onOpenGame }: { onOpenGame: (key: string) => void })
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     if (!library) return c;
-    const views = ['all', 'installed', 'favourites', 'tools', 'hidden', ...STORES.map((s) => `src:${s.source}`), ...MORE.map((m) => `src:${m}`), ...library.collections.map((x) => `col:${x.id}`)];
+    const views = [
+      'all',
+      'installed',
+      'favourites',
+      'tools',
+      'hidden',
+      'src:emulator',
+      ...STORES.map((s) => `src:${s.source}`),
+      ...library.more.map((m) => `src:${m.id}`),
+      ...library.collections.map((x) => `col:${x.id}`),
+    ];
     for (const v of views) c[v] = all.filter((g) => matchesView(g, v, library)).length;
     return c;
   }, [all, library]);
@@ -178,7 +190,29 @@ export function GamesPage({ onOpenGame }: { onOpenGame: (key: string) => void })
     />
   );
 
+  /** More entries shown in the left list: found or holding games (the rest are under Set up more). */
+  const moreShown = (library?.more ?? []).filter((m) => m.kind === 'other' || m.found || counts[`src:${m.id}`]);
+  const moreSource = view.startsWith('src:') ? library?.more.find((m) => `src:${m.id}` === view) : undefined;
+
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDropping(false);
+    const files = [...e.dataTransfer.files];
+    let last: string | undefined;
+    for (const f of files) {
+      const p = window.shotcaller.pathForFile(f);
+      if (!p) continue;
+      const r = await window.shotcaller.addGameFromPath(p);
+      if (r.game) {
+        toast(`Added ${r.game.name}`);
+        last = r.game.key;
+      } else if (r.error) toast(r.error, 'error');
+    }
+    if (last && files.length === 1) onOpenGame(last);
+  };
+
   const viewTitle = (() => {
+    if (view === 'more') return 'Set up more';
     if (view === 'all') return 'All games';
     if (view === 'installed') return 'Installed';
     if (view === 'favourites') return 'Favourites';
@@ -189,7 +223,20 @@ export function GamesPage({ onOpenGame }: { onOpenGame: (key: string) => void })
   })();
 
   return (
-    <div className="games-page">
+    <div
+      className="games-page"
+      onDragOver={(e) => {
+        if (![...e.dataTransfer.types].includes('Files')) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        if (!dropping) setDropping(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(false);
+      }}
+      onDrop={(e) => void onDrop(e)}
+      style={dropping ? { outline: '2px dashed var(--accent, #4f8cff)', outlineOffset: -6 } : undefined}
+    >
       <aside className={`games-list${folded ? ' folded' : ''}`}>
         <button className="games-fold" onClick={() => setFolded(!folded)} title={folded ? 'Show names' : 'Fold to icons'}>
           {folded ? '»' : '«'}
@@ -212,9 +259,31 @@ export function GamesPage({ onOpenGame }: { onOpenGame: (key: string) => void })
           />
         ))}
         <ListHeading folded={folded}>More</ListHeading>
-        {MORE.filter((m) => counts[`src:${m}`] || m === 'manual').map((m) => (
-          <ListEntry key={m} id={`src:${m}`} icon={<StoreBadge source={m} size={18} />} label={SOURCE_LABEL[m]} count={counts[`src:${m}`]} view={view} folded={folded} onPick={setView} />
+        {moreShown.map((m) => (
+          <ListEntry
+            key={m.id}
+            id={`src:${m.id}`}
+            icon={<StoreBadge source={m.id} size={18} />}
+            label={m.name}
+            count={counts[`src:${m.id}`]}
+            dim={!m.found && m.kind !== 'other'}
+            view={view}
+            folded={folded}
+            onPick={setView}
+          />
         ))}
+        {!!counts['src:emulator'] && (
+          <ListEntry
+            id="src:emulator"
+            icon={<StoreBadge source="emulator" size={18} />}
+            label={SOURCE_LABEL.emulator}
+            count={counts['src:emulator']}
+            view={view}
+            folded={folded}
+            onPick={setView}
+          />
+        )}
+        <ListEntry id="more" icon={<Glyph>＋</Glyph>} label="Set up more" view={view} folded={folded} onPick={setView} />
         <ListHeading folded={folded}>Collections</ListHeading>
         {library?.collections.map((c) => (
           <ListEntry
@@ -276,6 +345,12 @@ export function GamesPage({ onOpenGame }: { onOpenGame: (key: string) => void })
         </div>
 
         <div className="games-scroll">
+          {view === 'more' && library && <MorePanel library={library} />}
+          {moreSource && (
+            <div style={{ marginBottom: 16 }}>
+              <SourceSetup src={moreSource} compact />
+            </div>
+          )}
           {rows.map((r) => (
             <section key={r.title} style={{ marginBottom: 22 }}>
               <div className="section-label" style={{ marginBottom: 10 }}>
@@ -289,7 +364,7 @@ export function GamesPage({ onOpenGame }: { onOpenGame: (key: string) => void })
               All games
             </div>
           )}
-          {!library ? (
+          {view === 'more' ? null : !library ? (
             <div className="muted">Reading your games…</div>
           ) : list.length === 0 ? (
             <div className="card muted">{emptyText(view, filtering)}</div>
@@ -347,11 +422,14 @@ export function GamesPage({ onOpenGame }: { onOpenGame: (key: string) => void })
 
 function emptyText(view: string, filtering: boolean): string {
   if (filtering) return 'No games match. Try clearing the search or filters.';
+  if (view === 'more') return '';
   if (view === 'hidden') return 'Nothing hidden. Right-click a game and pick Hide to tuck it away here.';
   if (view === 'tools') return 'No tools. Software like Wallpaper Engine lands here on its own.';
   if (view === 'favourites') return 'No favourites yet. Right-click a game and pick Add to favourites.';
   if (view.startsWith('col:')) return 'This collection is empty. Right-click any game and add it here.';
-  if (view === 'src:manual') return 'Use “+ Add a game” to add any game by its .exe.';
+  if (view === 'src:manual') return 'Use “+ Add a game”, or drop an .exe or shortcut anywhere on this page.';
+  if (/^src:(rpcs3|ryujinx|mgba)$/.test(view)) return 'No games yet. Add your game folder above, or drop a game file on this page.';
+  if (view.startsWith('src:')) return 'No games from this store on this PC yet.';
   return 'No games here.';
 }
 

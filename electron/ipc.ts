@@ -60,8 +60,10 @@ import { reportCrash } from './crashReports';
 import { getDetectionState } from './detection';
 import { getHotkeyStatus, setHotkeyCapture } from './hotkeys';
 import {
+  addGameFromPath,
   addGameManually,
   createCollection,
+  emulatorOp,
   deleteCollection,
   getLibrary,
   importSteamLibrary,
@@ -78,7 +80,8 @@ import {
 } from './library';
 import { createDesktopShortcut, installGame, openGameFolder, openInStore, playGame, uninstallGame } from './launcher';
 import { hasSteamGridKey, setSteamGridKey } from './stores/steamGrid';
-import type { CollectionOp, GameSource, StoreId } from '../shared/types';
+import { getEpicFreeGames } from './stores/epicFree';
+import type { CollectionOp, EmulatorOp, GameSource, StoreId } from '../shared/types';
 import { getOverlayState, handleOverlayAction, resizeOverlay, setOverlayPreview } from './overlay';
 import { fetchPatchNotes } from './patchNotes';
 import { getSettings, updateSettings } from './settings';
@@ -137,6 +140,14 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.libraryGet, () => getLibrary());
   ipcMain.handle(IPC.libraryImportSteam, () => importSteamLibrary());
   ipcMain.handle(IPC.libraryAddManual, (event) => addGameManually(BrowserWindow.fromWebContents(event.sender)));
+  ipcMain.handle(IPC.libraryAddPath, (_e, p: unknown) => (typeof p === 'string' && p ? addGameFromPath(p) : { error: 'No file.' }));
+  ipcMain.handle(IPC.libraryEmulator, (event, raw: unknown) => {
+    const op = raw as EmulatorOp;
+    if (!op || !['rpcs3', 'ryujinx', 'mgba'].includes(op.emu) || !['pickExe', 'resetExe', 'addFolder', 'removeFolder'].includes(op.op)) return getLibrary();
+    if (op.op === 'removeFolder' && typeof op.folder !== 'string') return getLibrary();
+    return emulatorOp(op, BrowserWindow.fromWebContents(event.sender));
+  });
+  ipcMain.handle(IPC.epicFreeGames, () => getEpicFreeGames());
   ipcMain.handle(IPC.librarySetPinned, (_e, key: string, pinned: boolean) => setPinned(String(key), !!pinned));
   ipcMain.handle(IPC.libraryRemove, (_e, key: string) => removeGame(String(key)));
   ipcMain.handle(IPC.librarySetHidden, (_e, k: unknown, on: unknown) => setHidden(String(k), !!on));
@@ -291,11 +302,13 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.fortniteSearchCosmetics, (_e, q: unknown) => searchCosmetics(typeof q === 'string' ? q.slice(0, 60) : ''));
 
   // Links out: Steam pages and web searches only.
-  const ALLOWED_HOSTS = new Set(['steamcommunity.com', 'store.steampowered.com', 'www.google.com', 'www.youtube.com']);
+  const ALLOWED_HOSTS = new Set(['steamcommunity.com', 'store.steampowered.com', 'www.google.com', 'www.youtube.com', 'store.epicgames.com']);
   ipcMain.handle(IPC.openExternal, (_e, url: unknown) => {
     try {
       const u = new URL(str(url, 2000));
       if (u.protocol === 'https:' && ALLOWED_HOSTS.has(u.hostname)) void shell.openExternal(u.toString());
+      // Epic store pages in the Epic launcher (free games of the week).
+      else if (u.protocol === 'com.epicgames.launcher:' && u.hostname === 'store') void shell.openExternal(u.toString());
     } catch {
       // ignore bad URLs
     }

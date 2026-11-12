@@ -5,6 +5,7 @@ import { gameColor, gameInitials } from './GameRail';
 import { Art, coverSources } from './hub/art';
 import { ago, formatPlaytime, play } from './games/common';
 import { TitleCard } from './games/GamesPage';
+import { EpicFreeCard } from './games/MorePanel';
 
 export { SettingsPage } from './SettingsPage';
 export { ProfilePage } from './AccountPage';
@@ -106,6 +107,7 @@ export function HomePage({ onOpenGame }: { onOpenGame: (key: string) => void }) 
           <div className="section-label">Playing now</div>
           <PlayingNow running={detection?.running ?? []} onOpenGame={onOpenGame} />
         </div>
+        <EpicFreeCard />
         {widgets.map((label, i) => (
           <div key={label} className="card enter" style={{ animationDelay: `${(i + 1) * 60}ms`, minHeight: 130 }}>
             <div className="section-label">{label}</div>

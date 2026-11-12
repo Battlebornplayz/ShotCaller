@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { IPC } from '../shared/ipc';
 import type { ShotCallerApi } from '../shared/types';
 
@@ -26,6 +26,10 @@ const api: ShotCallerApi = {
   getLibrary: () => ipcRenderer.invoke(IPC.libraryGet),
   importSteam: () => ipcRenderer.invoke(IPC.libraryImportSteam),
   addGameManually: () => ipcRenderer.invoke(IPC.libraryAddManual),
+  addGameFromPath: (filePath) => ipcRenderer.invoke(IPC.libraryAddPath, filePath),
+  pathForFile: (file) => webUtils.getPathForFile(file),
+  emulator: (op) => ipcRenderer.invoke(IPC.libraryEmulator, op),
+  getEpicFreeGames: () => ipcRenderer.invoke(IPC.epicFreeGames),
   setGamePinned: (key, pinned) => ipcRenderer.invoke(IPC.librarySetPinned, key, pinned),
   removeGame: (key) => ipcRenderer.invoke(IPC.libraryRemove, key),
   onLibrary: (cb) => on(IPC.libraryChanged, cb),

@@ -200,7 +200,48 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 // ---------- Library and detection ----------
 
 /** anker = installed by the Anker Games launcher; emulator = only found through local emulator achievement files. */
-export type GameSource = 'module' | 'steam' | 'manual' | 'anker' | 'emulator' | 'epic' | 'xbox';
+export type GameSource = 'module' | 'steam' | 'manual' | 'anker' | 'emulator' | 'epic' | 'xbox' | ExtraStoreId | EmulatorId;
+
+/** The smaller stores in the Games tab's More section (Phase L2), found from their own files. */
+export type ExtraStoreId = 'gog' | 'ea' | 'ubisoft' | 'battlenet' | 'riot' | 'rockstar' | 'amazon' | 'itch';
+
+/** Console emulators: pick game folders once, each game file becomes a card (Phase L2). */
+export type EmulatorId = 'rpcs3' | 'ryujinx' | 'mgba';
+
+/** One entry of the More section: a smaller store, an emulator, Anker or games added by hand. */
+export interface MoreSource {
+  id: GameSource;
+  name: string;
+  kind: 'launcher' | 'store' | 'emulator' | 'other';
+  found: boolean;
+  /** Where its program or data was found. */
+  path?: string;
+  /** Games found in it. */
+  count: number;
+  note?: string;
+  /** Emulators: the game folders it looks in. */
+  folders?: string[];
+}
+
+export type EmulatorOp =
+  | { emu: EmulatorId; op: 'pickExe' }
+  | { emu: EmulatorId; op: 'resetExe' }
+  | { emu: EmulatorId; op: 'addFolder' }
+  | { emu: EmulatorId; op: 'removeFolder'; folder: string };
+
+/** A free game on the Epic store (this week's, or next week's when upcoming). */
+export interface EpicFreeGame {
+  title: string;
+  image?: string;
+  /** Store page on the web. */
+  url: string;
+  /** Same page in the Epic launcher. */
+  launcherUrl: string;
+  /** Epoch ms the offer starts and ends. */
+  start: number;
+  end: number;
+  upcoming: boolean;
+}
 
 /** The stores the Games tab finds on its own (Phase L1). */
 export type StoreId = 'steam' | 'epic' | 'xbox';
@@ -291,6 +332,8 @@ export interface LibraryGame {
   owned?: boolean;
   /** Extra launch options (Steam and games started from their exe). */
   launchOptions?: string;
+  /** Emulator games: the game file the emulator opens. */
+  romPath?: string;
 }
 
 export interface SteamImportInfo {
@@ -305,6 +348,8 @@ export interface Library {
   games: LibraryGame[];
   steam: SteamImportInfo;
   stores: StoreStatus[];
+  /** The More section's sources (Phase L2). */
+  more: MoreSource[];
   collections: GameCollection[];
   /** Last full scan (ISO), absent before the first one finishes. */
   scannedAt?: string;
@@ -520,6 +565,12 @@ export interface ShotCallerApi {
   importSteam(): Promise<Library>;
   /** Opens a file picker for an executable; resolves to the added game or null if cancelled. */
   addGameManually(): Promise<LibraryGame | null>;
+  /** Adds a dropped exe, shortcut (.lnk / .url) or game file; resolves to the game or an error. */
+  addGameFromPath(filePath: string): Promise<{ game?: LibraryGame; error?: string }>;
+  /** Full path of a file dropped on the window. */
+  pathForFile(file: File): string;
+  emulator(op: EmulatorOp): Promise<Library>;
+  getEpicFreeGames(): Promise<EpicFreeGame[]>;
   setGamePinned(key: string, pinned: boolean): Promise<Library>;
   removeGame(key: string): Promise<Library>;
   setGameHidden(key: string, hidden: boolean): Promise<Library>;
