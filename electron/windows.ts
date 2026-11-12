@@ -34,8 +34,19 @@ export function createPopupWindow(bounds: Electron.Rectangle): BrowserWindow {
   });
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setIgnoreMouseEvents(true);
+  keepOutOfScreenCopies(win);
   loadRenderer(win, 'popup');
   return win;
+}
+
+/**
+ * Windows drawn over the game are left out of screen copies (SetWindowDisplayAffinity, Windows 10 2004+), so
+ * ShotCaller's screen readers only ever see the game, never its own drawing on top (the map layer over Fortnite's
+ * map made the map check fail every other look, so the layer blinked). Screenshots and screen recorders don't
+ * show these windows either; Game Bar's game recording never did.
+ */
+function keepOutOfScreenCopies(win: BrowserWindow): void {
+  if (process.platform === 'win32') win.setContentProtection(true);
 }
 
 function loadRenderer(win: BrowserWindow, windowName: WindowName, extra: Record<string, string> = {}): void {
@@ -121,6 +132,7 @@ export function createOverlayWindow(kind: 'corner' | 'monitor', bounds: Electron
           icon: APP_ICON,
           webPreferences,
         });
+  if (kind === 'corner') keepOutOfScreenCopies(win);
   loadRenderer(win, 'overlay', { mode: kind });
   return win;
 }
@@ -145,6 +157,7 @@ export function createFnMapLayerWindow(bounds: Electron.Rectangle): BrowserWindo
     title: 'ShotCaller map layer',
     webPreferences: { ...webPreferences, backgroundThrottling: false },
   });
+  keepOutOfScreenCopies(win);
   loadRenderer(win, 'fnmaplayer');
   return win;
 }
