@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react';
 import type { LibraryGame, RunningGame } from '../../shared/types';
-import { useDetection } from '../hooks/useLive';
+import { useDetection, useLibrary } from '../hooks/useLive';
 import { gameColor, gameInitials } from './GameRail';
+import { Art, coverSources } from './hub/art';
+import { ago, formatPlaytime, play } from './games/common';
+import { TitleCard } from './games/GamesPage';
 
 export { SettingsPage } from './SettingsPage';
 export { ProfilePage } from './AccountPage';
-export { LibraryPage } from './hub/LibraryPage';
+export { GamesPage } from './games/GamesPage';
 export { GamePage } from './hub/GamePage';
 export { TimelinePage } from './hub/TimelinePage';
 
@@ -97,6 +100,7 @@ export function HomePage({ onOpenGame }: { onOpenGame: (key: string) => void }) 
   return (
     <>
       <PageHeader title="Home" subtitle="Playing now, closest unlocks and your recent wins." badge="Phase 6" />
+      <ContinuePlaying onOpenGame={onOpenGame} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
         <div className="card enter" style={{ minHeight: 130 }}>
           <div className="section-label">Playing now</div>
@@ -112,6 +116,43 @@ export function HomePage({ onOpenGame }: { onOpenGame: (key: string) => void }) 
         ))}
       </div>
     </>
+  );
+}
+
+/** Home's "Continue playing" strip: the last 4 games, each with Play (L-Q61). */
+function ContinuePlaying({ onOpenGame }: { onOpenGame: (key: string) => void }) {
+  const library = useLibrary();
+  const recent = (library?.games ?? [])
+    .filter((g) => g.installed && g.lastPlayed && !g.hidden && !g.isTool)
+    .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0))
+    .slice(0, 4);
+  if (!recent.length) return null;
+  return (
+    <section style={{ marginBottom: 18 }}>
+      <div className="section-label" style={{ marginBottom: 10 }}>
+        Continue playing
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 14 }}>
+        {recent.map((g) => (
+          <div key={g.key} className="card hover-lift enter" style={{ padding: 0, display: 'flex', overflow: 'hidden', alignItems: 'stretch' }}>
+            <button onClick={() => onOpenGame(g.key)} style={{ width: 72, flex: 'none', aspectRatio: '2 / 3', padding: 0, background: '#121330' }}>
+              <Art sources={coverSources(g)} style={{ width: '100%', height: '100%' }} fallback={<TitleCard game={g} />} />
+            </button>
+            <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0, flex: 1 }}>
+              <button onClick={() => onOpenGame(g.key)} style={{ textAlign: 'left', padding: 0 }}>
+                <div style={{ fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</div>
+                <div className="muted" style={{ fontSize: 12 }}>
+                  {formatPlaytime(g.playMinutes) ?? 'Played'} · {ago(g.lastPlayed!)}
+                </div>
+              </button>
+              <button className="btn primary small" style={{ alignSelf: 'flex-start' }} onClick={() => void play(g)}>
+                ▶ Play
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

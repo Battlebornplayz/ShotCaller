@@ -1,10 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { rarityTier, type Achievement, type GameAchievements, type LibraryGame, type RunningGame, type SteamAppMatch } from '../../../shared/types';
-import { AchIcon, formatDate, formatMinutes, RarityPill, Ring, TIER_COLOR } from '../../components/achievements';
-import { useDetection, useHubQuery, useOverlayState } from '../../hooks/useLive';
-import { GameTile, since } from '../pages';
-import { Art, bannerSources } from './art';
-import { SOURCE_LABEL } from './LibraryPage';
+import { AchIcon, formatDate, formatMinutes, RarityPill, TIER_COLOR } from '../../components/achievements';
+import { useDetection, useHubQuery } from '../../hooks/useLive';
+import { GameHero } from '../games/GameHero';
 import { SkillshotHub } from '../../../games/skillshot-city/SkillshotHub';
 import { FortniteHub } from '../../../games/fortnite/FortniteHub';
 
@@ -28,68 +26,15 @@ const TRACKING_NOTE: Record<GameAchievements['tracking'], string> = {
 
 export function GamePage({ game }: { game: LibraryGame }) {
   const detection = useDetection();
-  const overlay = useOverlayState();
   const running = detection?.running.find((r) => r.key === game.key);
   const { value: data, loading } = useHubQuery(() => window.shotcaller.getGameAchievements(game.key), [game.key, game.achievementAppId]);
   const appId = game.steamAppId ?? game.achievementAppId;
-  const pct = data?.total ? data.unlocked / data.total : null;
   // Fortnite has no achievements of its own; its hub shows matches and stats instead.
   const showAchievements = game.moduleId !== 'fortnite';
 
   return (
     <div className={game.moduleId === 'fortnite' ? 'fn-theme' : undefined}>
-      <div className="card enter game-hero" style={{ padding: 0, overflow: 'hidden', marginBottom: 14, display: 'flex', alignItems: 'stretch', minHeight: 150 }}>
-        <div className="game-hero-art" style={{ width: 320, flex: 'none', background: '#121330' }}>
-          <Art
-            sources={bannerSources(game)}
-            style={{ width: 320, height: '100%', minHeight: 150 }}
-            fallback={
-              <div style={{ width: 320, height: '100%', display: 'grid', placeItems: 'center' }}>
-                <GameTile game={game} size={72} />
-              </div>
-            }
-          />
-        </div>
-        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>{game.name}</h1>
-            {running ? <span className="pill green">● Running · {since(running.since)}</span> : <span className="pill muted">Not running</span>}
-            <span className="pill muted">{SOURCE_LABEL[game.source]}</span>
-            {game.moduleId && <span className="pill">ShotCaller module</span>}
-          </div>
-          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-            {showAchievements && <Stat label="Achievements" value={data?.total ? `${data.unlocked} / ${data.total}` : '—'} />}
-            <Stat label="Playtime" value={formatMinutes(data?.playtimeMinutes ?? null)} />
-            <Stat label="Last played" value={data?.lastPlayed ? formatDate(data.lastPlayed) : '—'} />
-            <Stat label="Sessions" value={data ? String(data.sessions.length) : '—'} />
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {appId && (
-              <button className="btn" onClick={() => open(`https://steamcommunity.com/app/${appId}/guides/`)}>
-                Steam guides ↗
-              </button>
-            )}
-            <button className="btn" onClick={() => void window.shotcaller.setOverlayPreview(!overlay?.preview)}>
-              {overlay?.preview ? 'Close overlay preview' : 'Preview overlay'}
-            </button>
-            {!game.moduleId && (
-              <button className="btn" onClick={() => void window.shotcaller.setGamePinned(game.key, !game.pinned)}>
-                {game.pinned ? 'Unpin from sidebar' : 'Pin to sidebar'}
-              </button>
-            )}
-            {game.source === 'manual' && (
-              <button className="btn" onClick={() => void window.shotcaller.removeGame(game.key)}>
-                Remove game
-              </button>
-            )}
-          </div>
-        </div>
-        {pct !== null && (
-          <div style={{ display: 'grid', placeItems: 'center', padding: '0 26px' }}>
-            <Ring value={pct} size={92} stroke={7} />
-          </div>
-        )}
-      </div>
+      <GameHero game={game} data={data} running={running} showAchievements={showAchievements} />
 
       {game.moduleId === 'skillshot-city' && <SkillshotHub />}
       {game.moduleId === 'fortnite' && <FortniteHub />}
@@ -112,15 +57,6 @@ export function GamePage({ game }: { game: LibraryGame }) {
         {game.installDir && <Fact label="Install folder" value={game.installDir} />}
         {game.exePath && <Fact label="Executable" value={game.exePath} />}
       </section>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="section-label">{label}</div>
-      <div style={{ fontWeight: 800, fontSize: 18, marginTop: 2 }}>{value}</div>
     </div>
   );
 }

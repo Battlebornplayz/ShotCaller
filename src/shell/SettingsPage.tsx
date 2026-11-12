@@ -16,7 +16,8 @@ import {
 } from '../../shared/types';
 import { TIER_COLOR, TIER_LABEL } from '../components/achievements';
 import { acceleratorParts, HOTKEY_LABELS } from '../hotkeyLabels';
-import { useHotkeyStatus, useOverlayState, useSettings } from '../hooks/useLive';
+import { useHotkeyStatus, useLibrary, useOverlayState, useSettings } from '../hooks/useLive';
+import { StoreList } from './games/GamesPage';
 import { useUpdateState } from '../hooks/useUpdateState';
 import { AccountSection, PrivacySection } from './AccountPage';
 import { PageHeader } from './pages';
@@ -537,6 +538,81 @@ function PopupSection() {
   );
 }
 
+/** Game stores the Games tab reads, plus the optional SteamGridDB key for missing art. */
+function StoresSection() {
+  const library = useLibrary();
+  const [keySet, setKeySet] = useState<boolean | null>(null);
+  const [key, setKey] = useState('');
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [scanning, setScanning] = useState(false);
+  useEffect(() => {
+    void window.shotcaller.getSteamGridKeySet().then(setKeySet);
+  }, []);
+  const saveKey = async (value: string | null) => {
+    const r = await window.shotcaller.setSteamGridKey(value);
+    if (r.ok) {
+      setKey('');
+      setKeySet(!!value);
+      setMsg({ ok: true, text: value ? 'Key saved. Missing covers fill in over the next minute.' : 'Key removed.' });
+    } else setMsg({ ok: false, text: r.error ?? 'That didn’t work.' });
+  };
+  return (
+    <Section title="Game stores" subtitle="Where the Games tab finds your games. ShotCaller only reads the stores’ files; no sign-in, nothing changed.">
+      {library ? <StoreList library={library} /> : <div className="muted">Reading your stores…</div>}
+      <div className="row" style={{ gap: 8 }}>
+        <button
+          className="btn"
+          disabled={scanning}
+          onClick={async () => {
+            setScanning(true);
+            try {
+              await window.shotcaller.importSteam();
+            } finally {
+              setScanning(false);
+            }
+          }}
+        >
+          {scanning ? <span className="spinner" /> : null} Look for games again
+        </button>
+      </div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <div style={{ fontWeight: 700 }}>Cover art for games without any (optional)</div>
+        <div className="muted" style={{ fontSize: 13 }}>
+          Paste a free SteamGridDB API key (steamgriddb.com → Preferences → API). It’s stored encrypted on this PC only. Without it, those games get a clean title card.
+        </div>
+        {keySet ? (
+          <div className="row" style={{ gap: 8 }}>
+            <span className="pill green">Key saved</span>
+            <button className="btn" onClick={() => void saveKey(null)}>
+              Remove key
+            </button>
+          </div>
+        ) : (
+          <form
+            className="row"
+            style={{ gap: 8 }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              void saveKey(key);
+            }}
+          >
+            <input type="password" placeholder="SteamGridDB API key" value={key} onChange={(e) => setKey(e.target.value)} style={{ width: 300 }} />
+            <button className="btn" type="submit" disabled={!key.trim()}>
+              Save key
+            </button>
+            <button className="btn" type="button" onClick={() => void window.shotcaller.openExternal('https://www.steamgriddb.com/profile/preferences/api')}>
+              Get a key ↗
+            </button>
+          </form>
+        )}
+        {msg && (
+          <div style={{ fontSize: 13, color: msg.ok ? 'var(--green)' : 'var(--red)' }}>{msg.text}</div>
+        )}
+      </div>
+    </Section>
+  );
+}
+
 export function SettingsPage() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const settings = useSettings();
@@ -551,6 +627,7 @@ export function SettingsPage() {
       <PageHeader title="Settings" subtitle="Overlay, hotkeys, startup and updates. Changes save instantly." />
 
       <AccountSection />
+      <StoresSection />
       <PopupSection />
       <OverlaySection />
       <HotkeysSection />

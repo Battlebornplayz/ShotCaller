@@ -154,11 +154,18 @@ export interface SteamApp {
   installDir: string;
   /** Fully installed (StateFlags has the "fully installed" bit). */
   installed: boolean;
+  sizeBytes?: number;
+  /** Steam says an update is waiting (StateFlags "update required"). */
+  updateAvailable?: boolean;
+  /** Not a game: SteamVR, Wallpaper Engine and other software. */
+  isTool?: boolean;
 }
 
 /** Steam's own runtimes, redistributables and tools: not games. */
 const TOOL_APP_IDS = new Set([228980, 1070560, 1391110, 1628350, 1493710, 2180100, 1826330, 1887720, 2348590, 2805730, 250820, 1245040, 1580130]);
-const TOOL_NAME = /^(Proton\b|Steam Linux Runtime|Steamworks Common|SteamVR|Steam Audio|Wallpaper Engine)/i;
+const RUNTIME_NAME = /^(Proton\b|Steam Linux Runtime|Steamworks Common)/i;
+/** Software that Steam installs like a game: listed under Tools. */
+const TOOL_NAME = /^(SteamVR|Steam Audio|Wallpaper Engine|VTube Studio|Crosshair V2|DSX|Blender|OBS Studio|Aseprite|RPG Maker|GameMaker|Soundpad|FPS Monitor|Lossless Scaling)\b/i;
 
 export function readInstalledApps(libraryFolders: string[]): SteamApp[] {
   const apps = new Map<number, SteamApp>();
@@ -177,13 +184,17 @@ export function readInstalledApps(libraryFolders: string[]): SteamApp[] {
         const name = vdfGet(state, 'name');
         const dir = vdfGet(state, 'installdir');
         if (!appId || typeof name !== 'string' || typeof dir !== 'string') continue;
-        if (TOOL_APP_IDS.has(appId) || TOOL_NAME.test(name)) continue;
+        if (TOOL_APP_IDS.has(appId) || RUNTIME_NAME.test(name)) continue;
         const flags = Number(vdfGet(state, 'StateFlags') ?? 0);
+        const size = Number(vdfGet(state, 'SizeOnDisk') ?? 0);
         apps.set(appId, {
           appId,
           name,
           installDir: path.join(steamapps, 'common', dir),
           installed: (flags & 4) === 4,
+          sizeBytes: size > 0 ? size : undefined,
+          updateAvailable: (flags & 2) === 2,
+          isTool: TOOL_NAME.test(name),
         });
       } catch {
         // Skip unreadable manifests.

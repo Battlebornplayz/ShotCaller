@@ -3,34 +3,73 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { games, moduleForSteamApp } from '../games';
-import type { Library, LibraryGame, SteamImportInfo } from '../shared/types';
+import type { GameCollection, Library, LibraryGame, SteamImportInfo, StoreId, StoreStatus } from '../shared/types';
 import { readAnkerLibrary, type AnkerGame } from './anker';
 import { scanEmulatorApps } from './emulators';
+import { getSessions } from './sessions';
 import { findSteamPath, readInstalledApps, readLibraryFolders, type SteamApp } from './steam';
-import { listSchemaAppIds, readSteamUser } from './steamLocal';
-import { cachedAppName, fetchAppName } from './steamPublic';
+import { listSchemaAppIds, readPlaytime, readSteamUser } from './steamLocal';
+import {
+  cachedAppName,
+  cachedGenres,
+  cachedNameMatch,
+  fetchAppName,
+  fetchGenres,
+  fetchOwnedGames,
+  matchSteamByName,
+  normName,
+  SOFTWARE_GENRES,
+  type OwnedGame,
+} from './steamPublic';
+import { defaultEpicDataDir, epicFound, epicWatchDir, readEpicGames, type EpicGame } from './stores/epic';
+import { cachedGridArt, fetchGridArt, hasSteamGridKey } from './stores/steamGrid';
+import { fileToDataUrl, readXboxGames, xboxGamingRoots, type XboxGame } from './stores/xbox';
 
 /**
- * The user's games: supported modules, the Steam library import (installed games plus games
- * Steam has achievement data for), the Anker Games launcher, emulator achievement folders and
- * games added by hand. Persisted to library.json in userData so the list is ready before scans finish.
+ * The user's games, from every source: supported modules, Steam (installed, played, and owned
+ * from the public profile), Epic Games and Xbox / Microsoft Store (Phase L1), the Anker Games
+ * launcher, emulator achievement folders and games added by hand. A game found on several stores
+ * becomes one card. Persisted to library.json in userData so the list is ready before scans finish.
+ * Every source is read-only: ShotCaller never changes other launchers' files.
  */
 
 interface Stored {
   manual: LibraryGame[];
+  /** Favourites (also shown in the game rail). */
   pinned: string[];
   steamApps: SteamApp[];
   /** Steam apps with a cached achievement schema that aren't installed (played before). */
   steamPlayed: number[];
+  /** Everything the Steam account owns (public profile only); null when private or unknown. */
+  steamOwned: OwnedGame[] | null;
+  /** App id → playtime from Steam's local config. */
+  steamPlaytime: Record<string, { minutes: number; lastPlayed: number | null }>;
   anker: AnkerGame[];
+  epic: EpicGame[];
+  xbox: XboxGame[];
   /** App ids with local emulator achievement files. */
   emulatorApps: number[];
   /** Game key → Steam app id whose achievement list it uses (games added by hand). */
   links: Record<string, number>;
   steam: SteamImportInfo;
+  hidden: string[];
+  collections: GameCollection[];
+  /** Your own genre edits per game. */
+  genreEdits: Record<string, string[]>;
+  /** Your own "this is a tool / a game" choice per game. */
+  toolEdits: Record<string, boolean>;
+  launchOptions: Record<string, string>;
+  /** Game key → epoch ms first found (0 = before the Games tab existed). */
+  firstSeen: Record<string, number>;
+  /** Game key → epoch ms last started from ShotCaller. */
+  launched: Record<string, number>;
+  /** Folders the user picked for a store. */
+  storePaths: Partial<Record<StoreId, string>>;
+  scannedAt?: string;
 }
 
 let store: Stored | null = null;
+let justAdded: Library['justAdded'];
 const listeners = new Set<(lib: Library) => void>();
 
 function file(): string {
@@ -38,23 +77,62 @@ function file(): string {
 }
 
 const ids = (v: unknown): number[] => (Array.isArray(v) ? v.filter((n): n is number => Number.isInteger(n) && n > 0) : []);
+const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((k): k is string => typeof k === 'string') : []);
+const obj = <T>(v: unknown): Record<string, T> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, T>) : {});
 
 function load(): Stored {
   if (store) return store;
-  const empty: Stored = { manual: [], pinned: [], steamApps: [], steamPlayed: [], anker: [], emulatorApps: [], links: {}, steam: { found: false, libraryFolders: [] } };
+  const empty: Stored = {
+    manual: [],
+    pinned: [],
+    steamApps: [],
+    steamPlayed: [],
+    steamOwned: null,
+    steamPlaytime: {},
+    anker: [],
+    epic: [],
+    xbox: [],
+    emulatorApps: [],
+    links: {},
+    steam: { found: false, libraryFolders: [] },
+    hidden: [],
+    collections: [],
+    genreEdits: {},
+    toolEdits: {},
+    launchOptions: {},
+    firstSeen: {},
+    launched: {},
+    storePaths: {},
+  };
   try {
     const raw = JSON.parse(fs.readFileSync(file(), 'utf8')) as Partial<Stored>;
     const links: Record<string, number> = {};
     for (const [k, v] of Object.entries(raw.links ?? {})) if (typeof k === 'string' && Number.isInteger(v) && v > 0) links[k] = v;
     store = {
+      ...empty,
       manual: Array.isArray(raw.manual) ? raw.manual.filter(isManualGame) : [],
-      pinned: Array.isArray(raw.pinned) ? raw.pinned.filter((k): k is string => typeof k === 'string') : [],
+      pinned: strs(raw.pinned),
       steamApps: Array.isArray(raw.steamApps) ? raw.steamApps.filter((a) => a && typeof a.appId === 'number') : [],
       steamPlayed: ids(raw.steamPlayed),
+      steamOwned: Array.isArray(raw.steamOwned) ? raw.steamOwned.filter((g) => g && typeof g.appId === 'number') : null,
+      steamPlaytime: obj(raw.steamPlaytime),
       anker: Array.isArray(raw.anker) ? raw.anker.filter((g) => g && typeof g.id === 'string' && typeof g.title === 'string') : [],
+      epic: Array.isArray(raw.epic) ? raw.epic.filter((g) => g && typeof g.appName === 'string') : [],
+      xbox: Array.isArray(raw.xbox) ? raw.xbox.filter((g) => g && typeof g.pfn === 'string') : [],
       emulatorApps: ids(raw.emulatorApps),
       links,
       steam: raw.steam && typeof raw.steam === 'object' ? { ...empty.steam, ...raw.steam } : empty.steam,
+      hidden: strs(raw.hidden),
+      collections: Array.isArray(raw.collections)
+        ? raw.collections.filter((c) => c && typeof c.id === 'string' && typeof c.name === 'string').map((c) => ({ ...c, keys: strs(c.keys) }))
+        : [],
+      genreEdits: obj(raw.genreEdits),
+      toolEdits: obj(raw.toolEdits),
+      launchOptions: obj(raw.launchOptions),
+      firstSeen: obj(raw.firstSeen),
+      launched: obj(raw.launched),
+      storePaths: obj(raw.storePaths),
+      scannedAt: typeof raw.scannedAt === 'string' ? raw.scannedAt : undefined,
     };
   } catch {
     store = empty;
@@ -68,6 +146,7 @@ function isManualGame(g: unknown): g is LibraryGame {
 }
 
 function save(): void {
+  built = null;
   try {
     fs.mkdirSync(path.dirname(file()), { recursive: true });
     fs.writeFileSync(file(), JSON.stringify(load(), null, 2), 'utf8');
@@ -77,6 +156,7 @@ function save(): void {
 }
 
 function emit(): void {
+  built = null;
   const lib = getLibrary();
   for (const fn of listeners) fn(lib);
 }
@@ -88,43 +168,75 @@ export function onLibraryChange(fn: (lib: Library) => void): () => void {
 
 const appName = (appId: number) => cachedAppName(appId) ?? `Steam app ${appId}`;
 
-/** Merged view: modules first, then pinned, then everything else by name. */
+// ---------- Building the merged list ----------
+
+/** Xbox art read from the package (data URLs), kept in memory between builds. */
+const xboxArt = new Map<string, { icon?: string; banner?: string }>();
+function artForXbox(g: XboxGame): { icon?: string; banner?: string } {
+  let a = xboxArt.get(g.pfn);
+  if (!a) {
+    a = { icon: fileToDataUrl(g.logoFile, 400_000), banner: fileToDataUrl(g.splashFile, 900_000) };
+    xboxArt.set(g.pfn, a);
+  }
+  return a;
+}
+
+/** Built list, rebuilt when something changes (and at most every 15 s for playtime). */
+let built: { at: number; lib: Library } | null = null;
+const BUILD_TTL = 15_000;
+
+/** Merged view: modules first, then favourites, then everything else by name. */
 export function getLibrary(): Library {
+  if (built && Date.now() - built.at < BUILD_TTL) return built.lib;
+  const lib = build();
+  built = { at: Date.now(), lib };
+  return lib;
+}
+
+function build(): Library {
   const s = load();
-  const pinned = new Set(s.pinned);
   const list: LibraryGame[] = [];
   const steamIds = new Set<number>();
+  const owned = new Map((s.steamOwned ?? []).map((g) => [g.appId, g]));
 
-  for (const a of s.steamApps) {
-    steamIds.add(a.appId);
-    const mod = moduleForSteamApp(a.appId);
-    list.push({
-      key: `steam:${a.appId}`,
-      name: a.name,
-      source: 'steam',
-      steamAppId: a.appId,
-      achievementAppId: a.appId,
-      installDir: a.installDir,
-      exeNames: mod?.exeNames ?? [],
-      moduleId: mod?.id,
-      installed: a.installed,
-    });
-  }
-
-  for (const appId of s.steamPlayed) {
-    if (steamIds.has(appId)) continue;
-    steamIds.add(appId);
+  const steamGame = (appId: number, name: string, extra: Partial<LibraryGame>): LibraryGame => {
     const mod = moduleForSteamApp(appId);
-    list.push({
+    return {
       key: `steam:${appId}`,
-      name: mod?.name ?? appName(appId),
+      name,
       source: 'steam',
       steamAppId: appId,
       achievementAppId: appId,
       exeNames: mod?.exeNames ?? [],
       moduleId: mod?.id,
       installed: false,
-    });
+      ...extra,
+    };
+  };
+
+  for (const a of s.steamApps) {
+    steamIds.add(a.appId);
+    list.push(
+      steamGame(a.appId, a.name, {
+        installDir: a.installDir,
+        installed: a.installed,
+        sizeBytes: a.sizeBytes,
+        updateAvailable: a.updateAvailable,
+        isTool: a.isTool,
+      }),
+    );
+  }
+
+  for (const appId of s.steamPlayed) {
+    if (steamIds.has(appId)) continue;
+    steamIds.add(appId);
+    list.push(steamGame(appId, moduleForSteamApp(appId)?.name ?? owned.get(appId)?.name ?? appName(appId), {}));
+  }
+
+  for (const g of owned.values()) {
+    if (steamIds.has(g.appId)) continue;
+    steamIds.add(g.appId);
+    list.push(steamGame(g.appId, g.name, { owned: true }));
   }
 
   // Supported games that Steam doesn't list here are still detected by exe name.
@@ -142,26 +254,97 @@ export function getLibrary(): Library {
     });
   }
 
+  for (const g of list) g.copies = [{ source: g.source, key: g.key, installed: g.installed }];
+
+  // Epic and Xbox games join the card of the same game from Steam or a module (one card per game).
+  const byName = new Map<string, LibraryGame>();
+  for (const g of list) {
+    const n = normName(g.name);
+    if (n && (!byName.has(n) || g.installed)) byName.set(n, g);
+  }
+  const addStoreGame = (g: LibraryGame) => {
+    const n = normName(g.name);
+    const target = n ? byName.get(n) : undefined;
+    if (!target) {
+      g.copies = [{ source: g.source, key: g.key, installed: g.installed }];
+      // Borrow the Steam version's achievement list and art when the same game is on Steam.
+      const match = cachedNameMatch(g.name);
+      if (match) g.achievementAppId = match;
+      list.push(g);
+      if (n) byName.set(n, g);
+      return;
+    }
+    target.copies!.push({ source: g.source, key: g.key, installed: g.installed });
+    target.exeNames = [...new Set([...target.exeNames, ...g.exeNames])];
+    const dirs = [g.installDir, ...(g.extraDirs ?? [])].filter((d): d is string => !!d);
+    if (g.installed && !target.installed) {
+      if (target.installDir) dirs.push(target.installDir);
+      target.installDir = g.installDir;
+      target.installed = true;
+      target.owned = false;
+    }
+    target.extraDirs = [...new Set([...(target.extraDirs ?? []), ...dirs])].filter((d) => d !== target.installDir);
+    target.sizeBytes ??= g.sizeBytes;
+    target.cover ??= g.cover;
+    target.banner ??= g.banner;
+    target.icon ??= g.icon;
+    if (g.isTool) target.isTool ??= true;
+  };
+
+  for (const e of s.epic) {
+    addStoreGame({
+      key: `epic:${e.appName}`,
+      name: e.name,
+      source: 'epic',
+      installDir: e.installDir,
+      exePath: e.exePath,
+      exeNames: [],
+      installed: true,
+      sizeBytes: e.sizeBytes,
+      isTool: e.isTool || undefined,
+      cover: e.cover,
+      banner: e.banner,
+    });
+  }
+
+  for (const x of s.xbox) {
+    const art = artForXbox(x);
+    addStoreGame({
+      key: `xbox:${x.pfn}`,
+      name: x.name,
+      source: 'xbox',
+      installDir: x.contentDir ?? x.installDir,
+      extraDirs: x.contentDir ? [x.installDir] : undefined,
+      exeNames: x.exeNames,
+      installed: true,
+      icon: art.icon,
+      banner: art.banner,
+    });
+  }
+
   const nonSteamApps = new Set<number>();
   for (const g of s.anker) {
     if (g.steamAppId) nonSteamApps.add(g.steamAppId);
+    const key = `anker:${g.id}`;
     list.push({
-      key: `anker:${g.id}`,
+      key,
       name: g.title,
       source: 'anker',
       installDir: g.installDir,
       exePath: g.exePath,
       exeNames: g.exePath ? [path.basename(g.exePath)] : [],
-      achievementAppId: s.links[`anker:${g.id}`] ?? g.steamAppId,
+      achievementAppId: s.links[key] ?? g.steamAppId,
       poster: g.poster,
       installed: true,
+      copies: [{ source: 'anker', key, installed: true }],
     });
   }
 
   for (const m of s.manual) {
     const linked = s.links[m.key];
     if (linked) nonSteamApps.add(linked);
-    list.push({ ...m, achievementAppId: linked, installed: fs.existsSync(m.exePath ?? '') });
+    const installed = fs.existsSync(m.exePath ?? '');
+    list.push({ ...m, achievementAppId: linked, installed, copies: [{ source: 'manual', key: m.key, installed }] });
   }
 
   // Emulator saves for games not otherwise in the library (e.g. installed outside a launcher).
@@ -174,28 +357,91 @@ export function getLibrary(): Library {
       achievementAppId: appId,
       exeNames: [],
       installed: false,
+      copies: [{ source: 'emulator', key: `emu:${appId}`, installed: false }],
     });
   }
 
-  for (const g of list) g.pinned = pinned.has(g.key);
+  // Your own choices, playtime, art and genres.
+  const pinned = new Set(s.pinned);
+  const hidden = new Set(s.hidden);
+  const gridOn = hasSteamGridKey();
+  for (const g of list) {
+    g.pinned = pinned.has(g.key);
+    g.hidden = hidden.has(g.key) || undefined;
+    g.addedAt = s.firstSeen[g.key];
+    g.launchOptions = s.launchOptions[g.key] || undefined;
+
+    const steamPt = g.steamAppId ? s.steamPlaytime[g.steamAppId] : undefined;
+    const sessions = getSessions(g.key);
+    const tracked = Math.round(sessions.reduce((n, x) => n + (x.end - x.start), 0) / 60000);
+    const storeMinutes = steamPt?.minutes ?? (g.steamAppId ? owned.get(g.steamAppId)?.minutes : undefined);
+    g.playMinutes = storeMinutes || tracked || undefined;
+    const last = Math.max(steamPt?.lastPlayed ?? 0, sessions[0]?.end ?? 0, s.launched[g.key] ?? 0);
+    g.lastPlayed = last || undefined;
+
+    const genreApp = g.steamAppId ?? g.achievementAppId;
+    g.genres = s.genreEdits[g.key] ?? (genreApp ? cachedGenres(genreApp) : undefined);
+    const softwareOnly = !!g.genres?.length && g.genres.every((x) => SOFTWARE_GENRES.has(x));
+    const tool = s.toolEdits[g.key] ?? (g.isTool || softwareOnly);
+    g.isTool = tool || undefined;
+
+    if (gridOn && !g.steamAppId && !g.achievementAppId) {
+      const art = cachedGridArt(g.name);
+      if (art) {
+        g.cover ??= art.cover;
+        g.banner ??= art.banner;
+      }
+    }
+  }
+
   const rank = (g: LibraryGame) => (g.moduleId ? 0 : g.pinned ? 1 : 2);
   list.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
-  return { games: list, steam: s.steam };
+  return { games: list, steam: s.steam, stores: storeStatus(s, list), collections: s.collections, scannedAt: s.scannedAt, justAdded };
 }
 
-/** Fetches store names for apps known only by id, then refreshes the library. */
-async function fillNames(appIds: number[]): Promise<void> {
-  const missing = appIds.filter((id) => !cachedAppName(id) && !moduleForSteamApp(id));
-  if (!missing.length) return;
-  for (const id of missing) await fetchAppName(id); // sequential: the store endpoint rate-limits
-  emit();
+function storeStatus(s: Stored, list: LibraryGame[]): StoreStatus[] {
+  const count = (source: string) => list.filter((g) => !g.isTool && g.copies?.some((c) => c.source === source && c.installed)).length;
+  const epicDir = s.storePaths.epic ?? defaultEpicDataDir();
+  const roots = xboxGamingRoots();
+  const ownedNote =
+    s.steamOwned === null
+      ? s.steam.found
+        ? `Showing installed games and ${s.steamPlayed.length} you’ve played. Steam only shares the full owned list after signing in (coming later as an option).`
+        : undefined
+      : `Owned games: ${s.steamOwned.length} from your public Steam profile.`;
+  return [
+    { id: 'steam', name: 'Steam', found: s.steam.found, path: s.steam.steamPath, custom: !!s.storePaths.steam, count: count('steam'), note: ownedNote, canPick: true },
+    { id: 'epic', name: 'Epic Games', found: epicFound(epicDir), path: epicDir, custom: !!s.storePaths.epic, count: count('epic'), canPick: true },
+    {
+      id: 'xbox',
+      name: 'Xbox / Microsoft Store',
+      found: s.xbox.length > 0 || roots.length > 0,
+      path: roots.join(', ') || undefined,
+      custom: false,
+      count: count('xbox'),
+      note: 'Found through Windows’ app list; nothing to pick.',
+      canPick: false,
+    },
+  ];
 }
+
+// ---------- Scanning ----------
+
+let scanning: Promise<Library> | null = null;
 
 /** Re-reads every local source. Safe to call any time; it only reads files. */
-export async function importSteamLibrary(): Promise<Library> {
+export function importSteamLibrary(): Promise<Library> {
+  scanning ??= scan().finally(() => (scanning = null));
+  return scanning;
+}
+
+async function scan(): Promise<Library> {
   const s = load();
+  const before = new Set(build().games.map((g) => g.key));
+  const firstScan = !s.scannedAt;
+
   try {
-    const steamPath = await findSteamPath();
+    const steamPath = s.storePaths.steam && fs.existsSync(path.join(s.storePaths.steam, 'steamapps')) ? s.storePaths.steam : await findSteamPath();
     if (!steamPath) {
       s.steam = { found: false, libraryFolders: [], importedAt: new Date().toISOString() };
       s.steamPlayed = [];
@@ -205,24 +451,36 @@ export async function importSteamLibrary(): Promise<Library> {
       const installed = new Set(s.steamApps.map((a) => a.appId));
       // Only games the signed-in user has stats for (the schema cache also holds other accounts' games).
       const user = readSteamUser(steamPath);
-      const statsFiles = new Set(
-        user
-          ? (() => {
-              try {
-                return fs.readdirSync(path.join(steamPath, 'appcache', 'stats'));
-              } catch {
-                return [];
-              }
-            })()
-          : [],
-      );
+      let statsFiles = new Set<string>();
+      if (user) {
+        try {
+          statsFiles = new Set(fs.readdirSync(path.join(steamPath, 'appcache', 'stats')));
+        } catch {
+          // none
+        }
+      }
       s.steamPlayed = listSchemaAppIds(steamPath).filter(
         (id) => !installed.has(id) && user && statsFiles.has(`UserGameStats_${user.accountId}_${id}.bin`),
       );
+      s.steamPlaytime = {};
+      if (user) for (const [id, pt] of readPlaytime(steamPath, user.accountId)) s.steamPlaytime[id] = pt;
+      steamUserId = user?.steamId ?? null;
+      if (!user) s.steamOwned = null;
       s.steam = { found: true, steamPath, libraryFolders: folders, importedAt: new Date().toISOString() };
     }
   } catch (err) {
     s.steam = { ...s.steam, error: err instanceof Error ? err.message : String(err) };
+  }
+  try {
+    s.epic = readEpicGames(s.storePaths.epic ?? defaultEpicDataDir());
+  } catch (err) {
+    console.error('Epic scan failed:', err);
+  }
+  try {
+    s.xbox = await readXboxGames();
+    for (const pfn of [...xboxArt.keys()]) if (!s.xbox.some((x) => x.pfn === pfn)) xboxArt.delete(pfn);
+  } catch (err) {
+    console.error('Xbox scan failed:', err);
   }
   try {
     s.anker = readAnkerLibrary();
@@ -230,11 +488,136 @@ export async function importSteamLibrary(): Promise<Library> {
     console.error('Anker import failed:', err);
   }
   s.emulatorApps = [...scanEmulatorApps().keys()];
+
+  // New games since the last scan (the first scan just records what's there).
+  const now = Date.now();
+  const after = build().games;
+  const added: string[] = [];
+  for (const g of after) {
+    if (s.firstSeen[g.key] !== undefined) continue;
+    s.firstSeen[g.key] = firstScan ? 0 : now;
+    if (!firstScan && !before.has(g.key) && g.installed && !g.isTool) added.push(g.key);
+  }
+  if (added.length) justAdded = { at: now, keys: added };
+  s.scannedAt = new Date().toISOString();
   save();
   emit();
-  void fillNames([...s.steamPlayed, ...s.emulatorApps]);
+  watchStores();
+  void fillDetails();
   return getLibrary();
 }
+
+let filling = false;
+let steamUserId: string | null = null;
+/** Background lookups: Steam names, genres, Steam matches for Epic/Xbox games, SteamGridDB art. */
+async function fillDetails(): Promise<void> {
+  if (filling) return;
+  filling = true;
+  try {
+    const s = load();
+    // Owned list from the public profile (network; kept out of the scan so it never slows it down).
+    if (steamUserId) {
+      const owned = await fetchOwnedGames(steamUserId);
+      const before = JSON.stringify(s.steamOwned?.map((g) => g.appId) ?? null);
+      s.steamOwned = owned;
+      if (JSON.stringify(owned?.map((g) => g.appId) ?? null) !== before) {
+        for (const g of getLibrary().games) if (s.firstSeen[g.key] === undefined) s.firstSeen[g.key] = 0;
+      }
+      save();
+      emit();
+    }
+    const missingNames = [...s.steamPlayed, ...s.emulatorApps].filter((id) => !cachedAppName(id) && !moduleForSteamApp(id));
+    for (const id of missingNames) await fetchAppName(id); // sequential: the store endpoint rate-limits
+    if (missingNames.length) emit();
+
+    for (const g of [...s.epic, ...s.xbox]) {
+      if (cachedNameMatch(g.name) === undefined) {
+        await matchSteamByName(g.name);
+        await pause(300);
+      }
+    }
+    emit();
+
+    // Genres: installed and played games first, then the rest of the owned list.
+    const lib = getLibrary().games;
+    const wanted = lib
+      .filter((g) => !s.genreEdits[g.key])
+      .sort((a, b) => Number(b.installed) - Number(a.installed) || Number(!!b.lastPlayed) - Number(!!a.lastPlayed))
+      .map((g) => g.steamAppId ?? g.achievementAppId)
+      .filter((id): id is number => !!id && cachedGenres(id) === undefined);
+    let n = 0;
+    for (const id of [...new Set(wanted)]) {
+      const r = await fetchGenres(id);
+      if (r === null) break; // rate-limited or offline: try again next scan
+      if (++n % 25 === 0) emit();
+      await pause(350);
+    }
+    if (n) emit();
+
+    if (hasSteamGridKey()) {
+      const noArt = getLibrary().games.filter((g) => !g.steamAppId && !g.achievementAppId && !g.cover && !g.poster && !cachedGridArt(g.name));
+      for (const g of noArt) await fetchGridArt(g.name);
+      if (noArt.length) emit();
+    }
+  } catch (err) {
+    console.error('Library details failed:', err);
+  } finally {
+    filling = false;
+  }
+}
+
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// ---------- Watching store files ----------
+
+const watchers = new Map<string, fs.FSWatcher>();
+let rescanTimer: NodeJS.Timeout | null = null;
+
+function scheduleRescan(): void {
+  if (rescanTimer) clearTimeout(rescanTimer);
+  rescanTimer = setTimeout(() => {
+    rescanTimer = null;
+    void importSteamLibrary();
+  }, 4000);
+}
+
+/** Rescans when a store's install files change (a game installed, removed or updated). */
+function watchStores(): void {
+  const s = load();
+  const dirs = new Set<string>();
+  for (const f of s.steam.libraryFolders ?? []) dirs.add(path.join(f, 'steamapps'));
+  dirs.add(epicWatchDir(s.storePaths.epic ?? defaultEpicDataDir()));
+  for (const r of xboxGamingRoots()) dirs.add(r);
+  for (const [dir, w] of watchers) {
+    if (!dirs.has(dir)) {
+      w.close();
+      watchers.delete(dir);
+    }
+  }
+  for (const dir of dirs) {
+    if (watchers.has(dir) || !fs.existsSync(dir)) continue;
+    try {
+      const w = fs.watch(dir, (_event, name) => {
+        const n = String(name ?? '');
+        if (!n || /^appmanifest_\d+\.acf$/i.test(n) || /\.item$/i.test(n) || !n.includes('.')) scheduleRescan();
+      });
+      w.on('error', () => {
+        w.close();
+        watchers.delete(dir);
+      });
+      watchers.set(dir, w);
+    } catch {
+      // can't watch this folder; Refresh still works
+    }
+  }
+}
+
+export function stopStoreWatchers(): void {
+  for (const w of watchers.values()) w.close();
+  watchers.clear();
+}
+
+// ---------- Changes from the app ----------
 
 export async function addGameManually(parent: BrowserWindow | null): Promise<LibraryGame | null> {
   const filters =
@@ -267,11 +650,13 @@ export async function addGameManually(parent: BrowserWindow | null): Promise<Lib
   };
   s.manual.push(game);
   s.pinned.push(game.key); // hand-added games show in the rail
+  s.firstSeen[game.key] = Date.now();
   save();
   emit();
   return game;
 }
 
+/** Favourite (also shows the game in the rail). */
 export function setPinned(key: string, pinned: boolean): Library {
   const s = load();
   s.pinned = s.pinned.filter((k) => k !== key);
@@ -279,6 +664,105 @@ export function setPinned(key: string, pinned: boolean): Library {
   save();
   emit();
   return getLibrary();
+}
+
+export function setHidden(key: string, hidden: boolean): Library {
+  const s = load();
+  s.hidden = s.hidden.filter((k) => k !== key);
+  if (hidden) s.hidden.push(key);
+  save();
+  emit();
+  return getLibrary();
+}
+
+/** Your own genres for a game (null puts Steam's back). */
+export function setGenres(key: string, list: string[] | null): Library {
+  const s = load();
+  if (list === null) delete s.genreEdits[key];
+  else s.genreEdits[key] = [...new Set(list.map((g) => g.trim()).filter(Boolean))].slice(0, 12);
+  save();
+  emit();
+  return getLibrary();
+}
+
+/** Move a game to Tools (true), back to games (false) or to the automatic choice (null). */
+export function setIsTool(key: string, tool: boolean | null): Library {
+  const s = load();
+  if (tool === null) delete s.toolEdits[key];
+  else s.toolEdits[key] = tool;
+  save();
+  emit();
+  return getLibrary();
+}
+
+export function setLaunchOptions(key: string, options: string): Library {
+  const s = load();
+  const v = options.trim().slice(0, 500);
+  if (v) s.launchOptions[key] = v;
+  else delete s.launchOptions[key];
+  save();
+  emit();
+  return getLibrary();
+}
+
+export function createCollection(name: string): GameCollection | null {
+  const n = name.trim().slice(0, 40);
+  if (!n) return null;
+  const c: GameCollection = { id: randomUUID(), name: n, keys: [] };
+  load().collections.push(c);
+  save();
+  emit();
+  return c;
+}
+
+export function renameCollection(id: string, name: string): Library {
+  const c = load().collections.find((x) => x.id === id);
+  const n = name.trim().slice(0, 40);
+  if (c && n) c.name = n;
+  save();
+  emit();
+  return getLibrary();
+}
+
+export function deleteCollection(id: string): Library {
+  const s = load();
+  s.collections = s.collections.filter((c) => c.id !== id);
+  save();
+  emit();
+  return getLibrary();
+}
+
+export function setInCollection(id: string, key: string, inIt: boolean): Library {
+  const c = load().collections.find((x) => x.id === id);
+  if (c) {
+    c.keys = c.keys.filter((k) => k !== key);
+    if (inIt) c.keys.push(key);
+  }
+  save();
+  emit();
+  return getLibrary();
+}
+
+/** Remembers a Play from ShotCaller (recently played, tray menu). */
+export function recordLaunch(key: string): void {
+  load().launched[key] = Date.now();
+  save();
+  emit();
+}
+
+/** Lets the user point at a store's folder (null goes back to finding it on its own). */
+export async function setStorePath(id: StoreId, parent: BrowserWindow | null, reset = false): Promise<Library> {
+  const s = load();
+  if (reset) delete s.storePaths[id];
+  else {
+    const title = id === 'steam' ? 'Choose your Steam folder (the one with steamapps inside)' : 'Choose Epic’s data folder (…\\EpicGamesLauncher\\Data)';
+    const opts = { title, properties: ['openDirectory' as const] };
+    const r = parent ? await dialog.showOpenDialog(parent, opts) : await dialog.showOpenDialog(opts);
+    if (r.canceled || !r.filePaths[0]) return getLibrary();
+    s.storePaths[id] = r.filePaths[0];
+  }
+  save();
+  return importSteamLibrary();
 }
 
 /** Links a non-Steam game to a Steam app's achievement list (null unlinks). */
@@ -302,4 +786,15 @@ export function removeGame(key: string): Library {
   save();
   emit();
   return getLibrary();
+}
+
+/** Raw store records, for launching. */
+export function storeRecords(): { epic: EpicGame[]; xbox: XboxGame[]; anker: AnkerGame[]; manual: LibraryGame[] } {
+  const s = load();
+  return { epic: s.epic, xbox: s.xbox, anker: s.anker, manual: s.manual };
+}
+
+/** Rebuild now (e.g. after a play session ends, so playtime updates). */
+export function refreshLibrary(): void {
+  emit();
 }

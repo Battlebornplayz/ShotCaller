@@ -59,7 +59,26 @@ import {
 import { reportCrash } from './crashReports';
 import { getDetectionState } from './detection';
 import { getHotkeyStatus, setHotkeyCapture } from './hotkeys';
-import { addGameManually, getLibrary, importSteamLibrary, removeGame, setPinned, setSteamLink } from './library';
+import {
+  addGameManually,
+  createCollection,
+  deleteCollection,
+  getLibrary,
+  importSteamLibrary,
+  removeGame,
+  renameCollection,
+  setGenres,
+  setHidden,
+  setInCollection,
+  setIsTool,
+  setLaunchOptions,
+  setPinned,
+  setSteamLink,
+  setStorePath,
+} from './library';
+import { createDesktopShortcut, installGame, openGameFolder, openInStore, playGame, uninstallGame } from './launcher';
+import { hasSteamGridKey, setSteamGridKey } from './stores/steamGrid';
+import type { CollectionOp, GameSource, StoreId } from '../shared/types';
 import { getOverlayState, handleOverlayAction, resizeOverlay, setOverlayPreview } from './overlay';
 import { fetchPatchNotes } from './patchNotes';
 import { getSettings, updateSettings } from './settings';
@@ -120,6 +139,43 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.libraryAddManual, (event) => addGameManually(BrowserWindow.fromWebContents(event.sender)));
   ipcMain.handle(IPC.librarySetPinned, (_e, key: string, pinned: boolean) => setPinned(String(key), !!pinned));
   ipcMain.handle(IPC.libraryRemove, (_e, key: string) => removeGame(String(key)));
+  ipcMain.handle(IPC.librarySetHidden, (_e, k: unknown, on: unknown) => setHidden(String(k), !!on));
+  ipcMain.handle(IPC.librarySetGenres, (_e, k: unknown, list: unknown) =>
+    setGenres(String(k), Array.isArray(list) ? list.filter((x): x is string => typeof x === 'string').map((x) => x.slice(0, 40)) : null),
+  );
+  ipcMain.handle(IPC.librarySetTool, (_e, k: unknown, tool: unknown) => setIsTool(String(k), typeof tool === 'boolean' ? tool : null));
+  ipcMain.handle(IPC.librarySetLaunchOptions, (_e, k: unknown, opts: unknown) => setLaunchOptions(String(k), typeof opts === 'string' ? opts : ''));
+  ipcMain.handle(IPC.libraryCollection, (_e, raw: unknown) => {
+    const op = raw as CollectionOp;
+    if (op?.op === 'create') {
+      const c = createCollection(String(op.name ?? ''));
+      if (c && typeof op.addKey === 'string') return setInCollection(c.id, op.addKey, true);
+    } else if (op?.op === 'rename') return renameCollection(String(op.id), String(op.name ?? ''));
+    else if (op?.op === 'delete') return deleteCollection(String(op.id));
+    else if (op?.op === 'set') return setInCollection(String(op.id), String(op.key), !!op.inIt);
+    return getLibrary();
+  });
+  ipcMain.handle(IPC.librarySetStorePath, (event, id: unknown, reset: unknown) => {
+    if (id !== 'steam' && id !== 'epic' && id !== 'xbox') return getLibrary();
+    return setStorePath(id as StoreId, BrowserWindow.fromWebContents(event.sender), !!reset);
+  });
+  ipcMain.handle(IPC.gamePlay, (event, k: unknown, source: unknown) => {
+    const r = playGame(String(k), typeof source === 'string' ? (source as GameSource) : undefined);
+    // Out of the way while the game starts (L-Q23); the tray brings it back.
+    if (r.ok) BrowserWindow.fromWebContents(event.sender)?.hide();
+    return r;
+  });
+  ipcMain.handle(IPC.gameInstall, (_e, k: unknown) => installGame(String(k)));
+  ipcMain.handle(IPC.gameUninstall, (_e, k: unknown) => uninstallGame(String(k)));
+  ipcMain.handle(IPC.gameOpenFolder, (_e, k: unknown) => openGameFolder(String(k)));
+  ipcMain.handle(IPC.gameOpenStore, (_e, k: unknown) => openInStore(String(k)));
+  ipcMain.handle(IPC.gameShortcut, (_e, k: unknown) => createDesktopShortcut(String(k)));
+  ipcMain.handle(IPC.steamGridStatus, () => hasSteamGridKey());
+  ipcMain.handle(IPC.steamGridSetKey, async (_e, k: unknown) => {
+    const r = await setSteamGridKey(typeof k === 'string' ? k : null);
+    if (r.ok) void importSteamLibrary();
+    return r;
+  });
 
   // Detection
   ipcMain.handle(IPC.detectionGet, () => getDetectionState());

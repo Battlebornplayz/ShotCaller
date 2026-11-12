@@ -200,7 +200,51 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 // ---------- Library and detection ----------
 
 /** anker = installed by the Anker Games launcher; emulator = only found through local emulator achievement files. */
-export type GameSource = 'module' | 'steam' | 'manual' | 'anker' | 'emulator';
+export type GameSource = 'module' | 'steam' | 'manual' | 'anker' | 'emulator' | 'epic' | 'xbox';
+
+/** The stores the Games tab finds on its own (Phase L1). */
+export type StoreId = 'steam' | 'epic' | 'xbox';
+
+/** One store's copy of a game. A game owned on two stores is one card with two copies. */
+export interface StoreCopy {
+  source: GameSource;
+  /** That copy's own key (e.g. "epic:Fortnite"). */
+  key: string;
+  installed: boolean;
+}
+
+export interface GameActionResult {
+  ok: boolean;
+  error?: string;
+}
+
+export type CollectionOp =
+  | { op: 'create'; name: string; addKey?: string }
+  | { op: 'rename'; id: string; name: string }
+  | { op: 'delete'; id: string }
+  | { op: 'set'; id: string; key: string; inIt: boolean };
+
+export interface StoreStatus {
+  id: StoreId;
+  name: string;
+  found: boolean;
+  /** Where it was found (or the folder the user picked). */
+  path?: string;
+  /** The user picked the folder. */
+  custom: boolean;
+  /** Games found in it (not counting tools). */
+  count: number;
+  /** Short plain note, e.g. "Owned list: your Steam profile is private". */
+  note?: string;
+  /** The user can pick this store's folder. */
+  canPick: boolean;
+}
+
+export interface GameCollection {
+  id: string;
+  name: string;
+  keys: string[];
+}
 
 export interface LibraryGame {
   /** "steam:<appid>", "manual:<id>", "module:<id>" (a supported game not found in Steam), "anker:<id>" or "emu:<appid>". */
@@ -222,6 +266,31 @@ export interface LibraryGame {
   achievementAppId?: number;
   /** Cover art from another launcher (Anker poster). */
   poster?: string;
+  /** Every store this game is in; Play uses the first installed one unless you pick another. */
+  copies?: StoreCopy[];
+  /** Other copies' install folders (for detecting it running). */
+  extraDirs?: string[];
+  /** Store art (Epic, Xbox, SteamGridDB); Steam games use Steam's own CDN art. */
+  cover?: string;
+  banner?: string;
+  /** Small square logo (Xbox games), shown on the title card. */
+  icon?: string;
+  sizeBytes?: number;
+  /** Minutes played: the store's number, else ShotCaller's own tracking. */
+  playMinutes?: number;
+  /** Epoch ms of the last play (store or ShotCaller). */
+  lastPlayed?: number;
+  /** Epoch ms when ShotCaller first found it (0 = it was there before the Games tab). */
+  addedAt?: number;
+  /** Software, not a game (Tools section). */
+  isTool?: boolean;
+  hidden?: boolean;
+  genres?: string[];
+  updateAvailable?: boolean;
+  /** Owned on Steam (public profile) but never installed or played here. */
+  owned?: boolean;
+  /** Extra launch options (Steam and games started from their exe). */
+  launchOptions?: string;
 }
 
 export interface SteamImportInfo {
@@ -235,6 +304,12 @@ export interface SteamImportInfo {
 export interface Library {
   games: LibraryGame[];
   steam: SteamImportInfo;
+  stores: StoreStatus[];
+  collections: GameCollection[];
+  /** Last full scan (ISO), absent before the first one finishes. */
+  scannedAt?: string;
+  /** Games found by the latest scan that weren't there before ("Added [game]" toast). */
+  justAdded?: { at: number; keys: string[] };
 }
 
 export interface RunningGame {
@@ -447,6 +522,26 @@ export interface ShotCallerApi {
   addGameManually(): Promise<LibraryGame | null>;
   setGamePinned(key: string, pinned: boolean): Promise<Library>;
   removeGame(key: string): Promise<Library>;
+  setGameHidden(key: string, hidden: boolean): Promise<Library>;
+  /** null puts Steam's genres back. */
+  setGameGenres(key: string, genres: string[] | null): Promise<Library>;
+  /** true = Tools, false = games, null = automatic. */
+  setGameTool(key: string, tool: boolean | null): Promise<Library>;
+  setLaunchOptions(key: string, options: string): Promise<Library>;
+  collection(op: CollectionOp): Promise<Library>;
+  /** Pick a store's folder, or reset it to finding it on its own. */
+  setStorePath(store: StoreId, reset: boolean): Promise<Library>;
+  /** Play through the game's store (or the copy picked with `source`); ShotCaller then goes to the tray. */
+  playGame(key: string, source?: GameSource): Promise<GameActionResult>;
+  installGame(key: string): Promise<GameActionResult>;
+  uninstallGame(key: string): Promise<GameActionResult>;
+  openGameFolder(key: string): Promise<GameActionResult>;
+  openGameInStore(key: string): Promise<GameActionResult>;
+  createGameShortcut(key: string): Promise<GameActionResult>;
+  getSteamGridKeySet(): Promise<boolean>;
+  setSteamGridKey(key: string | null): Promise<GameActionResult>;
+  /** The tray's recent-games menu asking the window to open a game page. */
+  onQuickOpen(callback: (key: string) => void): Unsubscribe;
   onLibrary(callback: (library: Library) => void): Unsubscribe;
 
   getDetection(): Promise<DetectionState>;

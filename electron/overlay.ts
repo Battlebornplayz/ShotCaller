@@ -179,9 +179,17 @@ function sync(): void {
 
 // ---------- Inputs ----------
 
+/** Games started from the Games tab in the last few minutes: they get the overlay (achievement card) too. */
+const launchedFromTab = new Map<string, number>();
+export function markLaunchedFromTab(key: string): void {
+  launchedFromTab.set(key, Date.now());
+}
+
 /** Does this running game get the overlay automatically? */
 export function wantsOverlay(rg: RunningGame): boolean {
   if (rg.moduleId) return moduleById(rg.moduleId).autoOverlay;
+  const at = launchedFromTab.get(rg.key);
+  if (at && rg.since >= at - 60_000 && rg.since - at < 10 * 60_000) return true;
   return getSettings().overlay.allGames;
 }
 

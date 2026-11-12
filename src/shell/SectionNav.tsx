@@ -1,4 +1,4 @@
-export type SectionId = 'home' | 'library' | 'timeline' | 'profile' | 'friends' | 'settings';
+export type SectionId = 'home' | 'games' | 'timeline' | 'profile' | 'friends' | 'settings';
 
 export interface Section {
   id: SectionId;

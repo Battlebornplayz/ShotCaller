@@ -61,6 +61,7 @@ function setWatcher(next: DetectionState['watcher'], error?: string): void {
 const norm = (s: string) => s.toLowerCase().replace(/\//g, '\\');
 
 function matchGame(game: LibraryGame, snap: Snapshot): RunningGame['via'] | null {
+  if (game.isTool) return null;
   if (game.steamAppId && game.steamAppId === snap.steamAppId) return 'steam';
   for (const exe of game.exeNames) {
     const e = exe.toLowerCase();
@@ -70,9 +71,12 @@ function matchGame(game: LibraryGame, snap: Snapshot): RunningGame['via'] | null
     const p = norm(game.exePath);
     if (snap.paths.includes(p)) return 'process';
   }
-  if ((game.source === 'steam' || game.source === 'anker') && game.installDir && game.installed) {
-    const dir = norm(game.installDir) + '\\';
-    if (snap.paths.some((p) => p.startsWith(dir))) return 'folder';
+  if (game.source !== 'manual' && game.source !== 'emulator' && game.installed) {
+    for (const d of [game.installDir, ...(game.extraDirs ?? [])]) {
+      if (!d) continue;
+      const dir = norm(d) + '\\';
+      if (snap.paths.some((p) => p.startsWith(dir))) return 'folder';
+    }
   }
   return null;
 }

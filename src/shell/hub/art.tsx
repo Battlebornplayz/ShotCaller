@@ -4,11 +4,12 @@ import type { LibraryGame } from '../../../shared/types';
 
 const STEAM_CDN = 'https://cdn.akamai.steamstatic.com/steam/apps';
 
-/** Portrait cover candidates, best first. */
+/** Portrait cover candidates, best first: Steam, then the store's own art, then SteamGridDB / Anker. */
 export function coverSources(g: LibraryGame): string[] {
   const id = g.steamAppId ?? g.achievementAppId;
   const out: string[] = [];
   if (id) out.push(`${STEAM_CDN}/${id}/library_600x900.jpg`);
+  if (g.cover) out.push(g.cover);
   if (g.poster) out.push(g.poster);
   return out;
 }
@@ -20,8 +21,18 @@ export function bannerSources(g: LibraryGame): string[] {
   const out: string[] = [];
   if (mod.headerArt) out.push(mod.headerArt);
   if (id) out.push(`${STEAM_CDN}/${id}/header.jpg`);
+  if (g.banner) out.push(g.banner);
   if (g.poster) out.push(g.poster);
   return out;
+}
+
+/** Big wide art for the game page hero, best first. */
+export function heroSources(g: LibraryGame): string[] {
+  const id = g.steamAppId ?? g.achievementAppId;
+  const out: string[] = [];
+  if (id) out.push(`${STEAM_CDN}/${id}/library_hero.jpg`);
+  if (g.banner) out.push(g.banner);
+  return [...out, ...bannerSources(g).filter((s) => !out.includes(s))];
 }
 
 /** An image that walks down a list of sources on error, then shows the fallback. */
@@ -36,6 +47,7 @@ export function Art({ sources, alt = '', style, fallback }: { sources: string[];
       src={sources[i]}
       alt={alt}
       loading="lazy"
+      draggable={false}
       onError={() => setFailed({ key, n: i + 1 })}
       style={{ objectFit: 'cover', display: 'block', ...style }}
     />

@@ -19,7 +19,8 @@ import { initCrashReports } from './crashReports';
 import { getDetectionState, onDetectionChange, startDetection, stopDetection } from './detection';
 import { disposeHotkeys, initHotkeys, refreshHotkeys, setHotkeysInGame } from './hotkeys';
 import { broadcast, registerIpc } from './ipc';
-import { importSteamLibrary, onLibraryChange } from './library';
+import { getLibrary, importSteamLibrary, onLibraryChange, refreshLibrary, stopStoreWatchers } from './library';
+import { playGame } from './launcher';
 import {
   applyOverlaySettings,
   cornerOverlayVisible,
@@ -112,7 +113,12 @@ if (!app.requestSingleInstanceLock()) {
 
   function refreshTray(): void {
     const playing = getDetectionState().running;
-    updateTray({ playing: playing[0]?.name ?? null, previewOn: getOverlayState().preview });
+    const recent = getLibrary()
+      .games.filter((g) => g.lastPlayed && g.installed && !g.hidden && !g.isTool)
+      .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0))
+      .slice(0, 5)
+      .map((g) => ({ key: g.key, name: g.name }));
+    updateTray({ playing: playing[0]?.name ?? null, previewOn: getOverlayState().preview, recent });
   }
 
   app.on('second-instance', () => showLauncher());
@@ -128,6 +134,12 @@ if (!app.requestSingleInstanceLock()) {
     createTray({
       openMain: showLauncher,
       togglePreview: () => setOverlayPreview(!getOverlayState().preview),
+      play: (key) => {
+        if (!playGame(key).ok) {
+          openMain();
+          broadcast(IPC.quickOpen, key);
+        }
+      },
       quit: () => app.quit(),
     });
 
@@ -163,6 +175,7 @@ if (!app.requestSingleInstanceLock()) {
       broadcast(IPC.detectionChanged, state);
       for (const rg of started) sessionStarted(rg);
       for (const rg of stopped) sessionStopped(rg);
+      if (stopped.length) refreshLibrary(); // playtime and "recently played"
       // The game writes its log in batches, so give it a moment to finish after it closes.
       if (stopped.some((rg) => rg.moduleId === 'skillshot-city')) setTimeout(() => void backupGameLog(), 5000);
       setOverlayGame(overlayGameFrom(state.running));
@@ -172,7 +185,18 @@ if (!app.requestSingleInstanceLock()) {
       refreshTray();
     });
 
-    onLibraryChange((lib) => broadcast(IPC.libraryChanged, lib));
+    let trayRecent = '';
+    onLibraryChange((lib) => {
+      broadcast(IPC.libraryChanged, lib);
+      const sig = lib.games
+        .filter((g) => g.lastPlayed)
+        .map((g) => `${g.key}:${g.lastPlayed}`)
+        .join('|');
+      if (sig !== trayRecent) {
+        trayRecent = sig;
+        refreshTray();
+      }
+    });
 
     onSettingsChange((next, prev) => {
       broadcast(IPC.settingsChanged, next);
@@ -232,6 +256,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('before-quit', () => {
     quitting = true;
     stopDetection();
+    stopStoreWatchers();
     flushSessions();
     disposeHub();
     setScreenReaderRunning(false, false);

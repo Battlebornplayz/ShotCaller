@@ -218,3 +218,127 @@ export function fetchAppName(appId: number): Promise<string | null> {
     }
   });
 }
+
+// ---------- Owned games (public profile) ----------
+
+export interface OwnedGame {
+  appId: number;
+  name: string;
+  /** Minutes played, from the profile. */
+  minutes: number;
+}
+
+/**
+ * Every game the account owns, from the public Steam profile's XML games list. Null when the
+ * profile (or its game details) is private or Steam can't be reached. Cached for 6 hours.
+ */
+export function fetchOwnedGames(steamId: string): Promise<OwnedGame[] | null> {
+  if (!/^\d{17}$/.test(steamId)) return Promise.resolve(null);
+  const cacheName = `owned_${steamId}.json`;
+  const fresh = readCache<OwnedGame[] | { private: true }>(cacheName, 6 * 60 * 60 * 1000);
+  if (fresh) return Promise.resolve(Array.isArray(fresh) ? fresh : null);
+  return once(cacheName, async () => {
+    try {
+      const xml = await get(`https://steamcommunity.com/profiles/${steamId}/games/?tab=all&xml=1`);
+      if (!/<gamesList>/.test(xml) || /<error>/.test(xml)) {
+        writeCache(cacheName, { private: true });
+        return null;
+      }
+      const out: OwnedGame[] = [];
+      for (const m of xml.matchAll(/<game>([\s\S]*?)<\/game>/g)) {
+        const body = m[1];
+        const appId = Number(/<appID>(\d+)<\/appID>/.exec(body)?.[1]);
+        const name = /<name><!\[CDATA\[([\s\S]*?)\]\]><\/name>/.exec(body)?.[1] ?? /<name>([^<]*)<\/name>/.exec(body)?.[1];
+        const hours = Number((/<hoursOnRecord>([\d.,]+)<\/hoursOnRecord>/.exec(body)?.[1] ?? '0').replace(/,/g, ''));
+        if (Number.isInteger(appId) && appId > 0 && name) out.push({ appId, name: name.trim(), minutes: Math.round(hours * 60) });
+      }
+      writeCache(cacheName, out);
+      return out;
+    } catch {
+      const stale = readStale<OwnedGame[] | { private: true }>(cacheName);
+      return Array.isArray(stale) ? stale : null;
+    }
+  });
+}
+
+// ---------- Genres ----------
+
+const GENRES_FILE = 'app_genres.json';
+let genres: Record<string, string[]> | null = null;
+
+export function cachedGenres(appId: number): string[] | undefined {
+  genres ??= readStale<Record<string, string[]>>(GENRES_FILE) ?? {};
+  return genres[appId];
+}
+
+/** Steam store genres for an app (cached forever; [] when the store has none). */
+export function fetchGenres(appId: number): Promise<string[] | null> {
+  const known = cachedGenres(appId);
+  if (known) return Promise.resolve(known);
+  return once(`genres_${appId}`, async () => {
+    try {
+      const text = await get(`https://store.steampowered.com/api/appdetails?appids=${appId}&filters=genres`);
+      const entry = (JSON.parse(text) as Record<string, { success?: boolean; data?: { genres?: { description?: string }[] } | [] }>)[appId];
+      const data = entry?.success && entry.data && !Array.isArray(entry.data) ? entry.data : null;
+      const list = (data?.genres ?? []).map((g) => g.description).filter((d): d is string => !!d);
+      genres![appId] = list;
+      writeCache(GENRES_FILE, genres);
+      return list;
+    } catch {
+      return null;
+    }
+  });
+}
+
+/** Genres Steam uses for software rather than games: those apps go in Tools. */
+export const SOFTWARE_GENRES = new Set([
+  'Utilities',
+  'Design & Illustration',
+  'Animation & Modeling',
+  'Video Production',
+  'Audio Production',
+  'Photo Editing',
+  'Software Training',
+  'Web Publishing',
+  'Game Development',
+  'Education',
+  'Accounting',
+]);
+
+// ---------- Name match (Epic / Xbox games → their Steam version) ----------
+
+/** Lowercase letters and digits only, for matching one game's name across stores. */
+export function normName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[®™©]/g, '')
+    .replace(/\b(the|game|edition|standard|pc|windows|for)\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+const MATCH_FILE = 'name_matches.json';
+let matches: Record<string, number> | null = null;
+
+export function cachedNameMatch(name: string): number | undefined {
+  matches ??= readStale<Record<string, number>>(MATCH_FILE) ?? {};
+  return matches[normName(name)];
+}
+
+/** Steam app with exactly this name (0 when there is none). Cached forever. */
+export function matchSteamByName(name: string): Promise<number> {
+  const key = normName(name);
+  const known = cachedNameMatch(name);
+  if (known !== undefined) return Promise.resolve(known);
+  return once(`match_${key}`, async () => {
+    try {
+      const hits = await searchSteamApps(name);
+      const hit = hits.find((h) => normName(h.name) === key);
+      matches![key] = hit?.appId ?? 0;
+      writeCache(MATCH_FILE, matches);
+      return matches![key];
+    } catch {
+      return 0;
+    }
+  });
+}
