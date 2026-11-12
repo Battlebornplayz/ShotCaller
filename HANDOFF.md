@@ -22,11 +22,12 @@ Deliverables:
 - Ranked rank + progress bar read after Ranked matches, chart over time.
 - 0-100 match score with the formula shown; personal bests and streaks (kills, chests, top-10 streak, win streak).
 - Fortnite achievements in the hub with the unlock popup.
-- Release a beta (next: **beta.19**).
+- Release a beta (next: **beta.20**).
 Done when:
 - Inventory and ranked read right in real matches, and the beta installs and updates.
 
 ## Decisions & constraints to respect
+- ShotCaller windows over the game (map layer, corner card, unlock popup) use setContentProtection, so screen readers never see ShotCaller's own drawing (beta.19 fixed the M layer blinking this way). Any new over-game window (e.g. the S3 squad strip) needs `keepOutOfScreenCopies` in `electron/windows.ts`. They don't show in screenshots/OBS: a switch may be wanted for the Phase 10 stream overlay.
 - **Never read Fortnite's memory, inject, hook or touch its process/files.** Screen, log (match start/end/mode), fortnite-api.com only.
 - The fortnite-api.com key is a secret (userData/fortnite/key.bin), never in repo/settings/logs/chat.
 - Readers go through gameArea (one copy per look; one place for Phase S1); work in "1920-wide" units (16:9 = 1920x1080, 16:10 = 1920x1200); no separate 16:10 mode; don't tune fixed HUD boxes (S1 does auto-locate).
