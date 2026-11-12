@@ -82,6 +82,28 @@ Done when: the flow above works: owned skills + rarities detected without typing
 
 **Paused (user, 2026-11-10):** Fortnite (Phase F) goes next. Part 1 resumes after Phase F from `docs/handoff-skillshot-part1.md`.
 
+## Phase L — Games tab: a launcher for all your stores (two parts)
+Added by the user (2026-11-12), design interview in DESIGN.md "Games tab (launcher)". **Order (user): now, before Phase F4.** The Library page grows into a Games tab (after Home) that finds games from the stores on this PC by itself, plays them through their store, and keeps the achievement rings. Read-only on store files: no store passwords, no changes to other launchers' files. Each part ends in a beta the user OKs first.
+
+### Phase L1 — Main stores, grid and Play
+Deliverables:
+- Steam, Epic Games and Xbox / Microsoft Store found from their files on this PC; installed games plus owned-not-installed (faded) where the PC files allow; rescans on start, on store file changes and with Refresh; store list in settings with Found / Not found and Pick folder.
+- GOG Galaxy-style layout: left list (All games, Installed, each store with a count, collections, Tools, Hidden) that folds to icons; cover grid on the right with a size slider; first open shows a scan summary ("Found 84 games in 3 stores").
+- Owned-not-installed: Steam from the public profile when it is public; Epic and Xbox installed only (sign-in later). Installed Game Pass games tagged.
+- One card per game across stores (store picker on the Play arrow); Tools section for non-games; Hide with a Hidden list.
+- Cover grid with store icon, achievement ring, playtime and install size; art from the store, then SteamGridDB (optional key), then a title card; hover lifts the card and shows Play. Game page: wide art fading into the app colour, Play, achievements, playtime, store, folder, "..." menu (Uninstall via the store, launch options, desktop shortcut). Epic/Xbox games borrow the Steam version's achievement list when there is one.
+- Play through the store, minimise to tray, overlay on for module games; Install hands off to the store; Update badge where readable.
+- Sort (recently played default), filters (store, installed, achievements, overlay, genre), favourites and collections, top rows (Continue playing, Favourites, Recently added), genres from Steam store info (editable), search bar and Ctrl+K (games, pages, settings), tray menu with the last 5 games, "Added [game]" toast, Continue playing strip on Home.
+- Playtime from the store, else ShotCaller's own tracking from game detection. Achievement corner card and unlock popups for every game started from the tab.
+Done when: on the user's PC every installed Steam, Epic and Xbox game shows with art, starts from Play through its store, and the existing Library data (pins, hand-added games, achievement links) carries over.
+
+### Phase L2 — More tab: Anker, other stores, emulators, extras
+Deliverables:
+- More section of the left list where extra sources are set up: Anker Games (list, play the exe directly, achievements, Open in Anker), GOG, EA, Ubisoft, Battle.net, Riot, Rockstar, Amazon, itch.io, emulators (RPCS3, Ryujinx, mGBA: pick your game folders once, each file becomes a card that opens in the right emulator), games added by hand (browse or drag-drop an exe or shortcut). Everything also shows in the main grid.
+- Epic free games of the week: card on Home and a row in More.
+Done when: Anker games and at least the other stores installed on the user's PC show and start, and the beta installs and updates.
+Later: controller navigation; optional store sign-in for full owned lists.
+
 ## Phase F — Fortnite companion (five parts)
 Added by the user (2026-11-10), design interview Q1-Q47 in DESIGN.md "Fortnite mode". Goal: the best Fortnite companion, TRN-style tracking, with ideas taken from TRN but never their data. **Screen reading, the Fortnite log (match start/end only) and fortnite-api.com only. Never memory, never the game's files or process beyond the log** (Easy Anti-Cheat + BattlEye). Every feature has its own on/off switch; overlay parts are see-through. Tuned for 1920x1080, default HUD, mouse and keyboard. Module in `games/fortnite/`, hub with tabs like Skillshot's.
 
