@@ -6,7 +6,7 @@ import { PageHeader } from '../pages';
 
 type Filter = 'all' | 'rare';
 
-const VIA: Record<UnlockEvent['via'], string> = { steam: 'Steam', emulator: 'Local file', manual: 'Ticked' };
+const VIA: Record<UnlockEvent['via'], string> = { steam: 'Steam', emulator: 'Local file', manual: 'Ticked', shotcaller: 'ShotCaller' };
 
 function dayLabel(ms: number): string {
   if (!ms) return 'Unknown date';

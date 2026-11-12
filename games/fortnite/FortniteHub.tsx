@@ -3,19 +3,22 @@ import type { FnChestRead, FnMatchRecord } from '../../shared/fortnite';
 import { modeLabel, type FnTeamSize } from '../../shared/fortniteLog';
 import { useFortnite, useFortniteScreen, useSettings } from '../../src/hooks/useLive';
 import { LobbyTab, MapOptions, ShopTab, StatsTab } from './FnHubTabs';
+import { BestsTab } from './FnBests';
+import { matchScore } from '../../shared/fortniteScore';
 
 /**
  * Fortnite section of the game page: match history (trend on top, list below), Screen check and Options.
  * Matches reload whenever a new one is saved (pushed lastMatch changes).
  */
 
-type Tab = 'lobby' | 'matches' | 'stats' | 'shop' | 'screen' | 'options';
+type Tab = 'lobby' | 'matches' | 'bests' | 'stats' | 'shop' | 'screen' | 'options';
 type ModeFilter = 'all' | 'builds' | 'zero-build' | 'ranked' | 'reload';
 
 function useMatches(): FnMatchRecord[] | null {
   const live = useFortnite();
   const [matches, setMatches] = useState<FnMatchRecord[] | null>(null);
-  const sig = live?.lastMatch?.id ?? '';
+  // Reload when a match is saved or a rank is added to the last one.
+  const sig = `${live?.lastMatch?.id ?? ''}:${live?.lastMatch?.rank?.at ?? ''}`;
   useEffect(() => {
     let active = true;
     void window.shotcaller.getFortniteMatches().then((m) => active && setMatches(m));
@@ -36,6 +39,7 @@ export function FortniteHub() {
           [
             ['lobby', 'Lobby'],
             ['matches', `Matches${matches ? ` (${matches.length})` : ''}`],
+            ['bests', 'Bests'],
             ['stats', 'Stats'],
             ['shop', 'Shop'],
             ['screen', 'Screen check'],
@@ -49,6 +53,7 @@ export function FortniteHub() {
       </div>
       {tab === 'lobby' && <LobbyTab />}
       {tab === 'stats' && <StatsTab />}
+      {tab === 'bests' && (matches ? <BestsTab matches={matches} /> : <div className="card muted">Loading…</div>)}
       {tab === 'shop' && <ShopTab />}
       {tab === 'matches' && (matches ? <MatchHistory matches={matches} /> : <div className="card muted">Loading…</div>)}
       {tab === 'screen' && <ScreenCheck />}
@@ -236,6 +241,9 @@ function MatchRow({ m }: { m: FnMatchRecord }) {
       </div>
       <div className="fn-match-num" title="Time alive from the battle bus, not counting time spent down (read from the screen)">
         {fmtTime(m.timeAliveMs)}
+      </div>
+      <div className="fn-match-num" title="Match score (0-100): placement, eliminations and time alive. The formula is on the Bests tab.">
+        <b>{matchScore(m).total}</b> score
       </div>
     </div>
   );

@@ -143,7 +143,7 @@ Deliverables:
 - **Reading change (user, 2026-11-11):** one copy of the whole game window per look, every reader cuts its part from it (measured ~2x faster than separate copies); must not make the minimap dot slower or worse.
 Done when: across a few real matches, the dot stays on the right spot most of the time (accuracy measured against the full-map reads) and landing/death pins are right.
 
-### Phase F4 — Inventory, ranked, bests, achievements, beta
+### Phase F4 — Inventory, ranked, bests, achievements, beta (built 2026-11-12; real-match check and beta.22 pending)
 Deliverables:
 - (Already shipped early, beta.7: the hotbar is shared as a cropped picture over squad link. F4 adds the real reading.)
 - Hotbar reading: 5 slots with item + rarity, ammo in each gun, reserve ammo, materials, health and shield, medallions and mythics; live inventory panel on the second monitor.

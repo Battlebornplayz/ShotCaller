@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MAP_PX_METRES, type FnDrop, type FnLiveState, type FnMapState, type FnMatchRecord, type FnSquadState } from '../../shared/fortnite';
+import { MAP_PX_METRES, type FnDrop, type FnInventory, type FnLiveState, type FnMapState, type FnMatchRecord, type FnRarity, type FnSquadState } from '../../shared/fortnite';
 import { modeLabel } from '../../shared/fortniteLog';
 
 /** Panels shared by the second-monitor window and the Fortnite page. */
@@ -242,9 +242,155 @@ export function useSquad(): FnSquadState | null {
   return squad;
 }
 
-/** Your hotbar and linked friends' hotbars, as pictures cropped from each player's own screen. */
+/** Your inventory as read from the screen (Phase F4). */
+export function useInventory(): FnInventory | null {
+  const [inv, setInv] = useState<FnInventory | null>(null);
+  useEffect(() => {
+    let active = true;
+    void window.shotcaller.getFortniteInventory().then((s) => active && setInv(s));
+    const off = window.shotcaller.onFortniteInventory(setInv);
+    return () => {
+      active = false;
+      off();
+    };
+  }, []);
+  return inv;
+}
+
+export const RARITY_VAR: Record<FnRarity, string> = {
+  common: 'var(--fn-common)',
+  uncommon: 'var(--fn-uncommon)',
+  rare: 'var(--fn-rare)',
+  epic: 'var(--fn-epic)',
+  legendary: 'var(--fn-legendary)',
+  mythic: 'var(--fn-mythic)',
+  exotic: 'var(--fn-exotic)',
+};
+
+/** Slots 1-5 as tiles in their rarity colours, with the count and (once held) the item's name. */
+export function SlotRow({ inv, big }: { inv: FnInventory; big?: boolean }) {
+  return (
+    <div className="fn-slots" data-big={big ? 'yes' : undefined}>
+      {inv.slots.map((s) => (
+        <div
+          key={s.slot}
+          className="fn-slot"
+          data-empty={s.empty ? 'yes' : undefined}
+          data-held={s.held ? 'yes' : undefined}
+          style={s.rarity ? { ['--slot' as string]: RARITY_VAR[s.rarity] } : undefined}
+          title={s.empty ? `Slot ${s.slot}: empty` : `Slot ${s.slot}: ${s.name ?? 'item (hold it once to read its name)'}${s.rarity ? ` · ${s.rarity}` : ''}`}
+        >
+          <span className="fn-slot-key">{s.slot}</span>
+          {!s.empty && <span className="fn-slot-name">{s.name ?? (s.rarity ? s.rarity : '?')}</span>}
+          {!s.empty && s.count !== null && <span className="fn-slot-count">{s.mag !== null ? `${s.mag} | ${s.count}` : s.count}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Where each slot sits in the shared hotbar picture (squad.ts readHotbar: 580x190, cut from 1080p x 1310, y 830):
+ * slot n (1-5) is an 80 px square at x 15 + 95n, y 102; the held slot is raised 16 px.
+ */
+const PIC_W = 580;
+const PIC_H = 190;
+const picSlot = (n: number, held: boolean) => ({ x: 15 + 95 * n, y: held ? 86 : 102 });
+
+interface StripTile {
+  empty?: boolean;
+  held?: boolean;
+  rarity?: FnRarity | null;
+  count?: number | null;
+  name?: string | null;
+}
+
+/** One square: the item's picture cut from the hotbar picture, rarity border, count, held raised. */
+function PicTile({ pic, n, tile, size }: { pic: string | null; n: number; tile: StripTile; size: number }) {
+  const s = size / 80;
+  const at = picSlot(n, !!tile.held);
+  const style: React.CSSProperties = {
+    width: size,
+    height: size,
+    ...(tile.rarity ? { ['--slot' as string]: RARITY_VAR[tile.rarity] } : {}),
+    ...(pic && !tile.empty
+      ? { backgroundImage: `url(${pic})`, backgroundSize: `${PIC_W * s}px ${PIC_H * s}px`, backgroundPosition: `${-at.x * s}px ${-at.y * s}px` }
+      : {}),
+  };
+  return (
+    <div
+      className="fn-strip-tile"
+      data-empty={tile.empty ? 'yes' : undefined}
+      data-held={tile.held ? 'yes' : undefined}
+      data-rarity={tile.rarity ? 'yes' : undefined}
+      style={style}
+      title={tile.empty ? `Slot ${n}: empty` : `Slot ${n}${tile.name ? `: ${tile.name}` : ''}${tile.rarity ? ` · ${tile.rarity}` : ''}`}
+    >
+      {/* No picture yet (hotbar not seen): show the read count instead; pictures already carry Fortnite's own. */}
+      {!pic && !tile.empty && tile.count != null && <span className="fn-strip-count">{tile.count}</span>}
+    </div>
+  );
+}
+
+/**
+ * The squad loadout strip (DESIGN.md S-E3e): one row per player, name on the left (cut short), five squares on
+ * the right with each item's picture. Yours also uses the screen reading (empty, held, rarity, count);
+ * friends' squares are cut from the hotbar picture their app sends.
+ */
+export function SquadStrip({ size = 34, title = true }: { size?: number; title?: boolean }) {
+  const squad = useSquad();
+  const inv = useInventory();
+  const mineLive = !!inv && inv.at > 0 && inv.seen;
+  const rows: { key: string; name: string; pic: string | null; tiles: StripTile[]; color?: string }[] = [];
+  if (squad?.mine || mineLive)
+    rows.push({ key: 'me', name: 'You', pic: squad?.mine ?? null, tiles: mineLive ? inv!.slots : Array.from({ length: 5 }, () => ({})) });
+  for (const f of squad?.friends ?? []) rows.push({ key: f.id, name: f.name, pic: f.inventory, tiles: Array.from({ length: 5 }, () => (f.inventory ? {} : { empty: true })) });
+  if (!rows.length) return null;
+  return (
+    <div className="fn-strip">
+      {title && <div className="fn-strip-head">Loadouts</div>}
+      {rows.map((r) => (
+        <div key={r.key} className="fn-strip-row">
+          <span className="fn-strip-name" title={r.name}>
+            {r.name}
+          </span>
+          <div className="fn-strip-tiles">
+            {r.tiles.map((t, i) => (
+              <PicTile key={i} pic={r.pic} n={i + 1} tile={t} size={size} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Health and shield bars as read from the screen. */
+export function HealthBars({ inv }: { inv: FnInventory }) {
+  return (
+    <div className="fn-hp">
+      <div className="fn-hp-row" data-kind="shield">
+        <span>Shield</span>
+        <div className="fn-hp-bar">
+          <i style={{ width: `${inv.shield ?? 0}%` }} />
+        </div>
+        <b>{inv.shield ?? '—'}</b>
+      </div>
+      <div className="fn-hp-row" data-kind="health">
+        <span>Health</span>
+        <div className="fn-hp-bar">
+          <i style={{ width: `${inv.health ?? 0}%` }} />
+        </div>
+        <b>{inv.health ?? '—'}</b>
+      </div>
+    </div>
+  );
+}
+
+/** Your inventory read live from the screen, and linked friends' hotbars as pictures from their screens. */
 export function InventoryPanel() {
   const squad = useSquad();
+  const inv = useInventory();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 5000);
@@ -252,11 +398,22 @@ export function InventoryPanel() {
   }, []);
   const rows = [
     ...(squad?.friends ?? []).map((f) => ({ key: f.id, name: f.name, img: f.inventory, old: now - f.seenAt > 15_000, note: f.live ? ` · ${f.live.chests} chests · ${f.live.kills ?? 0} elims${f.live.reading ? '' : ' · not reading their screen'}` : ' · needs the latest ShotCaller' })),
-    { key: 'me', name: 'You', img: squad?.mine ?? null, old: false, note: '' },
   ];
+  const mineLive = !!inv && inv.at > 0 && (inv.seen || inv.slots.some((s) => !s.empty));
+  if (!mineLive) rows.push({ key: 'me', name: 'You', img: squad?.mine ?? null, old: false, note: '' });
   return (
     <section className="fn-panel">
       <div className="fn-panel-title">Inventory</div>
+      {mineLive && inv && (
+        <div style={{ marginBottom: 10, opacity: inv.seen ? 1 : 0.6 }}>
+          <div className="fn-note" style={{ margin: '0 0 6px' }}>
+            You{inv.heldName ? ` · holding ${inv.heldName}` : ''}
+            {inv.seen ? '' : ' (hotbar hidden right now)'}
+          </div>
+          <SlotRow inv={inv} big />
+          <HealthBars inv={inv} />
+        </div>
+      )}
       {rows.map((r) => (
         <div key={r.key} style={{ marginBottom: 8 }}>
           <div className="fn-note" style={{ margin: '0 0 4px' }}>

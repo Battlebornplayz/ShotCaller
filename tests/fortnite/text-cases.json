@@ -1,0 +1,33 @@
+{
+  "_about": "What Windows' text reader returned on screen, and what ShotCaller should make of it. Add a line whenever a real read comes out wrong.",
+  "placement": [
+    { "text": "YOU PLACED #4", "want": 4 },
+    { "text": "VOVPUCED#4", "want": 4 },
+    { "text": "VOU PLACED #12", "want": 12 },
+    { "text": "YOU PLACED # 37 MATCH RECAP", "want": 37 },
+    { "text": "VICTORY ROYALE", "want": 1 },
+    { "text": "VICTORY  ROYALE #1", "want": 1 },
+    { "text": "YOU PLACED", "want": null },
+    { "text": "YOU PLACED #0", "want": null },
+    { "text": "YOU PLACED #140", "want": null },
+    { "text": "ELIMINATED BY PLAYER", "want": null }
+  ],
+  "rank": [
+    { "text": "GOLD II", "want": { "rank": "gold", "division": 2, "progress": null } },
+    { "text": "Platinum 1 47%", "want": { "rank": "platinum", "division": 1, "progress": 47 } },
+    { "text": "BRONZE III 100 %", "want": { "rank": "bronze", "division": 3, "progress": 100 } },
+    { "text": "UNREAL", "want": { "rank": "unreal", "division": null, "progress": null } },
+    { "text": "ELITE 63%", "want": { "rank": "elite", "division": null, "progress": 63 } },
+    { "text": "CHAMPION II", "want": { "rank": "champion", "division": null, "progress": null } },
+    { "text": "GOLDEN PEELY", "want": null },
+    { "text": "BATTLE ROYALE", "want": null }
+  ],
+  "held": [
+    { "text": "RARE SKYLINE DEPLOYER", "want": { "name": "SKYLINE DEPLOYER", "rarity": "rare", "mag": null, "reserve": null } },
+    { "text": "EPIC ASSAULT RIFLE 30 | 120", "want": { "name": "ASSAULT RIFLE", "rarity": "epic", "mag": 30, "reserve": 120 } },
+    { "text": "JNCOMMONJ PUMP SHOTGUN 5 24+", "want": { "name": "PUMP SHOTGUN", "rarity": "uncommon", "mag": 5, "reserve": 24 } },
+    { "text": "LEGENDAR HEAVY SNIPER 1", "want": { "name": "HEAVY SNIPER", "rarity": "legendary", "mag": 1, "reserve": null } },
+    { "text": "COMMON BANDAGES 15", "want": { "name": "BANDAGES", "rarity": "common", "mag": 15, "reserve": null } },
+    { "text": "MYTHIC", "want": { "name": null, "rarity": "mythic", "mag": null, "reserve": null } }
+  ]
+}

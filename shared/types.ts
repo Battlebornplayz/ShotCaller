@@ -6,6 +6,7 @@ import type {
   FnDisplay,
   FnDrop,
   FnSquadState,
+  FnInventory,
   FnLiveState,
   FnMapState,
   FnPoint,
@@ -390,8 +391,8 @@ export function rarityTier(percent: number | null | undefined): RarityTier {
   return 'common';
 }
 
-/** steam = Steam's own stats cache; emulator = a local emulator file; manual = ticked in ShotCaller. */
-export type UnlockVia = 'steam' | 'emulator' | 'manual';
+/** steam = Steam's own stats cache; emulator = a local emulator file; manual = ticked in ShotCaller; shotcaller = ShotCaller's own (earned from what it tracks). */
+export type UnlockVia = 'steam' | 'emulator' | 'manual' | 'shotcaller';
 
 export interface Achievement {
   /** Steam API name, or "custom:<id>" for the user's own. */
@@ -409,10 +410,12 @@ export interface Achievement {
   via: UnlockVia | null;
   progress?: { current: number; max: number };
   custom?: boolean;
+  /** ShotCaller's own achievements have a set tier instead of a global unlock percentage. */
+  tier?: RarityTier;
 }
 
 /** steam-local = Steam's cache on this PC; steam-public = Steam's public page; custom = only the user's own. */
-export type AchievementListSource = 'steam-local' | 'steam-public' | 'custom' | 'none';
+export type AchievementListSource = 'steam-local' | 'steam-public' | 'custom' | 'shotcaller' | 'none';
 
 /** How unlocks are found: steam = Steam's stats cache; emulator = local emulator files (+ ticks); manual = ticks only. */
 export type AchievementTracking = 'steam' | 'emulator' | 'manual';
@@ -462,6 +465,8 @@ export interface UnlockEvent {
   /** Epoch ms, 0 when unknown. */
   unlockedAt: number;
   via: UnlockVia;
+  /** Set tier for ShotCaller's own achievements (no global rarity). */
+  tier?: RarityTier;
 }
 
 export interface HubState {
@@ -670,6 +675,9 @@ export interface ShotCallerApi {
   /** Squad link: share map dots with a friend by join code. */
   getFortniteSquad(): Promise<FnSquadState>;
   onFortniteSquad(callback: (state: FnSquadState) => void): Unsubscribe;
+  /** Your hotbar, health and shield as read from the screen (Phase F4). */
+  getFortniteInventory(): Promise<FnInventory>;
+  onFortniteInventory(callback: (inv: FnInventory) => void): Unsubscribe;
   startFortniteSquad(): Promise<FnSquadState>;
   joinFortniteSquad(code: string): Promise<FnSquadState>;
   leaveFortniteSquad(): Promise<FnSquadState>;

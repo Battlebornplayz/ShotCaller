@@ -7,6 +7,9 @@ import { setMcpRunning } from './skillshot/mcpServer';
 import { noteMouseDown, onScreenStatus, screenReaderRunning, setScreenReaderRunning } from './skillshot/screenReader';
 import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
 import { disposeFortnite, initFortnite, onFortniteChange, setFortniteRunning } from './fortnite/tracker';
+import { onInventory } from './fortnite/inventory';
+import { initFortniteExtras } from './fortnite/ranked';
+import { disposeOcr } from './ocr';
 import { onFortniteScreen, setFortniteReaderRunning } from './fortnite/screenReader';
 import { initLiveMap, onLiveMap } from './fortnite/liveMap';
 import { initFullMap } from './fortnite/fullMap';
@@ -228,6 +231,8 @@ if (!app.requestSingleInstanceLock()) {
     onLiveMap((s) => broadcast(IPC.fortniteMapChanged, s));
     initSquad();
     onSquad((s) => broadcast(IPC.fortniteSquadChanged, s));
+    onInventory((s) => broadcast(IPC.fortniteInventoryChanged, s));
+    initFortniteExtras();
     onStats((s) => broadcast(IPC.fortniteStatsChanged, s));
     onShop((s) => broadcast(IPC.fortniteShopChanged, s));
     initOnline();
@@ -263,6 +268,7 @@ if (!app.requestSingleInstanceLock()) {
     stopSquad();
     setFortniteReaderRunning(false, false, false);
     disposeFortnite();
+    disposeOcr();
     disposeOnline();
     setMcpRunning(false);
     disposeSkillshot();

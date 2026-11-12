@@ -16,5 +16,5 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["electron", "shared", "games", "src", "electron.vite.config.ts"]
+  "include": ["electron", "shared", "games", "src", "tests", "electron.vite.config.ts"]
 }

@@ -1,0 +1,18 @@
+{
+  "_about": "Scores the screen readers had when last saved (--save-baseline). A run fails when one drops.",
+  "right": {
+    "bars.health": 87,
+    "bars.shield": 87,
+    "chest.kinds": 153,
+    "hotbar.count": 219,
+    "hotbar.empty": 412,
+    "hotbar.held": 119,
+    "hotbar.rarity": 220,
+    "hotbar.seen": 122,
+    "hotbar.slots": 28,
+    "hud.kills": 150,
+    "hud.left": 140,
+    "hud.state": 154,
+    "map.open": 154
+  }
+}

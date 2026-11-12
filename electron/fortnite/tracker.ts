@@ -3,7 +3,9 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
-import { NO_CHEST_KINDS, type FnChestKind, type FnChestKinds, type FnLiveState, type FnMatchRecord, type FnTotals } from '../../shared/fortnite';
+import { NO_CHEST_KINDS, type FnChestKind, type FnChestKinds, type FnLiveState, type FnMatchRecord, type FnRankRead, type FnTotals } from '../../shared/fortnite';
+import { resetInventory, takeLoadout } from './inventory';
+import { placementRead, resetPlacement } from './placement';
 import { FnLogParser, modeOf, wasPlayed, type FnLogEvent, type FnLogMatch, type FnPhase } from '../../shared/fortniteLog';
 
 /**
@@ -35,6 +37,24 @@ let lastMatch: FnMatchRecord | null = null;
 const sessionStats = { matches: 0, wins: 0, eliminations: 0, deaths: 0, chests: 0 };
 const listeners = new Set<(s: FnLiveState) => void>();
 const savedListeners = new Set<(m: FnMatchRecord) => void>();
+const changedListeners = new Set<() => void>();
+
+/** Called whenever the saved history changes (a match saved, a rank added). */
+export function onMatchesChanged(fn: () => void): () => void {
+  changedListeners.add(fn);
+  return () => changedListeners.delete(fn);
+}
+
+/** The rank read after a Ranked match, added to that match (the newest read wins: the bar animates). */
+export function setMatchRank(matchId: string, rank: FnRankRead): void {
+  const m = matches.find((x) => x.id === matchId);
+  if (!m) return;
+  m.rank = rank;
+  if (lastMatch?.id === matchId) lastMatch = m;
+  void saveMatches();
+  push();
+  for (const fn of changedListeners) fn();
+}
 
 /** Called with each finished match right after it's saved (the live map files its route under the id). */
 export function onMatchSaved(fn: (m: FnMatchRecord) => void): () => void {
@@ -167,6 +187,12 @@ export function busHasLeft(): boolean {
 
 function handle(events: FnLogEvent[], live: boolean): void {
   for (const e of events) {
+    if (e.type === 'start') {
+      if (live) {
+        resetInventory();
+        resetPlacement();
+      }
+    }
     if (e.type === 'start') current = { ...e.match, chests: 0, kinds: { ...NO_CHEST_KINDS }, eliminations: null, aliveMs: null, leftAlive: null };
     else if (e.type === 'update' && current)
       current = { ...current, ...e.match, chests: current.chests, kinds: current.kinds, eliminations: current.eliminations, aliveMs: current.aliveMs, leftAlive: current.leftAlive };
@@ -186,12 +212,13 @@ function handle(events: FnLogEvent[], live: boolean): void {
         chests: done.chests,
         chestKinds: done.kinds,
         eliminations: done.eliminations,
-        // Solo: the players left just before you went down is your place (7 left when you die = #7; a win
-        // ends on 1). Team modes rank teams, which the HUD doesn't show: left empty for now.
-        placement: mode.teamSize === 'solo' ? done.leftAlive : null,
+        // Fortnite's own "YOU PLACED #N" / "VICTORY ROYALE" when it was read (any team size). Otherwise, solo:
+        // the players left just before you went down is your place (7 left when you die = #7; a win ends on 1).
+        placement: placementRead() ?? (mode.teamSize === 'solo' ? done.leftAlive : null),
         // Read from the screen (skips time down); without screen reads, from the bus to leaving.
         timeAliveMs: done.aliveMs ?? (e.match.phases.bus !== undefined && e.match.endedAt ? e.match.endedAt - e.match.phases.bus : null),
         endReason: e.match.endReason,
+        loadout: takeLoadout(),
       };
       matches.push(record);
       lastMatch = record;
@@ -201,6 +228,7 @@ function handle(events: FnLogEvent[], live: boolean): void {
       else sessionStats.deaths++;
       sessionStats.eliminations += record.eliminations ?? 0;
       for (const fn of savedListeners) fn(record);
+      for (const fn of changedListeners) fn();
       void saveMatches();
     }
   }

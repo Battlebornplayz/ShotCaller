@@ -1298,3 +1298,33 @@ html.popup-window #root {
 .palette-item.active {
   background: var(--accent-soft);
 }
+
+/* Inventory read from the screen (Phase F4) */
+:root { --fn-mythic: #e6c64a; --fn-exotic: #54e0e0; --fn-common: #b4b8c7; }
+.fn-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.fn-slot { --slot: rgba(255, 255, 255, 0.15); position: relative; min-height: 54px; border-radius: 6px; padding: 4px 6px; background: linear-gradient(160deg, color-mix(in srgb, var(--slot) 55%, transparent), color-mix(in srgb, var(--slot) 22%, rgba(10, 12, 30, 0.9))); border: 2px solid var(--slot); display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; transition: transform 0.15s ease; }
+.fn-slots[data-big='yes'] .fn-slot { min-height: 70px; }
+.fn-slot[data-empty='yes'] { background: rgba(255, 255, 255, 0.04); border: 2px dashed rgba(255, 255, 255, 0.15); }
+.fn-slot[data-held='yes'] { transform: translateY(-4px); box-shadow: 0 4px 0 #fff; }
+.fn-slot-key { font-size: 10px; font-weight: 800; color: rgba(255, 255, 255, 0.7); }
+.fn-slot-name { font-size: 11px; font-weight: 700; line-height: 1.15; text-transform: capitalize; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.fn-slot-count { font-family: var(--fn-display); font-style: italic; font-size: 18px; text-align: right; line-height: 1; }
+/* Squad loadout strip (DESIGN.md S-E3e): name + five squares with the item pictures. */
+.fn-strip { display: grid; gap: 4px; margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: rgba(10, 14, 40, 0.55); }
+.fn-strip-head { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.6); }
+.fn-strip-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.fn-strip-name { font-weight: 800; font-size: 13px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fn-strip-tiles { display: flex; gap: 4px; padding-top: 4px; }
+.fn-strip-tile { --slot: rgba(255, 255, 255, 0.55); position: relative; box-sizing: border-box; border-radius: 4px; border: 2px solid var(--slot); background-color: rgba(255, 255, 255, 0.06); background-repeat: no-repeat; transition: transform 0.15s ease; }
+.fn-strip-tile[data-empty='yes'] { border: 2px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.04); }
+.fn-strip-tile[data-held='yes'] { transform: translateY(-4px); box-shadow: 0 3px 0 #fff; }
+.fn-strip-count { position: absolute; right: 2px; bottom: 0; font-family: var(--fn-display); font-style: italic; font-size: 11px; line-height: 1.1; color: #fff; text-shadow: 0 1px 2px #000; }
+.fn-hp { display: grid; gap: 4px; margin-top: 10px; }
+.fn-hp-row { display: grid; grid-template-columns: 52px 1fr 34px; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: rgba(255, 255, 255, 0.75); }
+.fn-hp-row b { font-family: var(--fn-display); font-style: italic; font-size: 16px; color: #fff; text-align: right; }
+.fn-hp-bar { height: 10px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.fn-hp-bar i { display: block; height: 100%; transition: width 0.3s ease; }
+.fn-hp-row[data-kind='shield'] i { background: linear-gradient(90deg, #2f8bff, #6cc8ff); }
+.fn-hp-row[data-kind='health'] i { background: linear-gradient(90deg, #4fc23a, #a6f05a); }
+.fn-score { font-family: var(--fn-display); font-style: italic; font-size: 54px; line-height: 1; }
+.fn-rank-chart { width: 100%; height: 180px; display: block; }

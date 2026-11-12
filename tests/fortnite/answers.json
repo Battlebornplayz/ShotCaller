@@ -1,0 +1,2072 @@
+{
+  "_about": "Right answers for the saved Fortnite screenshots (research_notes/fortnite/frames, kept off the repo). Each value was checked by eye against the picture. A field left out isn't checked for that picture (covered, spectating someone else, unclear). hotbar.slots: slots 1-5 as rarity:count, '-' empty. No full-map (M) screenshots yet, so the map panel reader isn't scored; add some and record them.",
+  "frames": {
+    "chest-01.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-02.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-03.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-04.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-05.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-06.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-07.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-08.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-09.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-10.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-11.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-12.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-13.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-14.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-15.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-16.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "chest",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-17.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "chest",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-18.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "chest",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-19.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "chest",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-20.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "chest",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 1,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-21.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 1,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-22.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 1,
+        "hotbar.slots": "common:16 | legendary:5 | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-23.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:16 | legendary:5 | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-24.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:16 | legendary:5 | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-25.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:16 | legendary:5 | - | uncommon:1 | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-26.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:16 | legendary:5 | - | uncommon:1 | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-27.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:16 | legendary:5 | - | uncommon:1 | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-28.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:16 | legendary:5 | - | uncommon:1 | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-29.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:16 | legendary:5 | - | uncommon:1 | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-30.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:16 | legendary:5 | - | uncommon:1 | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-31.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:16 | legendary:5 | - | uncommon:1 | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "chest-32.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:16 | legendary:5 | - | uncommon:1 | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "death-01.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 41,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "- | - | - | - | -"
+      }
+    },
+    "death-02.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 41,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "- | - | - | - | -"
+      }
+    },
+    "death-03.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 41,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "- | - | - | - | -"
+      }
+    },
+    "death-04.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 41,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "- | - | - | - | -"
+      }
+    },
+    "death-05.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 41,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "- | - | - | - | -"
+      }
+    },
+    "death-06.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null
+      }
+    },
+    "death-07.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null
+      }
+    },
+    "death-08.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null
+      }
+    },
+    "death-09.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-10.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-11.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-12.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-13.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-14.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-15.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-16.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-17.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-18.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-19.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-20.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-21.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "death-22.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "elim-01.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:2",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "elim-02.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:2",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "elim-03.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:2",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "elim-04.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:2",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "elim-05.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:19 | - | - | rare:2",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "elim-06.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:19 | - | - | rare:2",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "elim-07.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:19 | - | - | rare:2",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "elim-08.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:19 | - | - | rare:2",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "elim-09.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:19 | - | - | rare:2",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "elim-10.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:18 | - | - | rare:2",
+        "bars.health": 55,
+        "bars.shield": 0
+      }
+    },
+    "elim-11.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:18 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "elim-12.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:17 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "elim-13.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:17 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "elim-14.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 1,
+        "hud.left": 17,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:16 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "elim-15.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 1,
+        "hud.left": 17,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:16 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "elim-16.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 1,
+        "hud.left": 17,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:16 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "elim-17.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 1,
+        "hud.left": 17,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:16 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "elim-18.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 1,
+        "hud.left": 17,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:16 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "elim-19.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 1,
+        "hud.left": 17,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:16 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "elim-20.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "elim-21.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "elim-22.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "elim-23.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "elim-24.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-01.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-02.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-03.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-04.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-05.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-06.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-07.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-08.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-09.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-10.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-11.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-12.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-13.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-14.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-15.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-16.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-17.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-18.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-19.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-20.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "end-21.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 1,
+        "hud.left": 17,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:16 | - | - | rare:2"
+      }
+    },
+    "end-22.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 1,
+        "hud.left": 17,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:16 | - | - | rare:2"
+      }
+    },
+    "end-23.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 16,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "- | - | - | - | -"
+      }
+    },
+    "end-24.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 16,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "- | - | - | - | -"
+      }
+    },
+    "every15-01.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 77,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "- | - | - | - | -",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "every15-02.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 77,
+        "hotbar.seen": true,
+        "hotbar.held": 1,
+        "hotbar.slots": "uncommon:38 | common:12 | - | - | -",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "every15-03.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 78,
+        "hotbar.seen": true,
+        "hotbar.held": 1,
+        "hotbar.slots": "uncommon:56 | common:12 | - | - | -",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "every15-04.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": "",
+        "bars.health": null,
+        "bars.shield": null
+      }
+    },
+    "every15-05.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:16 | - | - | - | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "every15-06.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 4,
+        "hotbar.slots": "common:16 | legendary:5 | - | uncommon:1 | uncommon:1",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "every15-07.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 1,
+        "hotbar.slots": "common:16 | legendary:5 | rare:7 | uncommon:2 | -",
+        "bars.health": 100,
+        "bars.shield": 25
+      }
+    },
+    "every15-08.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "chest",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:38 | legendary:9 | rare:7 | uncommon:2 | common:16",
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-09.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 80,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:38 | legendary:9 | rare:7 | uncommon:2 | epic:1",
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-10.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 79,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:38 | legendary:9 | rare:13 | uncommon:2 | epic:1",
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-11.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 78,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:50 | legendary:9 | rare:13 | uncommon:2 | epic:1",
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-12.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 73,
+        "hotbar.seen": true,
+        "hotbar.held": 3,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-13.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 69,
+        "hotbar.seen": true,
+        "hotbar.held": 4,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-14.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 60,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-15.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 59,
+        "hotbar.seen": true,
+        "hotbar.held": 4,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-16.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 55,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-17.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 50,
+        "hotbar.seen": true,
+        "hotbar.held": 1,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-18.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 46,
+        "hotbar.seen": true,
+        "hotbar.held": 1,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-19.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 45,
+        "hotbar.seen": true,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-20.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 44,
+        "hotbar.seen": true,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-21.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 41,
+        "hotbar.seen": true,
+        "bars.health": 100,
+        "bars.shield": 100
+      }
+    },
+    "every15-22.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "every15-23.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 37
+      }
+    },
+    "every15-24.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 36
+      }
+    },
+    "every15-25.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 36
+      }
+    },
+    "every15-26.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 35
+      }
+    },
+    "every15-27.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 32
+      }
+    },
+    "every15-28.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 32
+      }
+    },
+    "every15-29.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 31
+      }
+    },
+    "every15-30.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 29
+      }
+    },
+    "every15-31.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 24
+      }
+    },
+    "every15-32.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 23
+      }
+    },
+    "every15-33.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 23
+      }
+    },
+    "every15-34.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 24
+      }
+    },
+    "every15-35.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "down",
+        "hud.kills": null,
+        "hud.left": 24
+      }
+    },
+    "every15-36.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 25,
+        "hotbar.seen": true,
+        "hotbar.held": 0,
+        "hotbar.slots": "common:54 | - | - | - | -",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "every15-37.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 24,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "every15-38.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "every15-39.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 20,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "every15-40.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 19,
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "every15-41.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 1,
+        "hud.left": 17,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:16 | - | - | rare:2",
+        "bars.health": 41,
+        "bars.shield": 0
+      }
+    },
+    "every15-42.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": null,
+        "hud.kills": null,
+        "hud.left": null,
+        "hotbar.seen": false,
+        "hotbar.held": null,
+        "hotbar.slots": ""
+      }
+    },
+    "storm-01.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 25,
+        "hotbar.seen": true,
+        "hotbar.held": 5,
+        "hotbar.slots": "common:54 | uncommon:12 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "storm-02.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 25,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "storm-03.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 25,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "storm-04.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 24,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "storm-05.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 24,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "storm-06.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 24,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "storm-07.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 24,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "storm-08.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 24,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "storm-09.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 24,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    },
+    "storm-10.jpg": {
+      "checked": true,
+      "want": {
+        "map.open": false,
+        "chest.kinds": "",
+        "hud.state": "alive",
+        "hud.kills": 0,
+        "hud.left": 24,
+        "hotbar.seen": true,
+        "hotbar.held": 2,
+        "hotbar.slots": "common:54 | uncommon:20 | - | - | rare:3",
+        "bars.health": 100,
+        "bars.shield": 0
+      }
+    }
+  }
+}

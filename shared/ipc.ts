@@ -119,6 +119,8 @@ export const IPC = {
   fortniteDrops: 'fortnite:drops',
   fortniteSquad: 'fortnite:squad',
   fortniteSquadChanged: 'fortnite:squad-changed',
+  fortniteInventory: 'fortnite:inventory',
+  fortniteInventoryChanged: 'fortnite:inventory-changed',
   fortniteSquadStart: 'fortnite:squad-start',
   fortniteSquadJoin: 'fortnite:squad-join',
   fortniteSquadLeave: 'fortnite:squad-leave',

@@ -33,6 +33,7 @@ import {
   type SteamUser,
 } from './steamLocal';
 import { fetchPublicAchievements, fetchRarity } from './steamPublic';
+import { FN_ACHIEVEMENTS, FN_ACH_PREFIX } from '../shared/fortniteAchievements';
 
 /**
  * The achievement hub: builds every game's achievement list from local sources, watches those
@@ -57,6 +58,8 @@ interface Stored {
   manual: Record<string, Record<string, number>>;
   /** Game key → the user's own achievements. */
   custom: Record<string, CustomDef[]>;
+  /** Game key → ShotCaller's own achievements earned (id → time). */
+  earned: Record<string, Record<string, number>>;
 }
 
 let stored: Stored | null = null;
@@ -67,7 +70,7 @@ function storeFile(): string {
 
 function loadStore(): Stored {
   if (stored) return stored;
-  stored = { manual: {}, custom: {} };
+  stored = { manual: {}, custom: {}, earned: {} };
   try {
     const raw = JSON.parse(fs.readFileSync(storeFile(), 'utf8')) as Partial<Stored>;
     for (const [k, m] of Object.entries(raw.manual ?? {})) {
@@ -75,6 +78,12 @@ function loadStore(): Stored {
       const clean: Record<string, number> = {};
       for (const [id, t] of Object.entries(m)) if (Number.isFinite(t)) clean[id] = t;
       stored.manual[k] = clean;
+    }
+    for (const [k, m] of Object.entries(raw.earned ?? {})) {
+      if (!m || typeof m !== 'object') continue;
+      const clean: Record<string, number> = {};
+      for (const [id, t] of Object.entries(m)) if (Number.isFinite(t)) clean[id] = t;
+      stored.earned[k] = clean;
     }
     for (const [k, list] of Object.entries(raw.custom ?? {})) {
       if (!Array.isArray(list)) continue;
@@ -112,6 +121,9 @@ interface GameData {
   error?: string;
   /** Whether the public list/rarity has been requested (network). */
   fetched: boolean;
+  /** ShotCaller's own achievements: set tiers by id. */
+  tiers: Record<string, RarityTier>;
+  moduleId: string | null;
 }
 
 let steamPath: string | null = null;
@@ -177,7 +189,20 @@ async function build(g: LibraryGame, network: boolean): Promise<GameData> {
     emuFiles: appId ? (emuApps.get(appId) ?? []) : [],
     statNames: {},
     fetched: prev?.appId === appId ? prev.fetched : false,
+    tiers: {},
+    moduleId: g.moduleId ?? null,
   };
+
+  // Fortnite has no achievements of its own: ShotCaller's are earned from the matches it tracks.
+  if (g.moduleId === 'fortnite') {
+    d.defs = FN_ACHIEVEMENTS.map((a) => ({ id: FN_ACH_PREFIX + a.id, name: a.name, description: a.description, hidden: false, icon: null, iconGray: null }));
+    for (const a of FN_ACHIEVEMENTS) d.tiers[FN_ACH_PREFIX + a.id] = a.tier;
+    d.listSource = 'shotcaller';
+    d.tracking = 'manual';
+    const custom = customDefs(g.key);
+    if (custom.length) d.defs = [...d.defs, ...custom];
+    return d;
+  }
 
   const local = tracking === 'steam' && appId && steamPath ? readSchema(steamPath, appId) : null;
   if (local) {
@@ -229,6 +254,7 @@ function unlockMap(d: GameData): Map<string, { at: number; via: UnlockVia }> {
   const out = new Map<string, { at: number; via: UnlockVia }>();
   for (const [id, at] of d.steam?.unlocked ?? []) out.set(id, { at, via: 'steam' });
   for (const [id, at] of d.emu) if (!out.has(id)) out.set(id, { at, via: 'emulator' });
+  for (const [id, at] of Object.entries(loadStore().earned[d.key] ?? {})) if (!out.has(id)) out.set(id, { at, via: 'shotcaller' });
   const ticks = loadStore().manual[d.key] ?? {};
   const allowTicks = d.tracking !== 'steam';
   for (const [id, at] of Object.entries(ticks)) {
@@ -259,6 +285,7 @@ function toAchievements(d: GameData): Achievement[] {
       via: u?.via ?? null,
       progress,
       custom: def.id.startsWith('custom:') || undefined,
+      tier: d.tiers[def.id],
     };
   });
 }
@@ -310,6 +337,7 @@ function eventFor(d: GameData, id: string, at: number, via: UnlockVia): UnlockEv
     rarity: d.rarity[id] ?? null,
     unlockedAt: at,
     via,
+    tier: d.tiers[id],
   };
 }
 
@@ -327,7 +355,7 @@ async function announce(d: GameData, ids: string[]): Promise<void> {
     .sort((a, b) => (a.rarity ?? 100) - (b.rarity ?? 100)); // rarest last, so it lingers
   events.reverse();
   for (const event of events) {
-    showPopup({ event, tier: rarityTier(event.rarity), sound: popups.sound, volume: popups.volume, corner: popups.corner });
+    showPopup({ event, tier: event.tier ?? rarityTier(event.rarity), sound: popups.sound, volume: popups.volume, corner: popups.corner });
   }
 }
 
@@ -555,6 +583,7 @@ export function setManualUnlock(key: string, id: string, unlocked: boolean): Act
   if (!d) return { ok: false, error: 'Unknown game.' };
   if (!d.defs.some((x) => x.id === id)) return { ok: false, error: 'Unknown achievement.' };
   if (d.tracking === 'steam' && !id.startsWith('custom:')) return { ok: false, error: 'Steam tracks this one itself.' };
+  if (id.startsWith('sc:')) return { ok: false, error: 'ShotCaller unlocks this one itself from your matches.' };
   const s = loadStore();
   const ticks = (s.manual[key] ??= {});
   if (unlocked) ticks[id] = Date.now();
@@ -587,6 +616,26 @@ export async function removeCustomAchievement(key: string, id: string): Promise<
   saveStore();
   await rebuild(key);
   return { ok: true };
+}
+
+/**
+ * ShotCaller's own achievements for a module game (Fortnite): marks `ids` earned and pops up the new ones.
+ * `quiet` (at start-up) records them without popups, so an old history doesn't fire a stack of cards.
+ */
+export function grantModuleAchievements(moduleId: string, ids: string[], quiet = false): void {
+  const s = loadStore();
+  for (const d of data.values()) {
+    if (d.moduleId !== moduleId) continue;
+    const earned = (s.earned[d.key] ??= {});
+    const fresh = ids.filter((id) => !earned[id] && d.defs.some((x) => x.id === id));
+    if (!fresh.length) continue;
+    const now = Date.now();
+    for (const id of fresh) earned[id] = now;
+    saveStore();
+    known.set(d.key, new Set(unlockMap(d).keys()));
+    emit();
+    if (!quiet) void announce(d, fresh);
+  }
 }
 
 /** Shows a sample card for a tier (Settings → Test). */

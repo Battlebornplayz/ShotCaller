@@ -31,6 +31,9 @@ import { setSquadColors } from './liveMap';
 import { pinChest, pinKill, readLiveMap } from './liveMap';
 import { readHotbar } from './squad';
 import { addChest, busHasLeft, inFortniteMatch, setEliminations, setPlayersLeftAlive, setTimeAlive } from './tracker';
+import { readInventory } from './inventory';
+import { readRankScreen } from './ranked';
+import { readPlacementScreen } from './placement';
 
 /**
  * Reads Fortnite's screen while it's the window in front and a match is on: a copy of a small area right of
@@ -121,11 +124,12 @@ function recordShot(area: WindowArea): void {
 }
 
 /** The top-right stack: the number next to the skull. Skipped while it isn't showing (down, spectating). */
-function readEliminations(area: WindowArea): void {
+/** Reads the top-right stack; returns what this look saw (null = the HUD isn't showing: menus, recap, victory). */
+function readEliminations(area: WindowArea): 'alive' | 'down' | null {
   const g = gameSpace(area);
   const box = hudArea(g.width, g.height);
   const raw = grabGame(area, g, box);
-  if (!raw) return;
+  if (!raw) return null;
   const at1080 = hudArea(1920, 1080);
   const pixels = resizeBgra(raw, box.width, box.height, at1080.width, at1080.height);
   const hud = readHud(pixels, at1080.width, at1080.height, glyphs);
@@ -141,6 +145,7 @@ function readEliminations(area: WindowArea): void {
     setEliminations(next);
     pushStatus();
   }
+  return hud.state;
 }
 
 /** Squad colours from the list on the left (every 2 s while the HUD shows): used to tell teammates apart. */
@@ -185,6 +190,9 @@ function look(): void {
     lifeState = null;
     aliveMs = 0;
     lastTickAt = 0;
+    // After a Ranked match: look for the rank screen while Fortnite is in front.
+    const lobbyArea = foregroundGameArea(fortnite.exeNames);
+    if (lobbyArea) readRankScreen(lobbyArea);
     return setMode('lobby');
   }
   countAlive();
@@ -229,10 +237,15 @@ function look(): void {
     if (recorderOn && chestSamples++ < CHEST_SAMPLE_CAP) save(`chest-${Date.now()}.png`, toImage(pixels, box.width, box.height).toPNG());
     pushStatus();
   }
-  readEliminations(area);
+  const hudNow = readEliminations(area);
+  // Not alive on screen after the bus: watch for "YOU PLACED #N" / "VICTORY ROYALE" (any team size).
+  if (hudNow !== 'alive' && busHasLeft()) readPlacementScreen(area);
   readSquadList(area);
   readLiveMap(area, lifeState, getSettings().fortnite.liveMap);
-  if (lifeState !== 'down') readHotbar(area);
+  if (lifeState !== 'down') {
+    readHotbar(area);
+    readInventory(area);
+  }
   recordShot(area);
   setMode('watching');
   if (++status.frames % HEARTBEAT_FRAMES === 0) pushStatus();

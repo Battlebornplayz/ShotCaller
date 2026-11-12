@@ -12,6 +12,7 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit",
+    "test:fortnite": "rolldown -c tests/fortnite/rolldown.config.mjs && electron out/fn-test/run.cjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "dist": "npm run build && electron-builder",

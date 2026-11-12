@@ -2,7 +2,7 @@ import { modeLabel } from '../../shared/fortniteLog';
 import { useFortnite, useFortniteScreen, useSettings } from '../../src/hooks/useLive';
 import { useFortniteMap } from '../../src/hooks/useLive';
 import { gridCell } from './FnMap';
-import { GoalBar, useSquad } from './FnPanels';
+import { GoalBar, SquadStrip, useSquad } from './FnPanels';
 import type { FnShowOn } from '../../shared/fortnite';
 
 /**
@@ -116,9 +116,7 @@ function CardExtras() {
           ))}
         </>
       )}
-      {parts.hotbar && squad?.mine && <img src={squad.mine} alt="Your hotbar" style={{ width: '100%', borderRadius: 4, marginTop: 6 }} />}
-      {parts.hotbar &&
-        squad?.friends.map((f) => f.inventory && <img key={f.id} src={f.inventory} alt={`${f.name}'s hotbar`} title={f.name} style={{ width: '100%', borderRadius: 4, marginTop: 4 }} />)}
+      {parts.hotbar && <SquadStrip />}
     </>
   );
 }

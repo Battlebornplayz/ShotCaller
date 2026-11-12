@@ -355,6 +355,10 @@ export interface FnMatchRecord {
   /** From the bus leaving to the end (F1); the death screen refines it later. */
   timeAliveMs: number | null;
   endReason: 'lobby' | 'next' | 'closed' | null;
+  /** Final loadout read from the hotbar (beta.22+). */
+  loadout?: FnLoadoutItem[];
+  /** Ranked matches: the rank read after the match (beta.22+). */
+  rank?: FnRankRead | null;
 }
 
 export interface FnTotals {
@@ -415,4 +419,63 @@ export interface FnScreenPreview {
   /** Where the best label match was, as fractions of the picture. */
   match: { x: number; y: number; width: number; height: number } | null;
   score: number | null;
+}
+
+// ---------- Inventory (F4) ----------
+
+/** Tile colours Fortnite uses for item rarity (exotic is only known from the held item's label). */
+export type FnRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'exotic';
+
+/** One hotbar slot as read from the screen. */
+export interface FnSlotRead {
+  /** 1-5. */
+  slot: number;
+  empty: boolean;
+  rarity: FnRarity | null;
+  /** The number on the tile: ammo of that kind for guns, stack size for items. */
+  count: number | null;
+  held: boolean;
+}
+
+/** A slot with what's known about its item (the name is read when you hold it). */
+export interface FnSlot extends FnSlotRead {
+  name: string | null;
+  /** Rounds in the gun when you last held it. */
+  mag: number | null;
+}
+
+export interface FnInventory {
+  /** Whether the hotbar was seen on the latest look. */
+  seen: boolean;
+  slots: FnSlot[];
+  /** 0 = pickaxe, 1-5, null = unknown. */
+  held: number | null;
+  /** The held item as Fortnite labels it, left of the hotbar. */
+  heldName: string | null;
+  health: number | null;
+  shield: number | null;
+  /** Not read yet (needs a Builds-mode recording): always null for now. */
+  materials: { wood: number; stone: number; metal: number } | null;
+  at: number;
+}
+
+/** What you carried at the end of a match (the last good hotbar read). */
+export interface FnLoadoutItem {
+  slot: number;
+  name: string | null;
+  rarity: FnRarity | null;
+  count: number | null;
+}
+
+/** Ranked: rank and progress as read from the screen after a Ranked match. */
+export interface FnRankRead {
+  /** Bronze, Silver, Gold, Platinum, Diamond, Elite, Champion, Unreal. */
+  rank: string;
+  /** 1-3 for Bronze-Diamond, null above. */
+  division: number | null;
+  /** Progress to the next division, 0-100 (Unreal: the placement number instead). */
+  progress: number | null;
+  at: number;
+  matchId: string | null;
+  zeroBuild: boolean | null;
 }

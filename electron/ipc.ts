@@ -37,6 +37,7 @@ import { getFortniteScreen, getFortniteScreenPreview, openFortniteShots } from '
 import { getDrops, getLiveMap, getRoute, setPlan } from './fortnite/liveMap';
 import type { FnPoint } from '../shared/fortnite';
 import { getSquad, joinSquad, leaveSquad, startSquad } from './fortnite/squad';
+import { getInventory } from './fortnite/inventory';
 import { getMapImage } from './fortnite/seasonMap';
 import { listDisplays, showFortniteMonitor } from './fortnite/monitorWindow';
 import { getShop, getStats, refreshStats, searchCosmetics, setApiKey } from './fortnite/online';
@@ -290,6 +291,7 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.fortniteRoute, (_e, matchId: unknown) => (typeof matchId === 'string' ? getRoute(matchId) : null));
   ipcMain.handle(IPC.fortniteDrops, () => getDrops());
   ipcMain.handle(IPC.fortniteSquad, () => getSquad());
+  ipcMain.handle(IPC.fortniteInventory, () => getInventory());
   ipcMain.handle(IPC.fortniteSquadStart, () => startSquad());
   ipcMain.handle(IPC.fortniteSquadJoin, (_e, code: string) => joinSquad(String(code ?? '')));
   ipcMain.handle(IPC.fortniteSquadLeave, () => leaveSquad());

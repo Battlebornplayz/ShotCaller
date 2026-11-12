@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { rarityTier, type Achievement, type GameAchievements, type LibraryGame, type RunningGame, type SteamAppMatch } from '../../../shared/types';
-import { AchIcon, formatDate, formatMinutes, RarityPill, TIER_COLOR } from '../../components/achievements';
+import { AchIcon, formatDate, formatMinutes, RarityPill, TIER_COLOR, TIER_LABEL } from '../../components/achievements';
 import { useDetection, useHubQuery } from '../../hooks/useLive';
 import { GameHero } from '../games/GameHero';
 import { SkillshotHub } from '../../../games/skillshot-city/SkillshotHub';
@@ -29,8 +29,8 @@ export function GamePage({ game }: { game: LibraryGame }) {
   const running = detection?.running.find((r) => r.key === game.key);
   const { value: data, loading } = useHubQuery(() => window.shotcaller.getGameAchievements(game.key), [game.key, game.achievementAppId]);
   const appId = game.steamAppId ?? game.achievementAppId;
-  // Fortnite has no achievements of its own; its hub shows matches and stats instead.
-  const showAchievements = game.moduleId !== 'fortnite';
+  // Fortnite has no achievements of its own: ShotCaller's own ones (earned from tracked matches) show instead.
+  const showAchievements = true;
 
   return (
     <div className={game.moduleId === 'fortnite' ? 'fn-theme' : undefined}>
@@ -39,7 +39,7 @@ export function GamePage({ game }: { game: LibraryGame }) {
       {game.moduleId === 'skillshot-city' && <SkillshotHub />}
       {game.moduleId === 'fortnite' && <FortniteHub />}
 
-      {showAchievements && data?.tracking !== 'steam' && data && <ListSourceCard game={game} data={data} />}
+      {showAchievements && data?.tracking !== 'steam' && data && data.listSource !== 'shotcaller' && <ListSourceCard game={game} data={data} />}
 
       {!showAchievements ? null : loading && !data ? (
         <div className="card enter muted" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -214,9 +214,11 @@ function AchievementList({ game, data }: { game: LibraryGame; data: GameAchievem
       if (filter === 'locked' && a.unlocked) return false;
       return !q || a.name.toLowerCase().includes(q) || (!(a.hidden && !a.unlocked) && a.description.toLowerCase().includes(q));
     });
-    const r = (a: Achievement) => a.rarity ?? -1;
+    // ShotCaller's own achievements have a tier instead of a global %: sort them as a typical % for that tier.
+    const TIER_PCT = { common: 75, uncommon: 40, rare: 18, epic: 6, legendary: 1 } as const;
+    const r = (a: Achievement) => a.rarity ?? (a.tier ? TIER_PCT[a.tier] : -1);
     if (sort === 'easiest') out.sort((a, b) => r(b) - r(a) || a.name.localeCompare(b.name));
-    else if (sort === 'rarest') out.sort((a, b) => (a.rarity ?? 101) - (b.rarity ?? 101) || a.name.localeCompare(b.name));
+    else if (sort === 'rarest') out.sort((a, b) => (r(a) < 0 ? 101 : r(a)) - (r(b) < 0 ? 101 : r(b)) || a.name.localeCompare(b.name));
     else if (sort === 'recent') out.sort((a, b) => (b.unlockedAt ?? (b.unlocked ? 1 : 0)) - (a.unlockedAt ?? (a.unlocked ? 1 : 0)) || a.name.localeCompare(b.name));
     else out.sort((a, b) => a.name.localeCompare(b.name));
     return out;
@@ -234,7 +236,7 @@ function AchievementList({ game, data }: { game: LibraryGame; data: GameAchievem
     );
   }
 
-  const canTick = (a: Achievement) => data.tracking !== 'steam' || !!a.custom;
+  const canTick = (a: Achievement) => (data.tracking !== 'steam' && !a.id.startsWith('sc:')) || !!a.custom;
   const pct = data.total ? data.unlocked / data.total : 0;
 
   return (
@@ -248,6 +250,9 @@ function AchievementList({ game, data }: { game: LibraryGame; data: GameAchievem
           <div style={{ fontWeight: 800 }}>{Math.round(pct * 100)}%</div>
         </div>
         {data.tracking === 'steam' && <div className="muted" style={{ fontSize: 12 }}>{TRACKING_NOTE.steam}</div>}
+        {data.listSource === 'shotcaller' && (
+          <div className="muted" style={{ fontSize: 12 }}>ShotCaller’s own achievements: they unlock by themselves from the matches ShotCaller tracks, with the unlock popup.</div>
+        )}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <div className="segmented">
             {(
@@ -312,7 +317,7 @@ function AchievementRow({
   onTick: (on: boolean) => void;
   onRemove?: () => void;
 }) {
-  const tier = rarityTier(a.rarity);
+  const tier = a.tier ?? rarityTier(a.rarity);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px', borderBottom: '1px solid var(--border)', opacity: a.unlocked ? 1 : 0.86 }}>
       <AchIcon src={a.unlocked ? a.icon : (a.iconGray ?? a.icon)} size={52} locked={!a.unlocked && !a.iconGray} tier={a.unlocked ? tier : undefined} />
@@ -346,7 +351,13 @@ function AchievementRow({
         )}
       </div>
       <div style={{ display: 'grid', justifyItems: 'end', gap: 6, flex: 'none', width: 190 }}>
-        {!a.custom && <RarityPill rarity={a.rarity} />}
+        {a.tier ? (
+          <span className="pill" style={{ background: `${TIER_COLOR[a.tier]}22`, color: TIER_COLOR[a.tier] }}>
+            {TIER_LABEL[a.tier]}
+          </span>
+        ) : (
+          !a.custom && <RarityPill rarity={a.rarity} />
+        )}
         {a.rarity !== null && (
           <div className="progress" style={{ width: 120, height: 4 }} title={`${a.rarity}% of players`}>
             <span style={{ width: `${Math.max(2, a.rarity)}%`, background: TIER_COLOR[tier] }} />
@@ -357,7 +368,7 @@ function AchievementRow({
         </div>
       </div>
       <div style={{ display: 'flex', gap: 6, flex: 'none', alignItems: 'center' }}>
-        {!a.custom && (
+        {!a.custom && !a.tier && (
           <button className="pill muted" title="Search the web for a guide" onClick={() => search(`${gameName} ${a.name} achievement guide`)} style={{ cursor: 'pointer' }}>
             Guide ↗
           </button>
