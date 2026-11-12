@@ -98,12 +98,13 @@ Deliverables:
 Done when: on the user's PC every installed Steam, Epic and Xbox game shows with art, starts from Play through its store, and the existing Library data (pins, hand-added games, achievement links) carries over.
 **Status (2026-11-12): done, beta.20.** User checked it in the dev app. Not possible from local files: Steam owned-not-installed (Steam now needs sign-in), Game Pass tag, Xbox install size (see DESIGN.md "Found while building L1").
 
-### Phase L2 — More tab: Anker, other stores, emulators, extras
+### Phase L2 — More tab: Anker, other stores, emulators, extras ✅ (beta.21, "e21")
 Deliverables:
 - More section of the left list where extra sources are set up: Anker Games (list, play the exe directly, achievements, Open in Anker), GOG, EA, Ubisoft, Battle.net, Riot, Rockstar, Amazon, itch.io, emulators (RPCS3, Ryujinx, mGBA: pick your game folders once, each file becomes a card that opens in the right emulator), games added by hand (browse or drag-drop an exe or shortcut). Everything also shows in the main grid.
 - Epic free games of the week: card on Home and a row in More.
 Done when: Anker games and at least the other stores installed on the user's PC show and start, and the beta installs and updates.
 Later: controller navigation; optional store sign-in for full owned lists.
+Built (2026-11-12): readers in `electron/stores/` (gog, ea, ubisoft, battlenet, riot, rockstar, amazon, itch; one registry read in registry.ts; SQLite via node:sqlite), emulators in `stores/roms.ts`, Epic free games in `stores/epicFree.ts`, More panel in `src/shell/games/MorePanel.tsx`. Tried on the user's PC: GOG (Inscryption via Galaxy), Ubisoft and Rockstar found (no games of their own), Anker, mGBA, Ryujinx ROM scan. EA, Battle.net, Riot, Amazon, itch.io and RPCS3 not installed there, so untested.
 
 ## Phase F — Fortnite companion (five parts)
 Added by the user (2026-11-10), design interview Q1-Q47 in DESIGN.md "Fortnite mode". Goal: the best Fortnite companion, TRN-style tracking, with ideas taken from TRN but never their data. **Screen reading, the Fortnite log (match start/end only) and fortnite-api.com only. Never memory, never the game's files or process beyond the log** (Easy Anti-Cheat + BattlEye). Every feature has its own on/off switch; overlay parts are see-through. Tuned for 1920x1080, default HUD, mouse and keyboard. Module in `games/fortnite/`, hub with tabs like Skillshot's.
