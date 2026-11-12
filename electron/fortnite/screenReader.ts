@@ -24,7 +24,10 @@ import {
 } from '../../shared/fortniteVision';
 import { captureScreen, foregroundGameArea, type WindowArea } from '../skillshot/screenCapture';
 import { getSettings } from '../settings';
-import { gameSpace, grabGame } from './gameArea';
+import { beginFrame, currentFrame, endFrame, gameSpace, grabGame } from './gameArea';
+import { readFullMapScreen } from './fullMap';
+import { heightAt1920, readSquadColors } from '../../shared/fortniteFullMap';
+import { setSquadColors } from './liveMap';
 import { pinChest, pinKill, readLiveMap } from './liveMap';
 import { readHotbar } from './squad';
 import { addChest, busHasLeft, inFortniteMatch, setEliminations, setPlayersLeftAlive, setTimeAlive } from './tracker';
@@ -110,7 +113,7 @@ function save(name: string, data: Buffer): void {
 
 function recordShot(area: WindowArea): void {
   if (!recorderOn || status.recorder.saved >= SHOT_CAP || Date.now() - lastShotAt < SHOT_EVERY_MS) return;
-  const pixels = captureScreen(area);
+  const pixels = currentFrame()?.pixels ?? captureScreen(area);
   if (!pixels) return;
   lastShotAt = Date.now();
   status.recorder.saved++;
@@ -140,6 +143,20 @@ function readEliminations(area: WindowArea): void {
   }
 }
 
+/** Squad colours from the list on the left (every 2 s while the HUD shows): used to tell teammates apart. */
+let lastSquadReadAt = 0;
+function readSquadList(area: WindowArea): void {
+  const now = Date.now();
+  if (now - lastSquadReadAt < 2000 || lifeState !== 'alive') return;
+  lastSquadReadAt = now;
+  const g = gameSpace(area);
+  const raw = grabGame(area, g, { x: 0, y: 0, width: g.width, height: g.height });
+  if (!raw) return;
+  const h = heightAt1920(g.width, g.height);
+  const px = g.width === 1920 && g.height === h ? raw : resizeBgra(raw, g.width, g.height, 1920, h);
+  setSquadColors(readSquadColors(px));
+}
+
 /** Adds the time since the last tick while alive, from the bus on. Runs even when Fortnite isn't in front. */
 function countAlive(): void {
   const now = Date.now();
@@ -152,6 +169,14 @@ function countAlive(): void {
 }
 
 function tick(): void {
+  try {
+    look();
+  } finally {
+    endFrame();
+  }
+}
+
+function look(): void {
   if (!inFortniteMatch()) {
     counter.reset();
     elims.reset();
@@ -167,6 +192,15 @@ function tick(): void {
   if (!area) return setMode('not-front');
   status.width = area.width;
   status.height = area.height;
+  // One copy of the whole window; every reader below cuts its part from it.
+  if (!beginFrame(area)) return setMode('no-picture');
+  // Fortnite's full map (M) covers the HUD: read the map instead, skip the HUD readers.
+  if (readFullMapScreen(area)) {
+    recordShot(area);
+    setMode('watching');
+    if (++status.frames % HEARTBEAT_FRAMES === 0) pushStatus();
+    return;
+  }
   const g = gameSpace(area);
   const screenBox = chestArea(g.width, g.height);
   const raw = grabGame(area, g, screenBox);
@@ -196,6 +230,7 @@ function tick(): void {
     pushStatus();
   }
   readEliminations(area);
+  readSquadList(area);
   readLiveMap(area, lifeState, getSettings().fortnite.liveMap);
   if (lifeState !== 'down') readHotbar(area);
   recordShot(area);

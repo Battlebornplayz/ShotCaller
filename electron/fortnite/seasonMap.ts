@@ -1,7 +1,8 @@
 import { app, nativeImage, net } from 'electron';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
-import { MapLocator, bgraToGrey } from '../../shared/fortniteMap';
+import { MapLocator, bgraToGrey, type GreyImage } from '../../shared/fortniteMap';
+import type { FnPlace } from '../../shared/fortnite';
 
 /**
  * The season map from fortnite-api.com (public, no key): `map.png` (plain, used for matching) and
@@ -12,6 +13,7 @@ import { MapLocator, bgraToGrey } from '../../shared/fortniteMap';
 
 const BLANK_URL = 'https://fortnite-api.com/images/map.png';
 const NAMES_URL = 'https://fortnite-api.com/images/map_en.png';
+const PLACES_URL = 'https://fortnite-api.com/v1/map';
 const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
 
 export interface SeasonMapStatus {
@@ -32,6 +34,8 @@ const metaFile = () => path.join(root(), 'current.json');
 
 let status: SeasonMapStatus = { status: 'none', id: null, error: null, fetchedAt: null };
 let locator: MapLocator | null = null;
+/** The plain season map in grey (2048), for the full-map (M) matcher. */
+let grey: GreyImage | null = null;
 let namesDataUrl: string | null = null;
 let checking: Promise<void> | null = null;
 const listeners = new Set<(s: SeasonMapStatus) => void>();
@@ -53,6 +57,51 @@ function set(next: Partial<SeasonMapStatus>): void {
 /** The locator for the current map, or null until it's loaded. */
 export function getLocator(): MapLocator | null {
   return locator;
+}
+
+export function getSeasonMapGrey(): GreyImage | null {
+  return grey;
+}
+
+/** Named places on the current map (map px), for drop stats. Empty until fetched. */
+let places: FnPlace[] = [];
+export function getPlaces(): FnPlace[] {
+  return places;
+}
+
+/**
+ * Game-world position (cm) -> map px. Fitted from the place names drawn on Fortnite's full map against the
+ * public place list (12 places, every one within 1 px): 1 map px = 1.46 m on both axes. Measured on Crossbones
+ * Isle (Nov 2026); a new island may need a new fit (places that land off the island show it).
+ */
+const WORLD_TO_MAP = { ax: 0.0068521, bx: 968.53, ay: 0.0068484, by: 1018.33 };
+
+async function loadPlaces(dir: string, fetchIfMissing: boolean): Promise<void> {
+  const file = path.join(dir, 'places.json');
+  try {
+    places = JSON.parse(await fsp.readFile(file, 'utf8')) as FnPlace[];
+    return;
+  } catch {
+    places = [];
+  }
+  if (!fetchIfMissing) return;
+  try {
+    const res = await net.fetch(PLACES_URL);
+    if (!res.ok) return;
+    const body = (await res.json()) as { data?: { pois?: { name?: string; id?: string; location?: { x?: number; y?: number } }[] } };
+    const list: FnPlace[] = [];
+    for (const p of body.data?.pois ?? []) {
+      // Named places only (not landmarks or unnamed spots).
+      if (!p.name || !p.location || !/POI\.Generic/i.test(p.id ?? '')) continue;
+      const x = Number(p.location.x) * WORLD_TO_MAP.ax + WORLD_TO_MAP.bx;
+      const y = Number(p.location.y) * WORLD_TO_MAP.ay + WORLD_TO_MAP.by;
+      if (Number.isFinite(x) && Number.isFinite(y) && x > 0 && y > 0 && x < 2048 && y < 2048) list.push({ name: p.name, x: Math.round(x), y: Math.round(y) });
+    }
+    places = list;
+    await fsp.writeFile(file, JSON.stringify(list));
+  } catch {
+    // Drop stats by place wait for the next try.
+  }
 }
 
 /** The map with place names, as a data URL for the renderer (about 3 MB, sent once per window). */
@@ -81,8 +130,10 @@ async function load(id: string): Promise<void> {
   const { width, height } = blank.getSize();
   // Building the matcher's map levels takes a moment; let the event loop breathe first.
   await new Promise((r) => setTimeout(r, 0));
-  locator = new MapLocator(bgraToGrey(new Uint8Array(blank.toBitmap()), width, height));
+  grey = bgraToGrey(new Uint8Array(blank.toBitmap()), width, height);
+  locator = new MapLocator(grey);
   namesDataUrl = names.toDataURL();
+  await loadPlaces(dir, true);
 }
 
 async function download(url: string, file: string): Promise<void> {

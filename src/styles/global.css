@@ -924,3 +924,7 @@ html.popup-window #root {
 .fn-item-meta { font-size: 11px; color: rgba(255, 255, 255, 0.7); }
 .fn-item-star { position: absolute; top: 6px; right: 8px; color: var(--fn-yellow); font-size: 16px; text-shadow: 0 1px 2px #000; }
 .fn-card .fn-goal { margin-top: 6px; }
+.fn-drop-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.fn-drop-table th { text-align: left; font-weight: 600; color: var(--muted, #9aa3c7); padding: 4px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.fn-drop-table td { padding: 4px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+.fn-drop-table td:first-child { font-weight: 600; }

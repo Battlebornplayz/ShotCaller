@@ -284,6 +284,13 @@ Goal (user): "the best Fortnite companion". A new game module, `games/fortnite/`
 - **Online (`electron/fortnite/online.ts`):** the key is stored encrypted with Electron safeStorage (Windows DPAPI) in `userData/fortnite/key.bin`, never in settings, logs or the renderer. Stats: `/v2/stats/br/v2?name=&timeWindow=season|lifetime` (all inputs; no Builds/Zero Build split). Shop: `/v2/shop` (public), checked every 30 min; wishlist from `/v2/cosmetics/br/search/all` and the shop; one Windows notification per shop day. CSP allows images from fortnite-api.com.
 - **Grid:** A-J left to right, 1-10 top to bottom over the whole 2048 picture. Not yet compared with the in-game map grid.
 
+### Phase F3 findings (2026-11-11)
+- **Full map (M) screen:** flat navy top bar + yellow line under the MAP tab. Laid out by screen width (16:10 = same spots, more height; bottom buttons stay at the bottom). Default view at 1080: map drawn 0.590 px per map px, centred x 960, y ~47% down; 0.660 at 1200 high.
+- **Your arrow on M:** a white chevron (about 140 px at 1080p) that turns with you; a lime ring shows round it only some of the time. Found by shape at any turn. The **mouse pointer** is a white pin with a dark hole (user) and is ignored. Teammates: arrows in their squad colour with a black outline; markers: pins in the placer's colour.
+- **Squad colours** come from the diamond before each name in the HUD list (your row is last, no portrait). On the first recording: blue, purple, yellow, you pink.
+- **Scale:** 1 map px = 1.46 m (fit of 12 places from /v1/map world positions to the labels on M, all within 1 px).
+- **User (2026-11-11):** ShotCaller's map over Fortnite's M map with the same info as the squad-link map and a switch per layer; read what M shows to keep info right; real squad colours; one whole-screen copy per look (must not be slower: measured 14 ms vs 28 ms); no separate 16:10 mode; show squad-link friends' chests and the M panel stats (kills per member, players left, storm) for everyone.
+
 ### Setup overhaul — design interview (started 2026-11-11)
 Goal: a friendlier first-run and default experience that works on laptops and PC monitors, with screen sizes detected automatically. Planning only in this chat; built in a later phase.
 - S-Q1: **B** — a short app-wide welcome once, then each game's own setup the first time you open or play that game.

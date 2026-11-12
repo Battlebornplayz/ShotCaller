@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useSettings } from '../../src/hooks/useLive';
-import type { FnChestPin, FnDrop, FnFriendMarks, FnKillPin, FnMapState, FnPoint } from '../../shared/fortnite';
+import type { FnChestPin, FnCircle, FnDrop, FnFriendMarks, FnKillPin, FnMapLayers, FnMapState, FnPoint } from '../../shared/fortnite';
 
 /**
  * The season map with the A-J / 1-10 grid, your dot (sure = solid, not sure = hollow), your route, chest pins,
@@ -52,13 +52,15 @@ export interface FnMapProps {
   kills?: FnKillPin[];
   /** Plan mode: click the map to add a stop to your route, right-click to take the last one off. */
   planning?: boolean;
+  /** Which layers to draw (all when left out). */
+  layers?: Partial<FnMapLayers>;
   className?: string;
 }
 
 /** Linked friends' colours (yours is the blue dot). */
 const FRIEND_COLORS = ['#3ddc84', '#ffcf3f', '#ff7ad9', '#ff9b3f'];
 
-export function FnMap({ live, follow, route, chests, landing, death, drops, kills, planning, className }: FnMapProps) {
+export function FnMap({ live, follow, route, chests, landing, death, drops, kills, planning, layers, className }: FnMapProps) {
   const image = useMapImage(live?.map.id ?? null);
   const fnSettings = useSettings()?.fortnite;
   const look = fnSettings?.marker === 'image' && !fnSettings.markerImage ? 'arrow' : (fnSettings?.marker ?? 'arrow');
@@ -157,9 +159,6 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
     drag.current = null;
     if (e.button === 2 && d && !d.moved && planning) void window.shotcaller.setFortnitePlan(plan.slice(0, -1));
   };
-  // GPS: a bright line from your dot to the next stop, then dashes through the rest.
-  const ahead = plan.slice(step);
-  const gpsFrom = dot && !route && ahead.length ? dot : null;
   return (
     <svg
       className={`fn-map ${className ?? ''}`}
@@ -194,16 +193,78 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
         ))}
       </g>
 
-      {drops?.map((d) => (
+      <FnMapLayers
+        live={live}
+        u={u}
+        look={look}
+        markerImage={fnSettings?.markerImage ?? null}
+        path={path}
+        pins={pins}
+        land={land}
+        died={died}
+        killPins={killPins}
+        plan={plan}
+        step={step}
+        recap={!!route}
+        drops={drops}
+        show={layers}
+      />
+    </svg>
+  );
+}
+
+/** Everything drawn on the map in map pixels, each layer with its own switch. Shared by every map view. */
+export function FnMapLayers({
+  live,
+  u,
+  look,
+  markerImage,
+  path,
+  pins,
+  land,
+  died,
+  killPins,
+  plan,
+  step,
+  recap,
+  drops,
+  show,
+}: {
+  live: FnMapState;
+  u: number;
+  look: 'dot' | 'arrow' | 'image';
+  markerImage: string | null;
+  path: [number, number][];
+  pins: FnChestPin[];
+  land: FnPoint | null;
+  died: FnPoint | null;
+  killPins: FnKillPin[];
+  plan: FnPoint[];
+  step: number;
+  /** A past match's recap: no live dot. */
+  recap: boolean;
+  drops?: FnDrop[];
+  show?: Partial<FnMapLayers>;
+}) {
+  const on = (k: keyof FnMapLayers) => show?.[k] !== false;
+  const dot = live.dot;
+  const squad = live.squad;
+  const ahead = plan.slice(step);
+  const gpsFrom = dot && !recap && ahead.length ? dot : null;
+  return (
+    <>
+      {on('storm') && live.storm && !recap && <StormLayer next={live.storm.next} edge={live.storm.edge} u={u} />}
+      {on('deaths') && drops && <DeathHeat drops={drops} u={u} />}
+      {on('drops') && drops?.map((d) => (
         <g key={d.matchId}>
           {d.landing && <LandIcon p={d.landing} s={0.8 * u} win={d.placement === 1} />}
           {d.death && <DeathIcon p={d.death} s={0.75 * u} />}
         </g>
       ))}
 
-      {path.length > 1 && <polyline points={path.map(([x, y]) => `${x},${y}`).join(' ')} className="fn-route" strokeWidth={4 * u} />}
+      {on('route') && path.length > 1 && <polyline points={path.map(([x, y]) => `${x},${y}`).join(' ')} className="fn-route" strokeWidth={4 * u} />}
 
-      {plan.length > 0 && (
+      {on('plan') && plan.length > 0 && (
         <g className="fn-plan" pointerEvents="none">
           {step > 0 && <polyline points={plan.slice(0, step + 1).map((p) => `${p.x},${p.y}`).join(' ')} className="fn-plan-done" strokeWidth={3 * u} />}
           {ahead.length > 0 && (
@@ -221,23 +282,23 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
         </g>
       )}
 
-      {land && <LandIcon p={land} s={u} />}
-      {pins.map((p) => (
+      {on('landing') && land && <LandIcon p={land} s={u} />}
+      {on('chests') && pins.map((p) => (
         <ChestIcon key={p.at} p={p} s={u} color={KIND_COLOR[p.kind]} />
       ))}
-      {killPins.map((k) => (
+      {on('kills') && killPins.map((k) => (
         <KillIcon key={k.at} p={k} s={u} />
       ))}
-      {died && <DeathIcon p={died} s={u} />}
-      {live.teammates.map((t, i) => (
+      {on('death') && died && <DeathIcon p={died} s={u} />}
+      {on('teammates') && live.teammates.map((t, i) => (
         <circle key={i} cx={t.x} cy={t.y} r={9 * u} fill={t.color} stroke="#0b0c1c" strokeWidth={3 * u} />
       ))}
-      {squad.map((f, i) => (
+      {on('squad') && squad.map((f, i) => (
         <g key={f.id} opacity={f.dot?.state === 'sure' ? 1 : 0.55}>
           {f.route.length > 1 && (
-            <polyline points={f.route.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" stroke={FRIEND_COLORS[i % FRIEND_COLORS.length]} strokeOpacity={0.75} strokeWidth={3 * u} strokeLinejoin="round" />
+            <polyline points={f.route.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" stroke={friendColor(f, i)} strokeOpacity={0.75} strokeWidth={3 * u} strokeLinejoin="round" />
           )}
-          {f.marks && <FriendMarks m={f.marks} color={FRIEND_COLORS[i % FRIEND_COLORS.length]} u={u} />}
+          {f.marks && <FriendMarks m={f.marks} color={friendColor(f, i)} u={u} />}
           {f.dot && (
             <g style={glide(f.dot)}>
               {f.look === 'image' && f.pic ? (
@@ -246,12 +307,12 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
                     <circle r={14 * u} />
                   </clipPath>
                   <image href={f.pic} x={-14 * u} y={-14 * u} width={28 * u} height={28 * u} clipPath={`url(#fn-clip-${f.id})`} preserveAspectRatio="xMidYMid slice" />
-                  <circle r={14 * u} fill="none" stroke={FRIEND_COLORS[i % FRIEND_COLORS.length]} strokeWidth={4 * u} />
+                  <circle r={14 * u} fill="none" stroke={friendColor(f, i)} strokeWidth={4 * u} />
                 </>
               ) : (f.look ?? look) === 'dot' ? (
-                <circle r={10 * u} fill={FRIEND_COLORS[i % FRIEND_COLORS.length]} stroke="#0b0c1c" strokeWidth={4 * u} />
+                <circle r={10 * u} fill={friendColor(f, i)} stroke="#0b0c1c" strokeWidth={4 * u} />
               ) : (
-                <path d={ARROW} transform={`scale(${u})`} fill={FRIEND_COLORS[i % FRIEND_COLORS.length]} stroke="#0b0c1c" strokeWidth={3} strokeLinejoin="round" style={turn(heading(f.route), f.id)} />
+                <path d={ARROW} transform={`scale(${u})`} fill={friendColor(f, i)} stroke="#0b0c1c" strokeWidth={3} strokeLinejoin="round" style={turn(heading(f.route), f.id)} />
               )}
               <text y={-16 * u} textAnchor="middle" fontSize={22 * u} fontWeight={700} fill="#fff" stroke="#0b0c1c" strokeWidth={5 * u} paintOrder="stroke">
                 {f.name}
@@ -260,7 +321,7 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
           )}
         </g>
       ))}
-      {dot && !route && (
+      {on('me') && dot && !recap && (
         <g style={glide(dot)}>
           <circle r={22 * u} className="fn-dot-halo" data-state={dot.state} />
           {look === 'dot' && <circle r={10 * u} className="fn-dot-me" data-state={dot.state} strokeWidth={4 * u} />}
@@ -270,13 +331,67 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
               <clipPath id="fn-me-clip">
                 <circle r={16 * u} />
               </clipPath>
-              <image href={fnSettings!.markerImage!} x={-16 * u} y={-16 * u} width={32 * u} height={32 * u} clipPath="url(#fn-me-clip)" preserveAspectRatio="xMidYMid slice" />
+              <image href={markerImage!} x={-16 * u} y={-16 * u} width={32 * u} height={32 * u} clipPath="url(#fn-me-clip)" preserveAspectRatio="xMidYMid slice" />
               <circle r={16 * u} fill="none" stroke="#fff" strokeWidth={3 * u} />
             </g>
           )}
         </g>
       )}
-    </svg>
+      {on('markers') && !recap && live.markers.map((m, i) => <MarkerIcon key={i} p={m} color={m.color} s={u} />)}
+    </>
+  );
+}
+
+/** A friend's colour: their real squad colour once matched, else one of ours. */
+function friendColor(f: { color?: string }, i: number): string {
+  return f.color ?? FRIEND_COLORS[i % FRIEND_COLORS.length];
+}
+
+/** The storm: purple outside the current edge, a white ring for the next safe zone. */
+function StormLayer({ next, edge, u }: { next: FnCircle | null; edge: FnCircle | null; u: number }) {
+  return (
+    <g pointerEvents="none">
+      {edge && (
+        <path
+          d={`M-4000,-4000 H6000 V6000 H-4000 Z M${edge.x - edge.r},${edge.y} a${edge.r},${edge.r} 0 1,0 ${edge.r * 2},0 a${edge.r},${edge.r} 0 1,0 ${-edge.r * 2},0 Z`}
+          fill="#b43cff"
+          fillOpacity={0.28}
+          fillRule="evenodd"
+        />
+      )}
+      {edge && <circle cx={edge.x} cy={edge.y} r={edge.r} fill="none" stroke="#d47bff" strokeWidth={3 * u} />}
+      {next && <circle cx={next.x} cy={next.y} r={next.r} fill="none" stroke="#fff" strokeWidth={3 * u} strokeDasharray={`${14 * u} ${8 * u}`} />}
+    </g>
+  );
+}
+
+/** Where you went down over past matches on this map: soft red spots that add up where you die a lot. */
+function DeathHeat({ drops, u }: { drops: FnDrop[]; u: number }) {
+  const deaths = drops.filter((d) => d.death).map((d) => d.death!);
+  if (!deaths.length) return null;
+  return (
+    <g pointerEvents="none">
+      <defs>
+        <radialGradient id="fn-heat">
+          <stop offset="0%" stopColor="#ff3048" stopOpacity={0.55} />
+          <stop offset="100%" stopColor="#ff3048" stopOpacity={0} />
+        </radialGradient>
+      </defs>
+      {deaths.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r={Math.max(45, 40 * u)} fill="url(#fn-heat)" />
+      ))}
+    </g>
+  );
+}
+
+/** A map marker (pin) placed in Fortnite, in the squad colour of whoever placed it. */
+function MarkerIcon({ p, color, s }: { p: FnPoint; color: string; s: number }) {
+  return (
+    <g transform={`translate(${p.x} ${p.y}) scale(${s})`} pointerEvents="none">
+      <title>Marker</title>
+      <path d="M0,0 C-3,-7 -10,-11 -10,-19 A10,10 0 1 1 10,-19 C10,-11 3,-7 0,0 Z" fill={color} stroke={OUTLINE} strokeWidth={2.5} />
+      <circle cy={-19} r={4} fill={OUTLINE} />
+    </g>
   );
 }
 

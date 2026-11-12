@@ -9,6 +9,7 @@ import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
 import { disposeFortnite, initFortnite, onFortniteChange, setFortniteRunning } from './fortnite/tracker';
 import { onFortniteScreen, setFortniteReaderRunning } from './fortnite/screenReader';
 import { initLiveMap, onLiveMap } from './fortnite/liveMap';
+import { initFullMap } from './fortnite/fullMap';
 import { initSquad, onSquad, stopSquad } from './fortnite/squad';
 import { ensureSeasonMap } from './fortnite/seasonMap';
 import { fortniteMonitorSettingsChanged, syncFortniteMonitor } from './fortnite/monitorWindow';
@@ -199,6 +200,7 @@ if (!app.requestSingleInstanceLock()) {
     onFortniteChange((s) => broadcast(IPC.fortniteChanged, s));
     onFortniteScreen((s) => broadcast(IPC.fortniteScreenChanged, s));
     initLiveMap();
+    initFullMap();
     onLiveMap((s) => broadcast(IPC.fortniteMapChanged, s));
     initSquad();
     onSquad((s) => broadcast(IPC.fortniteSquadChanged, s));

@@ -34,6 +34,11 @@ function isCorner(): boolean {
   return getSettings().overlay.mode !== 'monitor';
 }
 
+/** Overlays are switched on (the show/hide key, Alt+S, turns them all off). */
+export function overlaysShown(): boolean {
+  return shown;
+}
+
 export function getOverlayState(): OverlayState {
   const s = getSettings().overlay;
   const visible = !!win && !win.isDestroyed() && win.isVisible();

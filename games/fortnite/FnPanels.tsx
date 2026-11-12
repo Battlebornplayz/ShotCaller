@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { FnLiveState, FnMatchRecord, FnSquadState } from '../../shared/fortnite';
+import { MAP_PX_METRES, type FnDrop, type FnLiveState, type FnMapState, type FnMatchRecord, type FnSquadState } from '../../shared/fortnite';
 import { modeLabel } from '../../shared/fortniteLog';
 
 /** Panels shared by the second-monitor window and the Fortnite page. */
@@ -116,6 +116,67 @@ export function RecapPanel({ match }: { match: FnMatchRecord | null }) {
         <Cell label="Chests" value={String(match.chests)} />
         <Cell label="Time alive" value={fmtTime(match.timeAliveMs)} />
       </div>
+    </section>
+  );
+}
+
+/** Distance travelled this match and how well the live dot matched Fortnite's own map when you opened it. */
+export function MapStatsPanel({ live }: { live: FnMapState | null }) {
+  if (!live) return null;
+  const km = (live.distance * MAP_PX_METRES) / 1000;
+  const a = live.accuracy;
+  return (
+    <section className="fn-panel">
+      <div className="fn-panel-title">Map this match</div>
+      <div className="fn-cells">
+        <Cell label="Travelled" value={km >= 1 ? `${km.toFixed(2)} km` : `${Math.round(km * 1000)} m`} />
+        <Cell label="Dot checks" value={a.checks ? `${a.close}/${a.checks}` : '—'} />
+        <Cell label="Off by" value={a.avgErr === null ? '—' : `${Math.round(a.avgErr * MAP_PX_METRES)} m`} />
+      </div>
+      <div className="fn-note">Open your map (M) now and then: ShotCaller checks your dot against Fortnite's arrow and puts it right.</div>
+    </section>
+  );
+}
+
+/** Drop stats: for each place you've landed this season, how often and how you placed. */
+export function DropStatsPanel({ drops }: { drops: FnDrop[] }) {
+  const byPlace = new Map<string, { n: number; wins: number; placed: number[] }>();
+  for (const d of drops) {
+    if (!d.place) continue;
+    const e = byPlace.get(d.place) ?? { n: 0, wins: 0, placed: [] };
+    e.n++;
+    if (d.placement === 1) e.wins++;
+    if (d.placement) e.placed.push(d.placement);
+    byPlace.set(d.place, e);
+  }
+  const rows = [...byPlace.entries()].sort((a, b) => b[1].n - a[1].n);
+  return (
+    <section className="fn-panel">
+      <div className="fn-panel-title">Where you drop</div>
+      {rows.length === 0 ? (
+        <div className="fn-note">Land at a named place and it shows here with your average placement.</div>
+      ) : (
+        <table className="fn-drop-table">
+          <thead>
+            <tr>
+              <th>Place</th>
+              <th>Drops</th>
+              <th>Avg place</th>
+              <th>Wins</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([name, e]) => (
+              <tr key={name}>
+                <td>{name}</td>
+                <td>{e.n}</td>
+                <td>{e.placed.length ? `#${Math.round(e.placed.reduce((a, b) => a + b, 0) / e.placed.length)}` : '—'}</td>
+                <td>{e.wins}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </section>
   );
 }

@@ -115,10 +115,13 @@ Deliverables:
 - Accuracy for the live dot (built in F2): checked and corrected from the full map (M) screen; vehicles, open water and the bus/skydive zoom. Must keep working in the storm (DESIGN.md).
 - Path this match, distance travelled, landing spot and death pins across matches; drop stats (average placement per place); death heat map.
 - Teammates' paths, pings and markers, and enemies only when the game reveals them.
+- **Added by the user (2026-11-11):** ShotCaller's map drawn over Fortnite's own full map (M), lined up with it at any zoom/pan, with the same info as the squad-link map and a switch per layer. While M is open, read what Fortnite shows (your arrow, teammates, markers, the storm) and use it to put ShotCaller's info right. Teammates in their real squad colours, read from the HUD. Works on your friend's 16:10 laptop too.
+- **Reading change (user, 2026-11-11):** one copy of the whole game window per look, every reader cuts its part from it (measured ~2x faster than separate copies); must not make the minimap dot slower or worse.
 Done when: across a few real matches, the dot stays on the right spot most of the time (accuracy measured against the full-map reads) and landing/death pins are right.
 
 ### Phase F4 — Inventory, ranked, bests, achievements, beta
 Deliverables:
+- (Already shipped early, beta.7: the hotbar is shared as a cropped picture over squad link. F4 adds the real reading.)
 - Hotbar reading: 5 slots with item + rarity, ammo in each gun, reserve ammo, materials, health and shield, medallions and mythics; live inventory panel on the second monitor.
 - Loadout history: final loadout per match and "best loadouts" by placement.
 - Ranked rank + progress bar read after Ranked matches, chart over time.
@@ -128,7 +131,7 @@ Deliverables:
 Done when: inventory and ranked read right in real matches, and the beta installs and updates.
 
 ### Phase F5 — Squad link (join code)
-Added by the user (2026-11-10). Deliverables:
+Added by the user (2026-11-10). **Mostly shipped early (beta.6-16):** join code over a public MQTT relay, dots, paths, icons, hotbar pictures, friends' chest/kill counts, storm sharing (beta.17). Left: a real two-PC test and squad totals. Deliverables:
 - "Start squad" gives a short join code; a friend types it to link. Lasts until someone leaves. No accounts.
 - A small online relay between the two apps (service picked at the start of the phase; nothing secret in the repo).
 - Shared live from each friend's own screen reading: inventory (F4), chests + eliminations this match (F1) with squad totals, map dot + path (F3). Shown on the second monitor and in a squad panel. Each part has its own switch, and sharing is off until you join.

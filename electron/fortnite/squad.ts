@@ -2,13 +2,13 @@ import { randomBytes } from 'node:crypto';
 import { nativeImage } from 'electron';
 import mqtt, { type MqttClient } from 'mqtt';
 import { type WindowArea } from '../skillshot/screenCapture';
-import type { FnChestPin, FnFriend, FnFriendLive, FnFriendMarks, FnMapState, FnPoint, FnSquadState } from '../../shared/fortnite';
+import type { FnChestPin, FnFriend, FnFriendLive, FnFriendMarks, FnMapState, FnPoint, FnSquadState, FnStorm } from '../../shared/fortnite';
 import { getSettings } from '../settings';
 import { gameSpace, grabGame } from './gameArea';
 import { hudScale } from '../../shared/fortniteVision';
 import { getFortniteState } from './tracker';
 import { getFortniteScreen } from './screenReader';
-import { getLiveMap, onLiveMap, setSquadDots } from './liveMap';
+import { getLiveMap, offerStorm, onLiveMap, setSquadDots } from './liveMap';
 
 /**
  * Squad link (early F5 build): "Start squad" makes a short code, a friend types it, and each app sends its own
@@ -68,7 +68,25 @@ function cleanMarks(m: FnFriendMarks): FnFriendMarks {
     landing: pt(m.landing),
     death: pt(m.death),
     plan: pts(m.plan, 30, () => ({})),
+    storm: cleanStorm(m.storm),
   };
+}
+
+/** A friend's storm read: circles inside the map, a time no later than now (their clock may run ahead). */
+function cleanStorm(s: FnFriendMarks['storm']): FnStorm | null {
+  if (!s || typeof s !== 'object') return null;
+  const circle = (c: unknown) => {
+    const o = c as { x?: unknown; y?: unknown; r?: unknown } | null;
+    if (!o) return null;
+    const x = Number(o.x);
+    const y = Number(o.y);
+    const r = Number(o.r);
+    return [x, y, r].every(Number.isFinite) && r > 0 && r < 4000 ? { x: Math.round(x), y: Math.round(y), r: Math.round(r) } : null;
+  };
+  const next = circle(s.next);
+  const edge = circle(s.edge);
+  if (!next && !edge) return null;
+  return { next, edge, at: Math.min(Date.now(), Number(s.at) || 0) };
 }
 
 const myId = randomBytes(6).toString('hex');
@@ -127,14 +145,14 @@ function send(force = false): void {
   if (!client || !state.code || state.status !== 'on') return;
   const live = getLiveMap();
   const dot = live.dot;
-  const marks: FnFriendMarks = { chests: live.chests, kills: live.kills, landing: live.landing, death: live.death, plan: live.plan };
+  const marks: FnFriendMarks = { chests: live.chests, kills: live.kills, landing: live.landing, death: live.death, plan: live.plan, storm: live.storm };
   const fn = getSettings().fortnite;
   const look = fn.marker;
   const picDue = look === 'image' && (fn.markerImage !== lastPic || Date.now() - lastPicAt > PIC_EVERY_MS);
   const m = getFortniteState().match;
   const scr = getFortniteScreen();
   const liveInfo: FnFriendLive = { chests: m?.chests ?? 0, kills: m?.eliminations ?? null, reading: scr.mode === 'watching', width: scr.width, height: scr.height };
-  const key = `${look}|${picDue}|${liveInfo.chests},${liveInfo.kills},${liveInfo.reading}|` + (dot ? `${dot.x},${dot.y},${dot.state}` : 'none') + `|${marks.chests.length},${marks.kills.length},${!!marks.landing},${!!marks.death},${JSON.stringify(marks.plan)}`;
+  const key = `${look}|${picDue}|${liveInfo.chests},${liveInfo.kills},${liveInfo.reading}|` + (dot ? `${dot.x},${dot.y},${dot.state}` : 'none') + `|${marks.chests.length},${marks.kills.length},${!!marks.landing},${!!marks.death},${JSON.stringify(marks.plan)}|${marks.storm?.at ?? 0}`;
   const now = Date.now();
   if (!force && now - lastSentAt < SEND_EVERY_MS) return;
   if (!force && key === lastSentKey && now - lastSentAt < HEARTBEAT_MS) return;
@@ -182,7 +200,10 @@ function receive(raw: Buffer): void {
   }
   if (msg.look === 'dot' || msg.look === 'arrow' || msg.look === 'image') f.look = msg.look;
   if (typeof msg.pic === 'string' && msg.pic.startsWith('data:image/png;base64,') && msg.pic.length < 150_000) f.pic = msg.pic;
-  if (msg.marks && typeof msg.marks === 'object') f.marks = cleanMarks(msg.marks);
+  if (msg.marks && typeof msg.marks === 'object') {
+    f.marks = cleanMarks(msg.marks);
+    offerStorm(f.marks.storm);
+  }
   const d = msg.dot;
   if (d && Number.isFinite(d.x) && Number.isFinite(d.y)) {
     f.dot = { x: d.x, y: d.y, state: d.state === 'sure' ? 'sure' : 'unsure', at: f.seenAt };

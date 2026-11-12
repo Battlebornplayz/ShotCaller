@@ -23,7 +23,7 @@ const DEFAULTS: Settings = {
   hotkeysOnlyInGame: true,
   startup: { launchAtLogin: true, onGameLaunch: 'overlay', closeToTray: true },
   skillshot: { offerSound: true, memoryReader: false, screenReader: true },
-  fortnite: { ...DEFAULT_FORTNITE_SETTINGS, card: { ...DEFAULT_FORTNITE_SETTINGS.card } },
+  fortnite: { ...DEFAULT_FORTNITE_SETTINGS, card: { ...DEFAULT_FORTNITE_SETTINGS.card }, mapLayer: { ...DEFAULT_FORTNITE_SETTINGS.mapLayer } },
   mcp: { enabled: false, allowActions: false },
 };
 
@@ -166,6 +166,7 @@ function sanitize(input: unknown): Settings {
       },
       display: fortnite.display === 'overlay' || fortnite.display === 'monitor' || fortnite.display === 'both' ? fortnite.display : 'ask',
       liveMap: bool(fortnite.liveMap, FN.liveMap),
+      mapLayer: Object.fromEntries((Object.keys(FN.mapLayer) as (keyof typeof FN.mapLayer)[]).map((k) => [k, bool(obj(fortnite.mapLayer)[k], FN.mapLayer[k])])) as unknown as typeof FN.mapLayer,
       resolution: typeof fortnite.resolution === 'string' && /^(auto|\d{3,4}x\d{3,4})$/.test(fortnite.resolution) ? fortnite.resolution : FN.resolution,
       stretched: bool(fortnite.stretched, FN.stretched),
       marker: fortnite.marker === 'dot' || fortnite.marker === 'arrow' || fortnite.marker === 'image' ? fortnite.marker : FN.marker,
@@ -219,6 +220,7 @@ export function updateSettings(patch: SettingsPatch): Settings {
       ...obj(p.fortnite),
       card: { ...prev.fortnite.card, ...obj(obj(p.fortnite).card) },
       monitor: { ...prev.fortnite.monitor, ...obj(obj(p.fortnite).monitor) },
+      mapLayer: { ...prev.fortnite.mapLayer, ...obj(obj(p.fortnite).mapLayer) },
     },
     mcp: { ...prev.mcp, ...obj(p.mcp) },
   };

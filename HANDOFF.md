@@ -1,66 +1,50 @@
-PHASE HANDOFF — ShotCaller — Setup overhaul planning → Phase F3 (resume)
+PHASE HANDOFF — ShotCaller — Phase F3 (in progress) → Phase F3 (finish)
 
-Use the `phased-project` skill. You are starting Phase F3 (Fortnite: map history, pins and dot accuracy).
-First do the F2 real-play check below (it's F2's "done when" and wasn't possible without a match).
+Use the `phased-project` skill. You are finishing Phase F3 (Fortnite: map history, pins and dot accuracy).
 At the end of this phase, write a new handoff in this same format for Phase F4
 (and tell that chat to do the same), so every phase hands off to the next.
 
 Project folder: D:\ShotCaller
-Read first: PROJECT_PLAN.md ("Phase F", F1-F5, and "Phase S"), DESIGN.md ("Fortnite mode", "Phase F1 findings", "Phase F2 findings"), games/README.md.
+Read first: PROJECT_PLAN.md ("Phase F3", "Phase S"), DESIGN.md ("Phase F3 findings", "Phase F2 findings"), games/README.md.
 
 ## Project in one paragraph
-ShotCaller is a polished Electron desktop app: a cross-game achievement hub (Steam, Anker Games, emulator files, hand-added games; unlock popups, library, timeline) plus per-game overlay modules. Modules: Skillshot City (Phase 6 Part 1, paused) and the Fortnite companion ("the best Fortnite companion", TRN-style tracking). Public MIT repo Battlebornplayz/ShotCaller, installed from GitHub Releases with a self-updating launcher (Stable/Beta). For the user and a friend. Stack: Electron + TypeScript + React 19 + electron-vite, electron-builder, electron-updater, uiohook-napi, koffi.
+ShotCaller is a polished Electron desktop app: a cross-game achievement hub plus per-game overlay modules. Modules: Skillshot City (paused) and the Fortnite companion ("the best Fortnite companion", TRN-style tracking). Public MIT repo Battlebornplayz/ShotCaller, installed from GitHub Releases with a self-updating launcher (Stable/Beta). For the user and a friend. Stack: Electron + TypeScript + React 19 + electron-vite, electron-builder, electron-updater, uiohook-napi, koffi.
 
 ## Done so far
-- Phases 1-3, 5 done; Phase 4 (Firebase accounts) built but dormant. Skillshot Phase 6 Part 1 paused (`docs/handoff-skillshot-part1.md`).
-- Phase F design interview done. Phase F1 done (v0.0.4-beta.3, beta.4): log match tracking, chest counter by kind (chest / rare / sprite incl. merged "RARE CHEST X2" popups, 18/18 + 8/8 on recordings), "+1 chest" hotkey (Alt+C) for broken chests, live eliminations, time alive, solo placement (players left just before going down), overlay card, Fortnite hub, Fortnite-style look, achievement list hidden on the Fortnite page.
-- Phase F2 (just finished, v0.0.4-beta.5), branch `phaseF1/fortnite-foundation` (pushed):
-  - `shared/fortniteMap.ts`: minimap → map matcher (span 240 px, high-pass grey, labels masked, pyramid search) + `DotTracker` (sure/unsure, strict whole-map re-find). 92% sure on both recordings at 1 read/s, no wrong jumps during play.
-  - `electron/fortnite/seasonMap.ts` (map download per season), `liveMap.ts` (dot, route, landing/death, chest pins, teammates; routes in `userData/fortnite/routes/`), `monitorWindow.ts` (second screen), `online.ts` (stats with encrypted key, shop + wishlist notification).
-  - UI: `games/fortnite/FnMap.tsx` (map + grid + pins), `FnPanels.tsx` (session with arrows, chests + goal, recap, inventory placeholder), `FnHubTabs.tsx` (Lobby, Stats, Shop, map options), `src/fnmonitor/FnMonitorApp.tsx` (second-monitor window).
-  - Checked in the dev app: map downloads, map window opens on the second screen with Fortnite, Lobby/Stats/Shop tabs render, shop pictures load.
-  - Test tools: node 24 runs the .ts files directly; scripts that pipe ffmpeg frames into the readers were in the session scratchpad (rewrite as needed). Recordings: `Videos\Captures\Fortnite   2026-11-10 12-56-32.mp4` and `... 14-08-09.mp4` (second one: chests, rare/sprite cluster at 8:38-8:50, death + "YOU PLACED #7" at 12:16).
+- Phases 1-3, 5 done; Phase 4 dormant; Skillshot paused. Phase F1, F2 done; squad link pulled forward (beta.6-16). Setup overhaul planned as Phase S (after Phase F).
+- Phase F3 so far (2026-11-11), committed on `phaseF1/fortnite-foundation`, NOT run in the app yet, NOT released:
+  - **One whole-window copy per look** (`electron/fortnite/gameArea.ts` beginFrame/currentFrame/endFrame; buffer reused): measured 14 ms vs 28 ms for separate copies. Minimap matching unchanged.
+  - **Fortnite's full map (M)** `shared/fortniteFullMap.ts`: `isFullMap` (navy top bar + yellow MAP tab line, any size), `FullMapLocator` (where the map is drawn: quick check 37 ms, near search ~0.2 s, whole search ~3 s spread over the event loop; found at default, 1.5x/2x/3x zoom and on 16:10), `readFullMapMarks` (your arrow by its chevron shape at any turn + heading; teammates' arrows and markers by real squad colour; mouse pointer and screen-edge storm ignored), `readStorm` (next circle + current edge), `readSquadColors` (HUD diamonds, yours last). Works in "1920-wide" units: 16:9 = 1920x1080, 16:10 = 1920x1200 (layout by width; bottom items from the bottom).
+  - `electron/fortnite/fullMap.ts` runs it while M is open (HUD readers skip that look); `liveMap.ts` takes it in: dot fixed from the arrow (far jumps need two looks), accuracy per match (`checks`, close ≤ 12 px), distance (map px, 1 px = 1.46 m), storm (also shared/received over squad link), markers, squad colours, friends matched to their real colour.
+  - **Map layer over Fortnite's map**: `electron/fortnite/mapLayerWindow.ts` + `src/fnmaplayer/FnMapLayerApp.tsx` (see-through, click-through, DIP bounds, hides with Alt+S). Settings `fortnite.mapLayer` (on + 13 layer switches) in Fortnite → map options. `FnMap.tsx` split: `FnMapLayers` shared by every map (storm, markers, death heat map, friend colours).
+  - Places from `/v1/map` → map px (`seasonMap.ts` getPlaces, fit 12/12 within 1 px); drops get `place`; `DropStatsPanel` (lobby) and `MapStatsPanel` (distance, dot checks; lobby + map window); death heat map button on the lobby map.
+  - Recording checks (scratch scripts, rewrite as needed: replay a video through the readers with ffmpeg at 2-4 fps): your recording 1 at 4:15-4:21: arrow found 23/23 M looks, minimap dot was 9 px (~13 m) off before the fix; teammate (purple) + yellow marker right; storm read. Friend's 16:10 M frame: map found (0.87), marker right, "you" on the bus.
 
-- Squad link pulled forward early (user, 2026-11-10, short on usage), shipped v0.0.4-beta.6/7:
-  - `electron/fortnite/squad.ts`: join code (XXX-XXX), public MQTT relay `mqtts://broker.emqx.io:8883`, topic `shotcaller/squad/v1/<code>`, no accounts/secrets. Sends own dot ~2/s (Epic name or "Friend"); friends' dots + paths go into `FnMapState.squad` (drawn in `FnMap.tsx` with names). Relay round trip tested (~1 s); NOT yet tried between two PCs.
-  - Inventory = a picture, not a reading: hotbar crop (x 1310-1890, y 830-1020 at 1080p: pickaxe, slots 1-5, Q item) every 2 s as JPEG, shown in `InventoryPanel` (map window + Lobby) for you and friends.
-  - Smoother: dots/camera glide (CSS transform + rAF viewBox), minimap read every 500 ms.
-  - Squad UI: `SquadPanel` in `FnHubTabs.tsx` Lobby (Start / Join / Leave / copy code).
-- After that, up to v0.0.4-beta.16 (2026-11-10/11): map icons + planned routes with a GPS line, map marker (dot / arrow / own picture) shared over squad link, map zoom/drag; Fortnite resolution setting (`electron/fortnite/gameArea.ts`: game space, stretched, black bars; 16:10 and 3:2 laptops fixed); chests/kills fixed on non-1080p screens and friends' counts shared; overlay card shows everything but the map, `fortnite.display` = ask/overlay/monitor/both; Settings update card downloads and installs updates.
-- **Setup overhaul planned (2026-11-11, planning only, nothing built):** design interview in DESIGN.md "Setup overhaul" (S-Q1..S-Q16, S-E1..S-E4, S-E3a-e); three build parts in PROJECT_PLAN.md "Phase S": S1 HUD auto-locate engine (finds minimap, elims, chest popup, hotbar + each slot at any screen size / HUD Scale / HUD Layout Tool), S2 step-by-step setup + laptop/monitor layouts + Simple/Advanced settings, S3 rebuilt hotbar tiles (TRN-style loadout, look to settle from a user screenshot) + phone map by QR from the squad host through the relay.
-
-## Phase F3 goal
-Map history, pins and dot accuracy.
-Deliverables:
-- Accuracy for the live dot: checked and corrected from the full map (M) screen; vehicles, open water and the bus/skydive zoom (multi-scale search); must keep working in the storm.
-- Distance travelled; drop stats (average placement per place); death heat map. (Route, landing/death pins and chest pins already exist from F2.)
-- Teammates' paths, pings and markers, and enemies only when the game reveals them.
+## Phase F3 goal (rest)
+Deliverables left:
+- Read the M screen's left panel for everyone (not only squad link): each squad member's eliminations (row = colour; name kept as a cut-out picture, no text reader), players/squads left, storm round + timer. Digits: build templates from the frames (your rec 1 at 4:15-4:21 = storm timer 1:29→1:24; friend's at 0:20-0:50 = 0:35→0:15, "80 (20)").
+- Squad-link friends' chests: already sent as marks and drawn (FriendMarks); check they show on the map window AND the M layer.
+- Finish the replays: friend's video `Downloads\Fortnite   2026-11-10 19-32-36.mp4` (2304x1440 16:10; bus with M opened often, long driving = vehicle test, night), your `Captures\...14-08-09.mp4` and `...12-56-32.mp4`. Report sure %, M checks and errors.
+- Skydive/bus zoom for the minimap dot (multi-scale) if the replays show it's needed.
+- Run the dev app (quit the installed ShotCaller first; ask the user), check: lobby panels, map options switches, map window, the layer over a recorded/real M screen, no errors. Then beta.17.
 Done when:
-- Across a few real matches, the dot stays on the right spot most of the time (measured against full-map reads) and landing/death pins are right.
+- Across a few real matches the dot stays right most of the time (checked against M reads) and landing/death pins are right.
 
 ## Decisions & constraints to respect
-- **Never read Fortnite's memory, inject, hook or touch its process/files** (EAC + BattlEye). Only screen capture, the log (match start/end/mode only) and fortnite-api.com.
-- fortnite-api.com key is a secret: `userData/fortnite/key.bin` (safeStorage), never in the repo, settings, DESIGN.md, logs or the renderer. Don't repeat it in chat.
-- Chests: one count, kinds kept (chest / rare / sprite / manual). XP text glows purple or gold: match shapes, never colour.
-- TRN is the model for ideas only. Look: navy + #4F8CFF, Fortnite theme scoped to `.fn-theme` / `.fn-card` (Impact italic caps, rarity tiles, yellow selected tab), no Fortnite logos or art.
-- Every feature has its own switch; overlay parts see-through; Alt+S hides all overlays.
-- User's setup: 1920x1080, default HUD, Windowed Fullscreen, mouse and keyboard, 3 screens (main HP X24ih in the middle, VG248 on the left, Artist 12 below).
-- **Publish each finished dev step as a beta** (user): commit, push, annotated tag `v0.0.4-beta.N` (next: beta.17) with plain patch notes; write messages to a file and use `-F`.
-- Squad link is Phase F5; friends list Phase 9.
-- **Order (user, 2026-11-11):** finish the Phase F plan first (F3, then F4, F5), then Phase S (S1, S2, S3). S1's engine will replace the fixed HUD boxes in `gameArea.ts` and the readers, so don't sink time into new fixed-box tuning in F3-F5; keep readers going through one place S1 can swap out.
-- The user is new to things: plain explanations; question widgets with click-to-pick buttons. They test by recording matches (Win+Alt+R) and giving timestamps; frames via ffmpeg (`%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_*\ffmpeg-*\bin\`). Quit the installed ShotCaller before dev runs; `npm.cmd run dev`. The user approved closing it for checks in this chat.
-- Some files have CRLF line endings. `reports/` and `research_notes/` stay untracked.
+- **Never read Fortnite's memory, inject, hook or touch its process/files.** Screen, log (match start/end/mode), fortnite-api.com only.
+- The fortnite-api.com key is a secret (userData/fortnite/key.bin), never in repo/settings/logs/chat.
+- No separate 16:10 mode: readers work out the shape themselves (user asked; answered).
+- Mouse pointer on the M map is a white pin with a dark hole: never "you".
+- Every feature has its own switch; overlays see-through; Alt+S hides all.
+- Publish each finished dev step as a beta (annotated tag `v0.0.4-beta.N`, next **beta.17**, patch notes written to a file, `-F`) — only after it runs in the app.
+- Order: finish Phase F (F3, F4, F5), then Phase S. Don't tune fixed HUD boxes; readers go through gameArea (one place for S1).
+- User is new: plain words, click-to-pick question widgets. Tests by recording (Win+Alt+R) with timestamps. `npm.cmd run dev`; quit the installed app first (ask). CRLF in some files; edit via small Python scripts in a file (bash heredocs with quotes broke twice). `reports/`, `research_notes/` stay untracked.
 
 ## Loose ends / known issues
-- **Squad link real test:** user + friend on beta.7, linked by code during a real match: dots, names, paths, hotbar pictures. Fix whatever breaks first. F4's real hotbar *reading* (items, ammo numbers) and F5's remaining parts (squad chests/kills totals) still to do; update PROJECT_PLAN F4/F5 to say the picture version shipped.
-- Next beta tag: beta.17.
-- **F2 real-play check (do first):** play/record a match with ShotCaller running and check the dot + route + chest pins on the second screen against the minimap; paste the Epic name and the fortnite-api.com key in Fortnite → Stats (the user pastes it themselves) and compare the numbers with what the user knows; check the session panel updates after a match.
-- Teammates' arrows (team modes): written but never seen on a real squad match; colours/sizes are guesses. Pink/purple squad colour is skipped because of the storm.
-- Map grid A-J / 1-10 drawn over the whole 2048 picture; not compared with the in-game grid.
-- Dot: not tested on open water far from land, in vehicles, on the bus/skydive (different zoom: reads "not sure" until you land). Gemini's ideas (gradient-orientation matching, peak-to-sidelobe confidence, multi-scale, WASM) in DESIGN.md if accuracy needs them.
-- Placement in Duo/Trio/Squad is empty (needs a "#N" reader from the end screen). Chests opened within ~1 s may still merge in rare cases; break-open chests need the +1 key.
-- Older matches (before beta.4) have no chest kinds; the user's second match was saved as 17 chests (really 13 + 4 rare + 1 sprite = 18).
-- `phaseF1/fortnite-foundation` isn't merged to main (main is at v0.0.4-beta.2); ask before merging. The Skillshot builder commit (b0fcc11) rides on this branch.
+- Nothing from F3 has been run in the real app yet (type check + lint pass). Main risks: the layer window's position on scaled (125%/150%) laptop screens, the whole-map search pausing the app for ~0.1 s per zoom step, imports between overlay.ts ↔ fortnite modules.
+- Squad link still never tested between two PCs. Placement in team modes still empty (the M panel / end screen "#N" reader could give it).
+- The world→map fit (1.46 m/px) is measured on this island; a new season may need it redone (places off the island show it).
+- `phaseF1/fortnite-foundation` isn't merged to main; ask before merging.
 
 ## How to start
 1. Read the files above.

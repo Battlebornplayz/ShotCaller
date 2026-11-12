@@ -9,7 +9,7 @@ export const APP_ICON = nativeImage.createFromPath(iconPath);
 
 export const OVERLAY_DEFAULT_SIZE = { width: 300, height: 260 };
 
-type WindowName = 'splash' | 'main' | 'overlay' | 'popup' | 'fnmonitor';
+type WindowName = 'splash' | 'main' | 'overlay' | 'popup' | 'fnmonitor' | 'fnmaplayer';
 
 export const POPUP_SIZE = { width: 440, height: 150 };
 
@@ -126,6 +126,29 @@ export function createOverlayWindow(kind: 'corner' | 'monitor', bounds: Electron
 }
 
 /** The Fortnite second-monitor window: frameless, fills the given area, an ordinary window otherwise. */
+/** The see-through layer drawn over Fortnite's full map (M). Click-through, never focused. */
+export function createFnMapLayerWindow(bounds: Electron.Rectangle): BrowserWindow {
+  const win = new BrowserWindow({
+    ...bounds,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    resizable: false,
+    maximizable: false,
+    minimizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: false,
+    hasShadow: false,
+    show: false,
+    title: 'ShotCaller map layer',
+    webPreferences: { ...webPreferences, backgroundThrottling: false },
+  });
+  loadRenderer(win, 'fnmaplayer');
+  return win;
+}
+
 export function createFortniteMonitorWindow(bounds: Electron.Rectangle): BrowserWindow {
   const win = new BrowserWindow({
     ...bounds,

@@ -3,11 +3,12 @@ import fs from 'node:fs';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 import { DotTracker, MINIMAP_SPAN, minimapArea, minimapGrey } from '../../shared/fortniteMap';
-import type { FnChestKind, FnChestPin, FnKillPin, FnDrop, FnMapState, FnMatchRecord, FnPoint, FnRoute } from '../../shared/fortnite';
+import type { FnChestKind, FnChestPin, FnDotCheck, FnKillPin, FnDrop, FnMapState, FnMapView, FnMatchRecord, FnPoint, FnRoute, FnStorm } from '../../shared/fortnite';
+import type { Circle, FullMapMarks, SquadColor } from '../../shared/fortniteFullMap';
 import { type WindowArea } from '../skillshot/screenCapture';
 import { gameSpace, grabGame } from './gameArea';
 import { resizeBgra } from '../../shared/fortniteVision';
-import { getLocator, getSeasonMapStatus, onSeasonMap } from './seasonMap';
+import { getLocator, getPlaces, getSeasonMapStatus, onSeasonMap } from './seasonMap';
 import { currentMatchInfo, onMatchSaved } from './tracker';
 
 /**
@@ -18,6 +19,8 @@ import { currentMatchInfo, onMatchSaved } from './tracker';
  */
 
 const READ_EVERY_MS = 500;
+/** Fastest believable travel between route points, map px per second (~90 m/s: launch pads, fast cars). */
+const MAX_STEP_PX_PER_S = 60;
 /** A route point is added when you've moved this far (map px) or this long has passed. */
 const ROUTE_STEP_PX = 2;
 const ROUTE_STEP_MS = 5000;
@@ -44,12 +47,39 @@ let planStep = 0;
 const STOP_REACHED_PX = 28;
 const planFile = () => path.join(app.getPath('userData'), 'fortnite', 'plan.json');
 let lastLife: 'alive' | 'down' | null = null;
+let checks: FnDotCheck[] = [];
+let distance = 0;
+/** Squad colours from the HUD list (settled: the same twice in a row). */
+let colors: { me: SquadColor | null; mates: SquadColor[] } = { me: null, mates: [] };
+let colorsSeen = '';
+/** Squad-link friend id -> their squad colour, matched from arrows on your screen. */
+const friendColors = new Map<string, string>();
+/** A dot check counts as close within this many map px (~18 m). */
+const CLOSE_PX = 12;
 let index: IndexEntry[] = [];
 let state: FnMapState = emptyState();
 const listeners = new Set<(s: FnMapState) => void>();
 
 function emptyState(): FnMapState {
-  return { map: getSeasonMapStatus(), dot: null, teammates: [], route: [], chests: [], landing: null, death: null, kills: [], plan, planStep, squad: [] };
+  return {
+    map: getSeasonMapStatus(),
+    dot: null,
+    teammates: [],
+    route: [],
+    chests: [],
+    landing: null,
+    death: null,
+    kills: [],
+    plan,
+    planStep,
+    squad: [],
+    fullMap: { open: false, view: null, height: 1080 },
+    markers: [],
+    storm: null,
+    colors: { me: null, mates: [] },
+    accuracy: { checks: 0, close: 0, avgErr: null },
+    distance: 0,
+  };
 }
 
 export function getLiveMap(): FnMapState {
@@ -58,7 +88,114 @@ export function getLiveMap(): FnMapState {
 
 /** Squad-link friends changed (from squad.ts). */
 export function setSquadDots(squad: FnMapState['squad']): void {
-  push({ squad });
+  push({ squad: withColors(squad) });
+}
+
+/** Friends get their real squad colour once it's been matched. */
+function withColors(squad: FnMapState['squad']): FnMapState['squad'] {
+  return squad.map((f) => (friendColors.has(f.id) ? { ...f, color: friendColors.get(f.id) } : f));
+}
+
+/** A teammate arrow seen at `p` in `color`: a linked friend whose own dot is right there gets that colour. */
+function matchFriendColor(p: FnPoint, color: string): void {
+  let best: { id: string; d: number } | null = null;
+  for (const f of state.squad) {
+    if (!f.dot || Date.now() - f.dot.at > 4000) continue;
+    const d = Math.hypot(f.dot.x - p.x, f.dot.y - p.y);
+    if (d <= 40 && (!best || d < best.d)) best = { id: f.id, d };
+  }
+  if (best && friendColors.get(best.id) !== color) {
+    friendColors.set(best.id, color);
+    push({ squad: withColors(state.squad) });
+  }
+}
+
+/** Squad colours read from the HUD list (yours last). Kept once the same list is seen twice. */
+export function setSquadColors(list: SquadColor[]): void {
+  if (list.length < 2) return;
+  const key = list.map((c) => c.color).join(',');
+  if (key !== colorsSeen) {
+    colorsSeen = key;
+    return;
+  }
+  const me = list[list.length - 1];
+  const mates = list.slice(0, -1);
+  const same = (a: SquadColor[], b: SquadColor[]) => a.length === b.length && a.every((c, i) => Math.abs(c.hue - b[i].hue) < 12);
+  if (colors.me && Math.abs(colors.me.hue - me.hue) < 12 && same(colors.mates, mates)) return;
+  colors = { me, mates };
+  push({ colors: { me: me.color, mates: mates.map((c) => c.color) } });
+}
+
+export function getSquadColors(): { me: SquadColor | null; mates: SquadColor[] } {
+  return colors;
+}
+
+/** Fortnite's full map opened, moved or closed (from fullMap.ts). */
+export function setFullMapView(view: FnMapView | null, open: boolean, height = 1080): void {
+  push({ fullMap: { open, view: open ? view : null, height } });
+}
+
+/** A storm read from a full map (yours, or a linked friend's): the newest wins. */
+export function offerStorm(storm: FnStorm | null | undefined): void {
+  if (!storm || (!storm.next && !storm.edge)) return;
+  if (state.storm && state.storm.at >= storm.at) return;
+  push({ storm });
+}
+
+/**
+ * What Fortnite's full map shows (from fullMap.ts): your arrow checks the dot and puts it right, teammates'
+ * arrows and markers come in their squad colours, and the storm is kept until the next look.
+ */
+export function fromFullMap(marks: FullMapMarks, storm: { next: Circle | null; edge: Circle | null } | null): void {
+  const info = currentMatchInfo();
+  if (!info) return;
+  if (info.startedAt !== matchStartedAt) resetMatch(info.startedAt);
+  const now = Date.now();
+  const patch: Partial<FnMapState> = {};
+  // Your arrow far from a sure dot is only believed when it's seen in the same spot twice in a row.
+  let me = marks.me;
+  if (me && state.dot?.state === 'sure' && now - state.dot.at < 3000 && Math.hypot(state.dot.x - me.x, state.dot.y - me.y) > FAR_ARROW_PX) {
+    const same = farArrow && Math.hypot(farArrow.x - me.x, farArrow.y - me.y) < 12;
+    farArrow = { x: me.x, y: me.y };
+    if (!same) me = null;
+  } else farArrow = null;
+  if (me) {
+    const x = Math.round(me.x);
+    const y = Math.round(me.y);
+    const dot = state.dot;
+    // How far off the dot was (only when it was a sure, fresh read from the minimap).
+    const err = dot && dot.state === 'sure' && now - dot.at < 2500 ? Math.hypot(dot.x - x, dot.y - y) : null;
+    const last = checks[checks.length - 1];
+    // One check per opening of the map (or every 5 s while it stays open).
+    if (!last || now - last.at > 5000) {
+      checks.push({ at: now, err: err === null ? null : Math.round(err) });
+      patch.accuracy = accuracyOf(checks);
+    }
+    tracker?.fix(x, y, now);
+    patch.dot = { x, y, state: 'sure', at: now };
+  }
+  if (marks.mates.length) {
+    patch.teammates = marks.mates.map((m) => ({ x: Math.round(m.x), y: Math.round(m.y), color: m.color }));
+    for (const m of marks.mates) matchFriendColor(m, m.color);
+  }
+  if (marks.markers.length) patch.markers = marks.markers.map((m) => ({ x: Math.round(m.x), y: Math.round(m.y), color: m.color, at: now }));
+  if (storm && (storm.next || storm.edge)) patch.storm = { next: round(storm.next), edge: round(storm.edge), at: now };
+  push(patch);
+}
+
+/** A full-map arrow this far (map px, ~290 m) from a sure dot needs a second look to be taken. */
+const FAR_ARROW_PX = 200;
+let farArrow: FnPoint | null = null;
+
+const round = (c: Circle | null) => (c ? { x: Math.round(c.x), y: Math.round(c.y), r: Math.round(c.r) } : null);
+
+function accuracyOf(list: FnDotCheck[]): FnMapState['accuracy'] {
+  const known = list.filter((c) => c.err !== null).map((c) => c.err!);
+  return {
+    checks: list.length,
+    close: known.filter((e) => e <= CLOSE_PX).length,
+    avgErr: known.length ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : null,
+  };
 }
 
 export function onLiveMap(fn: (s: FnMapState) => void): () => void {
@@ -81,8 +218,10 @@ function resetMatch(startedAt: number | null): void {
   kills = [];
   planStep = 0;
   lastLife = null;
+  checks = [];
+  distance = 0;
   tracker?.reset();
-  push({ dot: null, teammates: [], route: [], chests: [], landing: null, death: null, kills: [], planStep });
+  push({ dot: null, teammates: [], route: [], chests: [], landing: null, death: null, kills: [], planStep, markers: [], storm: null, accuracy: accuracyOf([]), distance: 0 });
 }
 
 /** Called by the screen reader on each look while a match is on and Fortnite is in front. */
@@ -129,6 +268,14 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
     const prev = points[points.length - 1];
     const secs = Math.round((now - info.startedAt) / 1000);
     if (!prev || Math.hypot(prev[0] - x, prev[1] - y) >= ROUTE_STEP_PX || secs - prev[2] >= ROUTE_STEP_MS / 1000) {
+      // Distance: add each step, but not a jump faster than anything you can travel (a bad read).
+      if (prev) {
+        const step = Math.hypot(prev[0] - x, prev[1] - y);
+        if (step <= MAX_STEP_PX_PER_S * Math.max(1, secs - prev[2])) {
+          distance += step;
+          patch.distance = Math.round(distance);
+        }
+      }
       points.push([x, y, secs]);
       patch.route = points.map(([px, py]) => [px, py] as [number, number]);
     }
@@ -137,7 +284,11 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
       planStep++;
       patch.planStep = planStep;
     }
-    patch.teammates = !info.teamSize || info.teamSize === 'solo' ? [] : readTeammates(pixels, box.width, box.height, x, y);
+    if (info.teamSize && info.teamSize !== 'solo') {
+      const mates = readTeammates(pixels, box.width, box.height, x, y);
+      patch.teammates = mates;
+      for (const m of mates) matchFriendColor(m, m.color);
+    } else patch.teammates = [];
   }
   push(patch);
 }
@@ -179,6 +330,13 @@ const SQUAD: { name: string; color: string; hue: [number, number] }[] = [
   { name: 'blue', color: '#3da5ff', hue: [190, 215] },
 ];
 
+/** Hue inside a range that may wrap round 0/360. */
+function inHue(h: number, [a, b]: [number, number]): boolean {
+  if (a < 0) return h >= a + 360 || h <= b;
+  if (b > 360) return h >= a || h <= b - 360;
+  return h >= a && h <= b;
+}
+
 function hsv(r: number, g: number, b: number): [number, number, number] {
   const mx = Math.max(r, g, b);
   const mn = Math.min(r, g, b);
@@ -199,13 +357,16 @@ function readTeammates(bgra: Uint8Array, w: number, h: number, meX: number, meY:
   const minPx = Math.round(25 * k * k);
   const maxPx = Math.round(260 * k * k);
   const out: (FnPoint & { color: string })[] = [];
-  for (const sq of SQUAD) {
+  // Your teammates' real colours from the HUD list when known (matched closely, so even pink works);
+  // otherwise the usual yellow / green / blue.
+  const list = colors.mates.length ? colors.mates.map((c) => ({ name: c.color, color: c.color, hue: [c.hue - 12, c.hue + 12] as [number, number] })) : SQUAD;
+  for (const sq of list) {
     const hit = new Uint8Array(w * h);
     for (let y = Math.round(h * 0.14); y < h - 2; y++) {
       for (let x = 2; x < w - 2; x++) {
         const i = (y * w + x) * 4;
         const [hu, s, v] = hsv(bgra[i + 2], bgra[i + 1], bgra[i]);
-        if (s > 0.6 && v > 0.75 && hu >= sq.hue[0] && hu <= sq.hue[1]) hit[y * w + x] = 1;
+        if (s > 0.6 && v > 0.75 && inHue(hu, sq.hue)) hit[y * w + x] = 1;
       }
     }
     // Blobs by flood fill.
@@ -246,8 +407,8 @@ function readTeammates(bgra: Uint8Array, w: number, h: number, meX: number, meY:
 async function saveRoute(m: FnMatchRecord): Promise<void> {
   const mapId = getSeasonMapStatus().id;
   if (!mapId || (!points.length && !pins.length)) return;
-  const route: FnRoute = { matchId: m.id, mapId, points, chests: pins, landing, death, kills };
-  const entry: IndexEntry = { matchId: m.id, mapId, startedAt: m.startedAt, placement: m.placement, landing, death, chests: m.chests };
+  const route: FnRoute = { matchId: m.id, mapId, points, chests: pins, landing, death, kills, checks, distance: Math.round(distance) };
+  const entry: IndexEntry = { matchId: m.id, mapId, startedAt: m.startedAt, placement: m.placement, landing, death, chests: m.chests, distance: Math.round(distance) };
   index.push(entry);
   try {
     await fsp.mkdir(routesDir(), { recursive: true });
@@ -271,8 +432,23 @@ export async function getRoute(matchId: string): Promise<FnRoute | null> {
 /** Landing and death spots on the current season's map, for drop stats. Older maps' pins stay archived. */
 export function getDrops(): IndexEntry[] {
   const id = getSeasonMapStatus().id;
-  return index.filter((e) => e.mapId === id);
+  const places = getPlaces();
+  return index
+    .filter((e) => e.mapId === id)
+    .map((e) => {
+      if (!e.landing || !places.length) return e;
+      // The nearest named place, if you landed within ~230 m of it.
+      let best: { name: string; d: number } | null = null;
+      for (const p of places) {
+        const d = Math.hypot(p.x - e.landing.x, p.y - e.landing.y);
+        if (d <= PLACE_RADIUS_PX && (!best || d < best.d)) best = { name: p.name, d };
+      }
+      return best ? { ...e, place: best.name } : e;
+    });
 }
+
+/** A landing counts for a place within this many map px of its centre (~230 m). */
+const PLACE_RADIUS_PX = 160;
 
 export function initLiveMap(): void {
   try {

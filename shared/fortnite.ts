@@ -23,6 +23,28 @@ export interface FortniteCardParts {
 /** Where the Fortnite info shows: the in-game overlay card, the second-monitor window, or both. 'ask' = ask on launch. */
 export type FnShowOn = 'ask' | 'overlay' | 'monitor' | 'both';
 
+/** Layers of ShotCaller's map, each with its own switch (used by the layer over Fortnite's full map). */
+export interface FnMapLayers {
+  on: boolean;
+  me: boolean;
+  route: boolean;
+  chests: boolean;
+  kills: boolean;
+  landing: boolean;
+  death: boolean;
+  plan: boolean;
+  /** Squad-link friends: dots, names, paths, their icons. */
+  squad: boolean;
+  /** Teammates' arrows read from your screen. */
+  teammates: boolean;
+  markers: boolean;
+  storm: boolean;
+  /** Your landing spots from past matches on this map. */
+  drops: boolean;
+  /** Death heat map from past matches on this map. */
+  deaths: boolean;
+}
+
 export interface FortniteSettings {
   /** Read the screen (a copy of small areas, offline) for chests. On by default. */
   screenReader: boolean;
@@ -38,6 +60,10 @@ export interface FortniteSettings {
   liveMap: boolean;
   /** How you show on the map: a dot, a Fortnite-style arrow, or your own picture (`markerImage`, a small PNG data URL). */
   marker: 'dot' | 'arrow' | 'image';
+  /**
+   * ShotCaller's map drawn over Fortnite's own full map (M), lined up with it; one switch per layer.
+   */
+  mapLayer: FnMapLayers;
   /** Fortnite's resolution: 'auto' (the window's size) or 'WxH'; `stretched` = a narrower one stretched to fill the screen (otherwise black bars). */
   resolution: string;
   stretched: boolean;
@@ -61,6 +87,7 @@ export const DEFAULT_FORTNITE_SETTINGS: FortniteSettings = {
   display: 'ask',
   liveMap: true,
   marker: 'arrow',
+  mapLayer: { on: true, me: true, route: true, chests: true, kills: true, landing: true, death: true, plan: true, squad: true, teammates: true, markers: true, storm: true, drops: false, deaths: false },
   resolution: 'auto',
   stretched: true,
   markerImage: null,
@@ -99,6 +126,40 @@ export interface FnRoute {
   landing: FnPoint | null;
   death: FnPoint | null;
   kills?: FnKillPin[];
+  /** Dot checks against Fortnite's full map (M) this match: how far off the dot was, in map px. */
+  checks?: FnDotCheck[];
+  /** Distance travelled on foot/vehicle this match, in map px (see MAP_PX_METRES). */
+  distance?: number;
+}
+
+/** One check of the live dot against your arrow on Fortnite's full map. */
+export interface FnDotCheck {
+  at: number;
+  /** Map px between ShotCaller's dot and your arrow; null when the dot wasn't sure then. */
+  err: number | null;
+}
+
+/** A circle on the season map (px of the 2048 map). */
+export interface FnCircle {
+  x: number;
+  y: number;
+  r: number;
+}
+
+/** The storm as last read from Fortnite's full map (yours or a linked friend's). */
+export interface FnStorm {
+  /** The next safe zone (the white ring). */
+  next: FnCircle | null;
+  /** Where the storm is now (purple outside it). */
+  edge: FnCircle | null;
+  at: number;
+}
+
+/** Where Fortnite's full map is drawn on screen while it's open: screen = map * scale + (x, y), 1080p px. */
+export interface FnMapView {
+  scale: number;
+  x: number;
+  y: number;
 }
 
 export interface FnMapState {
@@ -117,6 +178,17 @@ export interface FnMapState {
   planStep: number;
   /** Squad-link friends' dots and paths (Phase F5 early build). */
   squad: FnFriend[];
+  /** Fortnite's full map (M): open or not, and where its map is drawn (for the map layer). */
+  fullMap: { open: boolean; view: FnMapView | null; /** Game picture height when scaled to 1920 wide. */ height: number };
+  /** Markers (pins) seen on Fortnite's full map, in squad colours. */
+  markers: (FnPoint & { color: string; at: number })[];
+  storm: FnStorm | null;
+  /** Squad colours read from the HUD list: yours, and your teammates' top to bottom. */
+  colors: { me: string | null; mates: string[] };
+  /** This match's dot checks against the full map: how many, how many were close (within 12 map px). */
+  accuracy: { checks: number; close: number; avgErr: number | null };
+  /** Distance travelled this match, in map px. */
+  distance: number;
 }
 
 /** A friend linked by join code: their own ShotCaller reads their minimap and sends their dot. */
@@ -132,6 +204,8 @@ export interface FnFriend {
   pic?: string | null;
   /** When we last heard from them (our clock). */
   seenAt: number;
+  /** Their squad colour in Fortnite, matched from the arrows on your screen (beta.17+). */
+  color?: string;
 }
 
 export interface FnFriendMarks {
@@ -140,6 +214,8 @@ export interface FnFriendMarks {
   landing: FnPoint | null;
   death: FnPoint | null;
   plan: FnPoint[];
+  /** The storm from their full map (beta.17+). */
+  storm?: FnStorm | null;
 }
 
 /** A friend's own counts this match, and whether their screen reading is working (beta.14+). */
@@ -169,6 +245,20 @@ export interface FnDrop {
   landing: FnPoint | null;
   death: FnPoint | null;
   chests: number;
+  /** Distance travelled that match, map px (beta.17+). */
+  distance?: number;
+  /** The named place nearest the landing spot (added when drops are read). */
+  place?: string;
+}
+
+/** One map pixel of the 2048 season map in metres (fitted from the place positions; same on both axes). */
+export const MAP_PX_METRES = 1.46;
+
+/** A named place on the season map, in map px. */
+export interface FnPlace {
+  name: string;
+  x: number;
+  y: number;
 }
 
 export interface FnDisplay {

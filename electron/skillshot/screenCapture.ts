@@ -130,7 +130,7 @@ export function foregroundGameArea(exeNames: string[]): WindowArea | null {
 }
 
 /** Copies a screen area as top-down BGRA pixels (the 4th byte isn't meaningful). */
-export function captureScreen(area: WindowArea): Uint8Array | null {
+export function captureScreen(area: WindowArea, into?: Uint8Array): Uint8Array | null {
   const api = load();
   if (!api) return null;
   const screen = api.GetDC(null);
@@ -140,7 +140,8 @@ export function captureScreen(area: WindowArea): Uint8Array | null {
   const old = api.SelectObject(mem, bmp);
   try {
     if (!api.BitBlt(mem, 0, 0, area.width, area.height, screen, area.x, area.y, SRCCOPY)) return null;
-    const bits = new Uint8Array(area.width * area.height * 4);
+    // Reuse the caller's buffer when it's the right size (whole-window copies, several times a second).
+    const bits = into && into.length === area.width * area.height * 4 ? into : new Uint8Array(area.width * area.height * 4);
     const info = {
       biSize: 40,
       biWidth: area.width,

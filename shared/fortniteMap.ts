@@ -362,6 +362,12 @@ export class DotTracker {
     this.candidate = null;
   }
 
+  /** A position known for sure from elsewhere (your arrow on Fortnite's full map): track from there. */
+  fix(x: number, y: number, at: number): void {
+    this.last = { x, y, at };
+    this.candidate = null;
+  }
+
   update(mini: GreyImage, at: number): { state: DotState; x: number; y: number; score: number } | null {
     if (this.last) {
       const dt = Math.min(10, (at - this.last.at) / 1000);

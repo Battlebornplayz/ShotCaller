@@ -137,7 +137,11 @@ export interface SettingsPatch {
   startup?: Partial<StartupSettings>;
   privacy?: Partial<PrivacySettings>;
   skillshot?: Partial<SkillshotSettings>;
-  fortnite?: Partial<Omit<FortniteSettings, 'card' | 'monitor'>> & { card?: Partial<FortniteSettings['card']>; monitor?: Partial<FortniteSettings['monitor']> };
+  fortnite?: Partial<Omit<FortniteSettings, 'card' | 'monitor' | 'mapLayer'>> & {
+    card?: Partial<FortniteSettings['card']>;
+    monitor?: Partial<FortniteSettings['monitor']>;
+    mapLayer?: Partial<FortniteSettings['mapLayer']>;
+  };
   mcp?: Partial<McpSettings>;
 }
 

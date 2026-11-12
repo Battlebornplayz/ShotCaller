@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { FnDisplay, FnDrop, FnShopItem, FnSquadState, FnStatBlock } from '../../shared/fortnite';
+import type { FnDisplay, FnDrop, FnMapLayers, FnShopItem, FnSquadState, FnStatBlock } from '../../shared/fortnite';
 import { useFortnite, useFortniteMap, useFortniteShop, useFortniteStats, useSettings } from '../../src/hooks/useLive';
 import { FnMap } from './FnMap';
-import { ChestsPanel, InventoryPanel, RecapPanel, SessionPanel, useMatches } from './FnPanels';
+import { ChestsPanel, DropStatsPanel, InventoryPanel, MapStatsPanel, RecapPanel, SessionPanel, useMatches } from './FnPanels';
 
 type FnPatch = Parameters<typeof window.shotcaller.updateSettings>[0]['fortnite'];
 const setFn = (patch: FnPatch) => void window.shotcaller.updateSettings({ fortnite: patch });
@@ -17,6 +17,7 @@ export function LobbyTab() {
   const matches = useMatches(live);
   const [drops, setDrops] = useState<FnDrop[]>([]);
   const [planning, setPlanning] = useState(false);
+  const [heat, setHeat] = useState(false);
   useEffect(() => {
     let active = true;
     void window.shotcaller.getFortniteDrops().then((d) => active && setDrops(d));
@@ -33,6 +34,8 @@ export function LobbyTab() {
         <InventoryPanel />
         <RecapPanel match={live.lastMatch} />
         <SessionPanel live={live} matches={matches} />
+        {live.match && <MapStatsPanel live={map} />}
+        <DropStatsPanel drops={drops} />
         <ChestsPanel live={live} goal={settings.fortnite.chestGoal} />
         <section className="fn-panel">
           <div className="fn-panel-title">Goal</div>
@@ -49,18 +52,21 @@ export function LobbyTab() {
             Your drops this season ({drops.length}
             {wins ? `, ${wins} won` : ''})
           </div>
+          <button className={`btn ${heat ? 'primary' : ''}`} aria-pressed={heat} onClick={() => setHeat(!heat)} title="Where you went down most, as red patches">
+            Death heat map
+          </button>
           <PlanButtons planning={planning} setPlanning={setPlanning} stops={map?.plan.length ?? 0} />
           <button className="btn" onClick={() => void window.shotcaller.showFortniteMonitor()}>
             Open map window
           </button>
         </div>
         <div className="fn-lobby-mapbox">
-          <FnMap live={map} route={[]} chests={[]} landing={null} death={null} drops={drops} planning={planning} />
+          <FnMap live={map} route={[]} chests={[]} landing={null} death={null} drops={drops} planning={planning} layers={{ deaths: heat }} />
         </div>
         <div className="fn-note">
           {planning
             ? 'Click the map to add stops in order. Right-click takes the last stop off. Scroll to zoom, hold right-click and drag to move, double-click to reset. In a match, a green GPS line points from you to the next stop.'
-            : 'Parachute: where you landed (gold = won). Red X: where you went down. Plan route: set your own stops with a GPS line between them.'}
+            : 'Parachute: where you landed (gold = won). Red X: where you went down. Death heat map: red patches where you go down most. Plan route: set your own stops with a GPS line between them.'}
         </div>
       </section>
     </div>
@@ -480,6 +486,50 @@ function ItemGrid({ items, wished, onToggle }: { items: FnShopItem[]; wished: Se
 // ---------------------------------------------------------------------------------------------
 // Map options
 
+/** What each map layer switch is called, in the order shown. */
+const LAYER_NAMES: [Exclude<keyof FnMapLayers, 'on'>, string][] = [
+  ['me', 'Me'],
+  ['route', 'My route'],
+  ['chests', 'Chests'],
+  ['kills', 'Eliminations'],
+  ['landing', 'Landing'],
+  ['death', 'Where I went down'],
+  ['plan', 'Planned route'],
+  ['squad', 'Squad link friends'],
+  ['teammates', 'Teammates'],
+  ['markers', 'Markers'],
+  ['storm', 'Storm'],
+  ['drops', 'Past landings'],
+  ['deaths', 'Death heat map'],
+];
+
+/** ShotCaller's map over Fortnite's own full map (M), with a switch for each layer. */
+function MapLayerOptions({ layers }: { layers: FnMapLayers }) {
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <label className="fn-switch">
+        <input type="checkbox" checked={layers.on} onChange={(e) => setFn({ mapLayer: { on: e.target.checked } })} />
+        <span>
+          <span style={{ fontWeight: 600 }}>Draw my map over Fortnite's map (M)</span>
+          <span className="muted" style={{ display: 'block', fontSize: 12 }}>
+            When you open the big map, ShotCaller lines its map up with it and draws these on top. It also reads what Fortnite shows there
+            (you, teammates, markers, the storm) to keep your dot right. Alt+S hides it like every overlay.
+          </span>
+        </span>
+      </label>
+      {layers.on && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {LAYER_NAMES.map(([k, name]) => (
+            <button key={k} className={`btn ${layers[k] ? 'primary' : ''}`} aria-pressed={layers[k]} onClick={() => setFn({ mapLayer: { [k]: !layers[k] } })}>
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MapOptions() {
   const settings = useSettings();
   const [displays, setDisplays] = useState<FnDisplay[]>([]);
@@ -502,6 +552,7 @@ export function MapOptions() {
         </span>
       </label>
       <MarkerPicker marker={fn.marker} image={fn.markerImage} />
+      <MapLayerOptions layers={fn.mapLayer} />
       <ResolutionPicker resolution={fn.resolution} stretched={fn.stretched} />
       <label className="fn-switch">
         <input type="checkbox" checked={fn.monitor.on} onChange={(e) => setFn({ monitor: { on: e.target.checked } })} />

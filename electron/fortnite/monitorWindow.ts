@@ -2,6 +2,7 @@ import { BrowserWindow, screen } from 'electron';
 import { getSettings } from '../settings';
 import type { FnDisplay } from '../../shared/fortnite';
 import { createFortniteMonitorWindow } from '../windows';
+import { closeMapLayer } from './mapLayerWindow';
 
 /**
  * The second-monitor window: fills the screen you picked (Fortnite → Options), opens when Fortnite starts and
@@ -64,6 +65,7 @@ export function syncFortniteMonitor(running: boolean): void {
   const want = running && getSettings().fortnite.monitor.on && getSettings().fortnite.display !== 'overlay';
   if (want) open(false);
   else if (!running) close();
+  if (!running) closeMapLayer();
 }
 
 /** Settings changed (screen or on/off): move, open or close. */
