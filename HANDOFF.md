@@ -41,6 +41,7 @@ Done when:
 - User is new: plain words, click-to-pick question widgets. Tests by recording (Win+Alt+R) with timestamps. `npm.cmd run dev`; quit the installed app first (ask). CRLF in some files; edit via small Python scripts in a file (bash heredocs with quotes broke twice). `reports/`, `research_notes/` stay untracked.
 
 ## Loose ends / known issues
+- **Replay results (2 looks/s, whole videos):** friend's 16:10 (driving, night): minimap dot sure 94%; M checks after landing off by 2-3 px. Your rec 1: 85% sure, 15 M checks off by 0-7 px. Your rec 2: 82% sure, no M opened. **Bug to fix first:** on the bus the minimap is zoomed out, yet the tracker marked wrong spots "sure" (~130 px / 190 m off between M looks, friend's video 0:33-0:43). Don't trust the minimap dot on the bus/skydive (log phase / busAt), or add the multi-scale search. On the bus, M shows your arrow on the bus (read right, moves ~40 px/s).
 - Nothing from F3 has been run in the real app yet (type check + lint pass). Main risks: the layer window's position on scaled (125%/150%) laptop screens, the whole-map search pausing the app for ~0.1 s per zoom step, imports between overlay.ts ↔ fortnite modules.
 - Squad link still never tested between two PCs. Placement in team modes still empty (the M panel / end screen "#N" reader could give it).
 - The world→map fit (1.46 m/px) is measured on this island; a new season may need it redone (places off the island show it).
