@@ -598,7 +598,7 @@ export function readFullMapMarks(bgra: Uint8Array, view: MapView, squad: SquadCo
   // You: Fortnite's white chevron arrow (it turns with you; a coloured ring shows round it only some of the
   // time). Each solid white shape of about the right size is compared with the arrow at every turn; your mouse
   // pointer (a white pin with a dark hole), skulls and letters don't fit it.
-  let me: MapMark | null = null;
+  let me: FullMapMarks['me'] = null;
   let meScore = 0;
   for (const b of blobs(white, W, H, 70, 420)) {
     const bw = b.x1 - b.x0 + 1;
