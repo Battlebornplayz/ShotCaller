@@ -98,15 +98,38 @@ function blocks(all: unknown): Record<string, FnStatBlock> {
   return out;
 }
 
-async function call(window: 'season' | 'lifetime', name: string): Promise<Raw> {
-  const url = `${API}/v2/stats/br/v2?name=${encodeURIComponent(name)}&timeWindow=${window}`;
+/** Where the name is looked up: Epic first, then PlayStation and Xbox names (console players often have no Epic name of their own). */
+const ACCOUNT_TYPES = ['epic', 'psn', 'xbl'] as const;
+type AccountType = (typeof ACCOUNT_TYPES)[number];
+/** The account type that found each name last time, so later refreshes go straight to it. */
+const foundAs = new Map<string, AccountType>();
+
+async function callAs(window: 'season' | 'lifetime', name: string, type: AccountType): Promise<Raw | null> {
+  const url = `${API}/v2/stats/br/v2?name=${encodeURIComponent(name)}&accountType=${type}&timeWindow=${window}`;
   const res = await net.fetch(url, { headers: { Authorization: apiKey ?? '' } });
   const body = (await res.json().catch(() => null)) as { status?: number; error?: string; data?: Raw } | null;
   if (res.status === 401) throw new Error('The key wasn’t accepted. Check it on fortnite-api.com and paste it again.');
   if (res.status === 403) throw new Error('Your stats are private. In Fortnite: Settings → Account and Privacy → Show on career leaderboard → On.');
-  if (res.status === 404) throw new Error(`No Epic account called “${name}” was found.`);
+  if (res.status === 404) return null;
   if (!res.ok || !body?.data) throw new Error(body?.error ?? `The stats service answered ${res.status}.`);
   return body.data;
+}
+
+async function call(window: 'season' | 'lifetime', raw: string): Promise<Raw> {
+  // Names get pasted with stray spaces; Epic names can't start or end with one.
+  const name = raw.trim();
+  const key = name.toLowerCase();
+  const known = foundAs.get(key);
+  for (const type of known ? [known, ...ACCOUNT_TYPES.filter((t) => t !== known)] : ACCOUNT_TYPES) {
+    const data = await callAs(window, name, type);
+    if (data) {
+      foundAs.set(key, type);
+      return data;
+    }
+  }
+  throw new Error(
+    `No account called “${name}” was found (checked Epic, PlayStation and Xbox names). Use the exact name shown in Fortnite's lobby, and check that stats are public: Settings → Account and Privacy → Show on career leaderboard → On.`,
+  );
 }
 
 /** Fetches season and lifetime stats (cached for 5 minutes unless forced). */
