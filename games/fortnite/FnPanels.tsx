@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { MAP_PX_METRES, type FnDrop, type FnInventory, type FnLiveState, type FnMapState, type FnMatchRecord, type FnRarity, type FnSquadState } from '../../shared/fortnite';
+import { MAP_PX_METRES, type FnDrop, type FnInventory, type FnLiveState, type FnMapState, type FnMatchRecord, type FnRarity, type FnRoute, type FnSquadState } from '../../shared/fortnite';
 import { modeLabel } from '../../shared/fortniteLog';
+import { SCORE_LINE_POINTS, SCORE_STOPS_POINTS } from '../../shared/fortniteRoute';
 
 /** Panels shared by the second-monitor window and the Fortnite page. */
 
@@ -99,6 +100,18 @@ export function GoalBar({ done, goal }: { done: number; goal: number }) {
 
 /** The last match at a glance. */
 export function RecapPanel({ match }: { match: FnMatchRecord | null }) {
+  // How well you followed your planned route, when you had one that match.
+  const [loaded, setPlanned] = useState<FnRoute | null>(null);
+  const id = match?.id ?? null;
+  const planned = loaded && loaded.matchId === id ? loaded : null;
+  useEffect(() => {
+    if (!id) return;
+    let active = true;
+    void window.shotcaller.getFortniteRoute(id).then((r) => active && setPlanned(r?.planScore !== undefined ? r : null));
+    return () => {
+      active = false;
+    };
+  }, [id]);
   if (!match) {
     return (
       <section className="fn-panel">
@@ -115,7 +128,15 @@ export function RecapPanel({ match }: { match: FnMatchRecord | null }) {
         <Cell label="Kills" value={match.eliminations === null ? '—' : String(match.eliminations)} />
         <Cell label="Chests" value={String(match.chests)} />
         <Cell label="Time alive" value={fmtTime(match.timeAliveMs)} />
+        {planned && <Cell label="Route score" value={String(planned.planScore)} />}
       </div>
+      {planned && (
+        <div className="fn-note" title="How the route score is worked out">
+          Route: {planned.planReached}/{planned.plan?.length ?? 0} stops reached = {Math.round((SCORE_STOPS_POINTS * (planned.planReached ?? 0)) / Math.max(1, planned.plan?.length ?? 1))} of {SCORE_STOPS_POINTS}
+          {' · '}
+          {Math.round((planned.planOnLine ?? 0) * 100)}% of your path on the line = {Math.round(SCORE_LINE_POINTS * (planned.planOnLine ?? 0))} of {SCORE_LINE_POINTS}
+        </div>
+      )}
     </section>
   );
 }

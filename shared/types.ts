@@ -9,7 +9,9 @@ import type {
   FnInventory,
   FnLiveState,
   FnMapState,
-  FnPoint,
+  FnChestSpot,
+  FnSavedRoute,
+  FnStop,
   FnMatchRecord,
   FnRoute,
   FnScreenPreview,
@@ -669,7 +671,15 @@ export interface ShotCallerApi {
   getFortniteMapImage(): Promise<string | null>;
   getFortniteRoute(matchId: string): Promise<FnRoute | null>;
   /** Your planned route on the season map (empty clears it). */
-  setFortnitePlan(plan: FnPoint[]): Promise<void>;
+  setFortnitePlan(plan: FnStop[]): Promise<void>;
+  /** Where you've opened chests in past matches on this season's map, busiest first. */
+  getFortniteChestSpots(): Promise<FnChestSpot[]>;
+  /** A loot route built from your best drop and busiest chest spots (empty when there's no history yet). */
+  suggestFortniteRoute(): Promise<FnStop[]>;
+  getFortniteSavedRoutes(): Promise<FnSavedRoute[]>;
+  /** Saves a named route (same name = replaced); returns the updated list. */
+  saveFortniteRoute(name: string, stops: FnStop[]): Promise<FnSavedRoute[]>;
+  deleteFortniteSavedRoute(id: string): Promise<FnSavedRoute[]>;
   /** Landing/death spots of matches on the current season map. */
   getFortniteDrops(): Promise<FnDrop[]>;
   /** Squad link: share map dots with a friend by join code. */

@@ -105,6 +105,30 @@ export interface FnPoint {
   y: number;
 }
 
+/** What you plan to do at a stop on your route. */
+export type FnStopGoal = 'loot' | 'fight' | 'heal' | 'rotate';
+
+/** One stop on a planned route: a spot, with an optional label, goal and note. */
+export interface FnStop extends FnPoint {
+  name?: string;
+  goal?: FnStopGoal;
+  note?: string;
+}
+
+/** A named route you saved to reuse (userData/fortnite/saved-routes.json). */
+export interface FnSavedRoute {
+  id: string;
+  name: string;
+  mapId: string | null;
+  stops: FnStop[];
+  savedAt: number;
+}
+
+/** A spot where you've opened chests in past matches, `n` times. */
+export interface FnChestSpot extends FnPoint {
+  n: number;
+}
+
 export interface FnChestPin extends FnPoint {
   kind: FnChestKind;
   at: number;
@@ -130,6 +154,13 @@ export interface FnRoute {
   checks?: FnDotCheck[];
   /** Distance travelled on foot/vehicle this match, in map px (see MAP_PX_METRES). */
   distance?: number;
+  /** The route you had planned, how many stops you reached, when (seconds into the match) and the score (0-100). */
+  plan?: FnStop[];
+  planReached?: number;
+  planReachedAt?: number[];
+  planScore?: number;
+  /** Share (0-1) of your path that stayed on the planned line, for the score's formula. */
+  planOnLine?: number;
 }
 
 /** One check of the live dot against your arrow on Fortnite's full map. */
@@ -174,7 +205,7 @@ export interface FnMapState {
   death: FnPoint | null;
   kills: FnKillPin[];
   /** Your planned route (click the map to add stops); `planStep` is the next stop not reached yet. */
-  plan: FnPoint[];
+  plan: FnStop[];
   planStep: number;
   /** Squad-link friends' dots and paths (Phase F5 early build). */
   squad: FnFriend[];
@@ -227,7 +258,7 @@ export interface FnFriendMarks {
   kills: FnKillPin[];
   landing: FnPoint | null;
   death: FnPoint | null;
-  plan: FnPoint[];
+  plan: FnStop[];
   /** The storm from their full map (beta.17+). */
   storm?: FnStorm | null;
 }

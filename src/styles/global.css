@@ -860,7 +860,26 @@ html.popup-window #root {
 .fn-plan-done { fill: none; stroke: #fff; opacity: 0.3; stroke-linejoin: round; }
 .fn-plan-gps { stroke: #3ddc84; stroke-linecap: round; opacity: 0.95; }
 .fn-plan-stop { fill: #fff; stroke: #0b0c1c; }
-.fn-plan-stop[data-next="yes"] { fill: #3ddc84; }
+.fn-plan-stop[data-next="yes"] { fill: #3ddc84; stroke: #fff; }
+.fn-plan-stop[data-drag="yes"] { stroke: #fff; }
+.fn-panel-sub { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.7); margin: 12px 0 6px; }
+.fn-stops { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fn-stop { display: flex; gap: 8px; align-items: flex-start; padding: 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.04); }
+.fn-stop[data-next="yes"] { outline: 1px solid #3ddc84; }
+.fn-stop[data-done="yes"] { opacity: 0.5; }
+.fn-stop-num { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: #0b0c1c; }
+.fn-stop-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.fn-stop-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.fn-stop-name, .fn-stop-note { min-width: 0; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; color: inherit; padding: 3px 6px; font: inherit; font-size: 13px; }
+.fn-stop-name { flex: 1; }
+.fn-stop-note { font-size: 12px; }
+.fn-stop-leg { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.fn-stop-x { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px 4px; }
+.fn-stop-x:hover { color: #ff4d5e; }
+.fn-goal { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1px solid; background: transparent; color: inherit; cursor: pointer; }
+.fn-saved { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.fn-saved li { display: flex; gap: 6px; align-items: center; }
+.fn-saved-name { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fn-plan-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .fn-dot-me { fill: #fff; stroke: var(--fn-sky); }
 .fn-dot-me[data-state='unsure'] { fill: transparent; stroke: rgba(255, 255, 255, 0.8); stroke-dasharray: 4 4; }

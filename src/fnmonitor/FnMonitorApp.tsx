@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import type { FnDrop, FnRoute } from '../../shared/fortnite';
 import { FnMap, gridCell } from '../../games/fortnite/FnMap';
 import { PlanButtons } from '../../games/fortnite/FnHubTabs';
+import { RoutePlanner } from '../../games/fortnite/RoutePlanner';
+import { fmtMetres, metres, stopLabel } from '../../shared/fortniteRoute';
 import { DisplayChoice } from '../../games/fortnite/overlay';
 import { ChestsPanel, InventoryPanel, MapPanelPanel, MapStatsPanel, RecapPanel, SessionPanel, useMatches } from '../../games/fortnite/FnPanels';
 import { useFortnite, useFortniteMap, useSettings } from '../hooks/useLive';
@@ -47,7 +49,7 @@ export function FnMonitorApp() {
         )}
         {inMatch && dot && map && map.planStep < map.plan.length && (
           <span className="fnm-where">
-            Next stop {map.planStep + 1} · {gridCell(map.plan[map.planStep])}
+            Next: {stopLabel(map.plan[map.planStep], map.planStep)} · {gridCell(map.plan[map.planStep])} · {fmtMetres(metres(dot, map.plan[map.planStep]))}
           </span>
         )}
         <span style={{ flex: 1 }} />
@@ -84,6 +86,7 @@ export function FnMonitorApp() {
               <DisplayChoice />
             </section>
           )}
+          {(planning || (map?.plan.length ?? 0) > 0) && <RoutePlanner map={map} planning={planning} setPlanning={setPlanning} />}
           {!inMatch && <RecapPanel match={last} />}
           <SessionPanel live={live} matches={matches} />
           {inMatch && <MapPanelPanel live={map} />}

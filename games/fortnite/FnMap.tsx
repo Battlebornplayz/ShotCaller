@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useSettings } from '../../src/hooks/useLive';
-import type { FnChestPin, FnCircle, FnDrop, FnFriendMarks, FnKillPin, FnMapLayers, FnMapState, FnPoint } from '../../shared/fortnite';
+import type { FnChestPin, FnChestSpot, FnCircle, FnDrop, FnFriendMarks, FnKillPin, FnMapLayers, FnMapState, FnPoint, FnStop } from '../../shared/fortnite';
+import { fmtMetres, goalColor, metres } from '../../shared/fortniteRoute';
 
 /**
  * The season map with the A-J / 1-10 grid, your dot (sure = solid, not sure = hollow), your route, chest pins,
@@ -95,6 +96,19 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
   useEffect(() => {
     curRef.current = cur;
   });
+  // Planning: your past chest spots as a guide, and dragging a stop to move it.
+  const [spots, setSpots] = useState<FnChestSpot[]>([]);
+  useEffect(() => {
+    if (!planning) return;
+    let active = true;
+    void window.shotcaller.getFortniteChestSpots().then((s) => active && setSpots(s));
+    return () => {
+      active = false;
+    };
+  }, [planning, live?.map.id]);
+  const [dragStop, setDragStop] = useState<{ i: number; p: FnPoint; moved: boolean } | null>(null);
+  /** The mouse went down on a stop, so the click that follows mustn't add a new one. */
+  const skipClick = useRef(false);
   // The wheel needs a non-passive listener so the page doesn't scroll while you zoom.
   useEffect(() => {
     const el = svgRef.current;
@@ -135,15 +149,43 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
     return { x: p.x, y: p.y };
   };
+  const shownPlan = dragStop ? plan.map((s, i) => (i === dragStop.i ? { ...s, x: Math.round(dragStop.p.x), y: Math.round(dragStop.p.y) } : s)) : plan;
   const addStop = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (skipClick.current) {
+      skipClick.current = false;
+      return;
+    }
     const p = planning ? toMap(e) : null;
     if (p) void window.shotcaller.setFortnitePlan([...plan, p]);
   };
-  // Right button: hold and drag to move the map; a plain right-click (no drag) in plan mode takes the last stop off.
+  // Left button on a stop (plan mode): drag it somewhere else. Right button: hold and drag to move the map;
+  // a plain right-click (no drag) in plan mode takes the last stop off.
   const onDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (e.button === 2) drag.current = { x: e.clientX, y: e.clientY, view: cur, moved: false };
+    if (e.button === 0 && planning) {
+      const p = toMap(e);
+      if (!p) return;
+      let hit = -1;
+      let best = 20 * u;
+      plan.forEach((s, i) => {
+        const d = Math.hypot(s.x - p.x, s.y - p.y);
+        if (d <= best) {
+          best = d;
+          hit = i;
+        }
+      });
+      if (hit >= 0) {
+        skipClick.current = true;
+        setDragStop({ i: hit, p: { x: plan[hit].x, y: plan[hit].y }, moved: false });
+      }
+    }
   };
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (dragStop) {
+      const p = toMap(e);
+      if (p) setDragStop({ ...dragStop, p, moved: true });
+      return;
+    }
     const d = drag.current;
     if (!d) return;
     const dx = e.clientX - d.x;
@@ -155,6 +197,11 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
     setManual(clampView({ x: d.view.x - dx * k, y: d.view.y - dy * k, w: d.view.w }));
   };
   const onUp = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (dragStop && e.button === 0) {
+      if (dragStop.moved) void window.shotcaller.setFortnitePlan(shownPlan);
+      setDragStop(null);
+      return;
+    }
     const d = drag.current;
     drag.current = null;
     if (e.button === 2 && d && !d.moved && planning) void window.shotcaller.setFortnitePlan(plan.slice(0, -1));
@@ -168,7 +215,11 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
       onMouseDown={onDown}
       onMouseMove={onMove}
       onMouseUp={onUp}
-      onMouseLeave={() => (drag.current = null)}
+      onMouseLeave={() => {
+        drag.current = null;
+        setDragStop(null);
+        skipClick.current = false;
+      }}
       onContextMenu={(e) => e.preventDefault()}
       onDoubleClick={() => setManual(null)}
       viewBox={`${shown.x} ${shown.y} ${shown.w} ${shown.w}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Season map">
@@ -203,11 +254,13 @@ export function FnMap({ live, follow, route, chests, landing, death, drops, kill
         land={land}
         died={died}
         killPins={killPins}
-        plan={plan}
+        plan={shownPlan}
         step={step}
         recap={!!route}
         drops={drops}
         show={layers}
+        spots={planning ? spots : undefined}
+        dragging={dragStop?.i ?? null}
       />
     </svg>
   );
@@ -229,6 +282,8 @@ export function FnMapLayers({
   recap,
   drops,
   show,
+  spots,
+  dragging,
 }: {
   live: FnMapState;
   u: number;
@@ -239,12 +294,16 @@ export function FnMapLayers({
   land: FnPoint | null;
   died: FnPoint | null;
   killPins: FnKillPin[];
-  plan: FnPoint[];
+  plan: FnStop[];
   step: number;
   /** A past match's recap: no live dot. */
   recap: boolean;
   drops?: FnDrop[];
   show?: Partial<FnMapLayers>;
+  /** Planning: where you've opened chests before, as faint gold rings sized by how often. */
+  spots?: FnChestSpot[];
+  /** The stop being dragged (planning). */
+  dragging?: number | null;
 }) {
   const on = (k: keyof FnMapLayers) => show?.[k] !== false;
   const dot = live.dot;
@@ -264,6 +323,21 @@ export function FnMapLayers({
 
       {on('route') && path.length > 1 && <polyline points={path.map(([x, y]) => `${x},${y}`).join(' ')} className="fn-route" strokeWidth={4 * u} />}
 
+      {on('plan') && spots && spots.length > 0 && (
+        <g pointerEvents="none">
+          {spots.map((s, i) => (
+            <g key={i} transform={`translate(${s.x} ${s.y})`} opacity={0.75}>
+              <circle r={(6 + Math.min(8, s.n)) * u} fill="var(--fn-legendary)" fillOpacity={0.25} stroke="var(--fn-legendary)" strokeWidth={1.5 * u} />
+              {s.n > 1 && (
+                <text y={4 * u} textAnchor="middle" fontSize={11 * u} fontWeight={800} fill="#fff" stroke={OUTLINE} strokeWidth={3 * u} paintOrder="stroke">
+                  {s.n}
+                </text>
+              )}
+            </g>
+          ))}
+        </g>
+      )}
+
       {on('plan') && plan.length > 0 && (
         <g className="fn-plan" pointerEvents="none">
           {step > 0 && <polyline points={plan.slice(0, step + 1).map((p) => `${p.x},${p.y}`).join(' ')} className="fn-plan-done" strokeWidth={3 * u} />}
@@ -271,12 +345,36 @@ export function FnMapLayers({
             <polyline points={[...(step > 0 ? [plan[step - 1]] : []), ...ahead].map((p) => `${p.x},${p.y}`).join(' ')} className="fn-plan-line" strokeWidth={4 * u} strokeDasharray={`${12 * u} ${9 * u}`} />
           )}
           {gpsFrom && <line x1={gpsFrom.x} y1={gpsFrom.y} x2={ahead[0].x} y2={ahead[0].y} className="fn-plan-gps" strokeWidth={6 * u} />}
+          {/* An arrow and the distance on each leg, pointing the way you'll go. */}
+          {plan.slice(1).map((b, j) => {
+            const a = plan[j];
+            const len = Math.hypot(b.x - a.x, b.y - a.y);
+            if (len < 40 * u) return null;
+            const deg = (Math.atan2(b.x - a.x, -(b.y - a.y)) * 180) / Math.PI;
+            const mx = (a.x + b.x) / 2;
+            const my = (a.y + b.y) / 2;
+            return (
+              <g key={`leg${j}`} opacity={j + 1 <= step ? 0.45 : 1}>
+                <path d="M0,-8 L7,6 L0,2 L-7,6 Z" transform={`translate(${mx} ${my}) rotate(${deg}) scale(${u})`} fill="#fff" stroke={OUTLINE} strokeWidth={2} strokeLinejoin="round" />
+                {len > 110 * u && (
+                  <text x={mx} y={my + 22 * u} textAnchor="middle" fontSize={13 * u} fontWeight={700} fill="#fff" stroke={OUTLINE} strokeWidth={4 * u} paintOrder="stroke">
+                    {fmtMetres(metres(a, b))}
+                  </text>
+                )}
+              </g>
+            );
+          })}
           {plan.map((p, i) => (
             <g key={i} transform={`translate(${p.x} ${p.y})`} opacity={i < step ? 0.45 : 1}>
-              <circle r={13 * u} className="fn-plan-stop" data-next={i === step ? 'yes' : undefined} strokeWidth={3 * u} />
+              <circle r={13 * u} className="fn-plan-stop" style={p.goal ? { fill: goalColor(p.goal) } : undefined} data-next={i === step ? 'yes' : undefined} data-drag={dragging === i ? 'yes' : undefined} strokeWidth={3 * u} />
               <text y={6 * u} textAnchor="middle" fontSize={17 * u} fontWeight={800} fill="#0b0c1c">
                 {i < step ? '✓' : i + 1}
               </text>
+              {p.name && (
+                <text x={18 * u} y={6 * u} fontSize={15 * u} fontWeight={700} fill="#fff" stroke={OUTLINE} strokeWidth={4 * u} paintOrder="stroke">
+                  {p.name}
+                </text>
+              )}
             </g>
           ))}
         </g>

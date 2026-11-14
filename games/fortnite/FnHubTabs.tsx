@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FnDisplay, FnDrop, FnMapLayers, FnShopItem, FnSquadState, FnStatBlock } from '../../shared/fortnite';
 import { useFortnite, useFortniteMap, useFortniteShop, useFortniteStats, useSettings } from '../../src/hooks/useLive';
 import { FnMap } from './FnMap';
+import { RoutePlanner } from './RoutePlanner';
 import { ChestsPanel, DropStatsPanel, InventoryPanel, MapStatsPanel, RecapPanel, SessionPanel, useMatches } from './FnPanels';
 
 type FnPatch = Parameters<typeof window.shotcaller.updateSettings>[0]['fortnite'];
@@ -30,6 +31,7 @@ export function LobbyTab() {
   return (
     <div className="enter fn-lobby">
       <div className="fn-lobby-side">
+        <RoutePlanner map={map} planning={planning} setPlanning={setPlanning} />
         <SquadPanel />
         <InventoryPanel />
         <RecapPanel match={live.lastMatch} />
@@ -65,7 +67,7 @@ export function LobbyTab() {
         </div>
         <div className="fn-note">
           {planning
-            ? 'Click the map to add stops in order. Right-click takes the last stop off. Scroll to zoom, hold right-click and drag to move, double-click to reset. In a match, a green GPS line points from you to the next stop.'
+            ? 'Click the map to add stops in order; drag a stop to move it. Right-click takes the last stop off. Scroll to zoom, hold right-click and drag to move the map, double-click to reset. Name stops and give them a goal in the Route planner. In a match, a green GPS line points from you to the next stop.'
             : 'Parachute: where you landed (gold = won). Red X: where you went down. Death heat map: red patches where you go down most. Plan route: set your own stops with a GPS line between them.'}
         </div>
       </section>

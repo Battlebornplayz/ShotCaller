@@ -4,6 +4,7 @@ import mqtt, { type MqttClient } from 'mqtt';
 import { type WindowArea } from '../skillshot/screenCapture';
 import type { FnChestPin, FnFriend, FnFriendLive, FnFriendMarks, FnMapState, FnPoint, FnSquadState, FnStorm } from '../../shared/fortnite';
 import { getSettings } from '../settings';
+import { cleanStops } from '../../shared/fortniteRoute';
 import { gameSpace, grabGame } from './gameArea';
 import { hudScale } from '../../shared/fortniteVision';
 import { getFortniteState } from './tracker';
@@ -67,7 +68,7 @@ function cleanMarks(m: FnFriendMarks): FnFriendMarks {
     kills: pts(m.kills, 100, (o) => ({ at: Number(o.at) || 0 })),
     landing: pt(m.landing),
     death: pt(m.death),
-    plan: pts(m.plan, 30, () => ({})),
+    plan: cleanStops(m.plan),
     storm: cleanStorm(m.storm),
   };
 }

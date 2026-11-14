@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import { promises as fsp } from 'node:fs';
 import path from 'node:path';
 import { DotTracker, MINIMAP_SPAN, minimapArea, minimapGrey } from '../../shared/fortniteMap';
-import type { FnChestKind, FnChestPin, FnDotCheck, FnKillPin, FnDrop, FnMapPanel, FnMapState, FnMapView, FnMatchRecord, FnPoint, FnRoute, FnStorm } from '../../shared/fortnite';
+import type { FnChestKind, FnChestPin, FnChestSpot, FnDotCheck, FnKillPin, FnDrop, FnMapPanel, FnMapState, FnMapView, FnMatchRecord, FnPoint, FnRoute, FnStop, FnStorm } from '../../shared/fortnite';
+import { cleanStops, clusterChests, scorePlan, suggestLootRoute } from '../../shared/fortniteRoute';
 import { hueGap, readMinimapMarkers, type Circle, type FullMapMarks, type SquadColor } from '../../shared/fortniteFullMap';
 import { type WindowArea } from '../skillshot/screenCapture';
 import { gameSpace, grabGame } from './gameArea';
@@ -41,8 +42,10 @@ let pins: FnChestPin[] = [];
 let landing: FnPoint | null = null;
 let death: FnPoint | null = null;
 let kills: FnKillPin[] = [];
-let plan: FnPoint[] = [];
+let plan: FnStop[] = [];
 let planStep = 0;
+/** Seconds into the match when each planned stop was reached (for the plan score). */
+let planReachedAt: number[] = [];
 /** You reached a planned stop when your dot is this close (map px). */
 const STOP_REACHED_PX = 28;
 const planFile = () => path.join(app.getPath('userData'), 'fortnite', 'plan.json');
@@ -238,6 +241,7 @@ function resetMatch(startedAt: number | null): void {
   death = null;
   kills = [];
   planStep = 0;
+  planReachedAt = [];
   lastLife = null;
   checks = [];
   distance = 0;
@@ -305,6 +309,7 @@ export function readLiveMap(area: WindowArea, life: 'alive' | 'down' | null, ena
     // GPS: move on to the next planned stop once you get close to this one.
     if (planStep < plan.length && Math.hypot(plan[planStep].x - x, plan[planStep].y - y) <= STOP_REACHED_PX) {
       planStep++;
+      planReachedAt.push(secs);
       patch.planStep = planStep;
     }
     const mk = markersFromMinimap(pixels, box.width, box.height, x, y, now);
@@ -376,9 +381,14 @@ export function pinKill(): void {
 }
 
 /** Sets your planned route (an empty list clears it). Kept between matches. */
-export function setPlan(next: FnPoint[]): void {
-  plan = next.slice(0, 30).map((p) => ({ x: Math.round(Math.min(2048, Math.max(0, p.x))), y: Math.round(Math.min(2048, Math.max(0, p.y))) }));
-  planStep = 0;
+export function setPlan(next: FnStop[]): void {
+  const clean = cleanStops(next);
+  // Editing mid-match keeps your progress for the stops you've already reached, as long as they didn't move.
+  let keep = 0;
+  while (keep < planStep && keep < clean.length && clean[keep].x === plan[keep]?.x && clean[keep].y === plan[keep]?.y) keep++;
+  plan = clean;
+  planStep = keep;
+  planReachedAt = planReachedAt.slice(0, keep);
   push({ plan, planStep });
   void fsp.mkdir(path.dirname(planFile()), { recursive: true }).then(() => fsp.writeFile(planFile(), JSON.stringify(plan))).catch(() => {});
 }
@@ -474,6 +484,9 @@ async function saveRoute(m: FnMatchRecord): Promise<void> {
   const mapId = getSeasonMapStatus().id;
   if (!mapId || (!points.length && !pins.length)) return;
   const route: FnRoute = { matchId: m.id, mapId, points, chests: pins, landing, death, kills, checks, distance: Math.round(distance) };
+  const score = scorePlan(plan, planStep, points, planReachedAt);
+  if (score) Object.assign(route, { plan, planReached: score.reached, planReachedAt, planScore: score.score, planOnLine: Math.round(score.onLine * 100) / 100 });
+  spotsCache = null;
   const entry: IndexEntry = { matchId: m.id, mapId, startedAt: m.startedAt, placement: m.placement, landing, death, chests: m.chests, distance: Math.round(distance) };
   index.push(entry);
   try {
@@ -516,6 +529,28 @@ export function getDrops(): IndexEntry[] {
 /** A landing counts for a place within this many map px of its centre (~230 m). */
 const PLACE_RADIUS_PX = 160;
 
+let spotsCache: { mapId: string; spots: FnChestSpot[] } | null = null;
+
+/** Where you've opened chests in past matches on this season's map, grouped into spots, busiest first. */
+export async function getChestSpots(): Promise<FnChestSpot[]> {
+  const id = getSeasonMapStatus().id;
+  if (!id) return [];
+  if (spotsCache?.mapId === id) return spotsCache.spots;
+  const all: FnPoint[] = [];
+  for (const e of index.filter((x) => x.mapId === id && x.chests > 0).slice(-300)) {
+    const r = await getRoute(e.matchId);
+    if (r) for (const c of r.chests) all.push({ x: c.x, y: c.y });
+  }
+  const spots = clusterChests(all).slice(0, 150);
+  spotsCache = { mapId: id, spots };
+  return spots;
+}
+
+/** A loot route from your best drop through your busiest chest spots. */
+export async function suggestRoute(): Promise<FnStop[]> {
+  return suggestLootRoute(getDrops(), await getChestSpots());
+}
+
 export function initLiveMap(): void {
   try {
     const raw = JSON.parse(fs.readFileSync(indexFile(), 'utf8')) as unknown;
@@ -525,7 +560,7 @@ export function initLiveMap(): void {
   }
   try {
     const raw = JSON.parse(fs.readFileSync(planFile(), 'utf8')) as unknown;
-    if (Array.isArray(raw)) plan = (raw as FnPoint[]).filter((p) => typeof p?.x === 'number' && typeof p?.y === 'number');
+    plan = cleanStops(raw);
   } catch {
     plan = [];
   }
