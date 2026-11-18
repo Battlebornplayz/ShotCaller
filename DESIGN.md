@@ -366,6 +366,67 @@ Batch 2 (L-Q43-67, plus L-Q38 again), answers:
 - **Built in F4: ranked, score, bests, achievements.** Ranked: for 4 minutes after a Ranked match, the whole game screen is read with Windows' text reader every 3 s while Fortnite is in front; a rank name counts only with a division, a % or as Elite/Champion/Unreal ("gold" alone could be gold bars). Saved on the match (`rank`), charted on the new **Bests** tab. **Not checked on a real rank screen yet** (no recording of one). Score 0-100: placement 50 (log scale, win 50, #10 ≈ 25), eliminations 3 each up to 30, time alive 1/min up to 20; without a placement (team modes) the other two are scaled to 100; formula shown on the Bests tab. Streaks skip matches with no placement. Final loadout saved per match (`loadout`); best loadouts sorted by average score. 24 ShotCaller Fortnite achievements (`shared/fortniteAchievements.ts`) with set tiers instead of global rarity, shown on the Fortnite game page, unlocked by themselves from the history (quietly at start-up, with the popup after a match).
 - **Placement for every team size (user, 2026-11-12):** Fortnite's log has no placement number, and your own "Eliminated by" screen has none while teammates live. When the whole team is out Fortnite shows **"YOU PLACED #N"** (in game ~2 s at y ~197, then at the top of the Match Recap screen, y ~30-105, while it's open; found in the third recording, Nov 11 23:13, "#4"), and "VICTORY ROYALE" for a win. `electron/fortnite/placement.ts` reads the top-middle (x 640-1280, y 0-280 at 1080p) at 3x with Windows' text reader every 1.5 s whenever the HUD doesn't show you alive after the bus. The reader gets "YOU PLACED" every time but the stylised "#4" about 1 read in 6 (4 of 25 frames, never a wrong number), so a number counts once read twice, or once if nothing else was read by the match end. Saved as the match's placement for any team size (solo's players-left count is the fallback). Leaving the recap within a couple of seconds can miss it.
 
+### Dead by Daylight mode — design interview (started 2026-11-17)
+Goal: a DbD companion for a veteran (~600 h, both sides) coming back after months away. A new game module, `games/dbd/`. Phases in PROJECT_PLAN.md "Phase D" (draft until the interview ends).
+- **Hard rule: never read DbD's memory or touch its process.** DbD runs EasyAntiCheat. Screen reading only (plus its log file for match start/end if the interview allows it, and public data sites). Only show what the game already shows you: no wallhacks, no info the game hides (e.g. the killer's identity before you've seen it).
+- **D-Q1 side:** both survivor and killer.
+- **D-Q2 features:** perk timers, hook tracker, killer counters, build manager, match stats, map info. (All of them.)
+- **D-Q3 input:** read the screen.
+- **D-Q4 struggles:** hasn't played in months, so a "what changed since you left" catch-up goes in. No beginner content; tips read as quick reminders.
+- D-Q5: **C** — both: live parts over the game, cards and stats on the second monitor.
+- D-Q6: **A** — hook badges right beside the game's own survivor portraits.
+- D-Q7: **A** — perk timers as countdown rings over your perk icons (bottom right).
+- D-Q8: **B** — standard overlay: hooks + timers all match, killer/map card on the loading screen only.
+- D-Q9: **C** — ShotCaller look (navy/blue), red only for danger and timers.
+- D-Q10: **B** — soft tick just before a timer runs out.
+- D-Q11: **C** — hook badge: hook pips, red when the next hook kills, and "unhooked Ns ago" (DS / BT / protection-hit windows).
+- D-Q12: **A** — as killer, survivors not hooked yet are dimmed (helps spread hooks).
+- D-Q13: **C** — timers for your own perks, plus "possible perk" windows for the other side (e.g. as killer: may-have-DS after each unhook), built only from what you can see.
+- D-Q14: **C** — timers start automatically from screen reading, with a hotkey to start/fix one by hand.
+- D-Q15: **B** — End Game Collapse countdown + hatch reminder, and "NOED possible" once all gens are done.
+- D-Q16: **A** — exhaustion countdown.
+- **Teammate perks (user):** as survivor, when you open the in-match menu (Esc) the game shows your teammates' perks. ShotCaller reads them then and keeps them for the match: shown by each teammate's hook badge / on the second monitor, and their real perks replace the "possible perk" guesses (e.g. a teammate really has BT or DS).
+- D-Q17: **C** — survivor side: killer found automatically from killer-only status effects shown on your HUD (Madness, Sickness, Dream State...), with a hotkey killer grid when it can't tell. Never named before the game shows a sign of it.
+- D-Q18: **C** — counter card: power, how to beat it, common add-ons and perks, plus your own escape rate against that killer.
+- D-Q19: **A** — killer found mid-match: small card on the game for ~8 s, full card stays on the second monitor.
+- D-Q20: **A** — map card: map picture with main building and strong loops marked. (Hatch/totem spots only if a reliable source turns up.)
+- D-Q21: **A** — map on the game during the loading screen, on the second monitor all match.
+- D-Q22: **A** — as killer: a card for your own killer with power tips and good add-on pairs.
+- **Online stats (user):** also pull stats from a DbD stats website (which one: see batch 4).
+- D-Q23: **C** — online stats: Steam's DbD stats (lifetime totals) with the user's own free Steam Web API key (a secret: userData, encrypted, never in repo/settings/logs/chat; needs public game details), plus a button to the user's Nightlight.gg profile.
+- **Official stats site (user):** link to https://stats.deadbydaylight.com (Behaviour's official tracker) from the hub; how deep the link can go is in "Phase D findings".
+- D-Q24: **A** — match history counts public matches only (custom games skipped).
+- D-Q25: **C** — stats page: escape and kill rate over time, per-killer table (faced and played), and how each saved build performs.
+- D-Q26: **A** — recap card after each match on the second monitor (result, hooks, bloodpoints, vs your usual); also saved in the hub.
+- D-Q27: **A** — live session panel on the second monitor (matches, escapes, kills since launch).
+- D-Q28: **B** — Steam DbD achievements in the hub with the unlock popup, plus ShotCaller-only goals (e.g. escape against every killer).
+- **Official stats site (checked 2026-11-17):** stats.deadbydaylight.com is Behaviour's official tracker. Needs a Behaviour Account sign-in; match history back to 2020-09-01 (kills, escapes, perk use, character performance); daily refresh ~10:30 UTC, recent match history right after each match. No public API.
+- D-Q29: **C** — a ShotCaller tab with the official site: the user signs in themselves once (ShotCaller never sees or stores the password) and stays signed in; ShotCaller reads the user's own match history from those pages into the stats (back to 2020). If the site changes and reading breaks, it falls back to just the signed-in tab.
+- D-Q30: **C** — build manager perk picker: icon grid with search and tag filters (chase, gens, aura, healing...).
+- D-Q31: **B** — builds: your own plus current popular builds (source picked in the phase) to copy and tweak.
+- D-Q32: **B** — in the lobby, read the equipped perks and name the saved build they match.
+- D-Q33: **C** — perk text: one-line plain summary, click to expand the full game text.
+- D-Q34: **A** — share builds with a friend as a short code.
+- **Squad link (user):** a DbD squad link for survive-with-friends, like Fortnite's (details: batch 6).
+- D-Q35: **A B C D** — squad shares: killer once found (everyone gets the card), live timers (DS, BT, exhaustion, OTR) on each friend's badge, everyone's perks/item/offering from the lobby, and one combined post-match recap. Not the map card (everyone sees the same map).
+- D-Q36: **A** — link with a join code, same relay system as Fortnite's squad link.
+- D-Q37: **C** — squad info short on the hook badges, full in a squad panel on the second monitor.
+- D-Q38: **A** — no callout hotkeys (the squad uses voice).
+- D-Q39: **A** — squad stats: escape rate together vs solo.
+- D-Q40: **C** — catch-up starts from Steam's last-played date for DbD (read from Steam's files on the PC), with Change.
+- D-Q41: **C** — catch-up covers new killers/survivors/perks/maps, big reworks/buffs/nerfs, and what's strong right now (meta).
+- D-Q42: **C** — catch-up page grouped by type, plus "new" tags on perks and killers in the build manager and counter cards.
+- D-Q43: **C** — DbD hub: Home (recap, session, what's new) + feature tabs (Builds, Killers, Maps, Stats, Catch-up), with a survivor/killer switch on each tab.
+- D-Q44: **A** — second monitor in a match: map on the left; killer card, squad and session stacked on the right.
+- D-Q45: **C** — "what changed this patch" once after every DbD update, and the full catch-up after a 2+ week break.
+- D-Q46: **C** — build DbD now: Fortnite F4 is paused (built 2026-11-12; its real-match check and beta.22 wait until after Phase D, or whenever the user asks).
+- D-Q47: **A** — DbD's log file may be read, only for match start and end.
+- D-Q48: **B** — a short DbD setup asks the game's UI scale and HUD scale once (screen size detected); readers use them.
+- D-Q49: **A** — the user records a few survivor and killer matches as the screen-reading test set.
+- D-Q50: **A** — first DbD beta: catch-up + build manager (no screen reading needed).
+- D-Q51: **B** — the friend may not play DbD: the squad link is its own last part and waits until two players can test it.
+- **Ask AI (user, 2026-11-17): MCP + in-app chat.** Changes the 2026-11-07 "Built-in Ask engine" decision: an in-app AI chat is now allowed, with the user's own key. (1) The parked Skillshot MCP server becomes one shared localhost ShotCaller MCP server with DbD tools (Claude Desktop, Claude Code, Gemini CLI). (2) A chat panel in the app, **free and with no API keys (user):** it runs the Claude Code CLI or Gemini CLI already signed in on the PC (existing Claude plan / Gemini free tier) with ShotCaller's MCP tools. No API-key path at all. Both off by default; changing builds needs a second switch. Built as Phase D2; the other D parts move to D3-D6 (hooks/timers D3, killers/maps D4, stats D5, squad D6).
+
 ## Technical notes
 - **Steam data (decided in Phase 5): local-first, no API key, no proxy.** For now ShotCaller is for the user's own PC. Achievement lists come from Steam's local schema cache (`appcache/stats/UserGameStatsSchema_<appid>.bin`), unlocks + unlock times from the local stats cache (`UserGameStats_<accountid>_<appid>.bin`, binary KeyValues), playtime from `userdata/<accountid>/config/localconfig.vdf`, the SteamID from `loginusers.vdf`, global rarity from the keyless `GetGlobalAchievementPercentagesForApp` endpoint, and achievement lists for games Steam hasn't cached from Steam's public achievement page. A Steam Web API key still never ships in the app; a proxy (Cloudflare Worker recommended) only becomes necessary if public users need data Steam doesn't keep locally (e.g. owned-but-never-played games).
 - Real-time unlocks: watch the Steam client's local stats cache (and local emulator achievement files) for changes and diff the unlocked set (no API round trip needed).

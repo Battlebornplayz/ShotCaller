@@ -189,6 +189,60 @@ Deliverables:
 - Phone map: the squad link host's map screen shows a QR code; it opens a web page (free hosting such as GitHub Pages) that reads the party's dots through the squad link relay, so it works on any Wi-Fi or mobile data. Big map with everyone's dots, pinch to zoom. Playing alone, your own PC is the host.
 Done when: a phone on mobile data shows the live squad map from a QR scan, and two PCs see each other's rebuilt hotbar rows.
 
+## Phase D — Dead by Daylight companion (six parts)
+Design interview done 2026-11-17 (DESIGN.md "Dead by Daylight mode", D-Q1 to D-Q51). For a veteran (~600 h, survivor and killer) back after months away: no beginner content, tips are quick reminders. **Order (user, D-Q46): build now; Fortnite F4 is paused** (its real-match check and beta.22 come after, or when the user asks). Rules: screen reading, DbD's log file (match start/end only), Steam's own files, public data and the user's own signed-in official stats pages. Never DbD's memory or process (EasyAntiCheat), never info the game hides. Every feature has its own switch; overlay parts are see-through; ShotCaller look with red only for danger/timers. Each part ends in a beta (name options first, ask before publishing).
+
+### Phase D1 — Foundation, catch-up and build manager
+Deliverables:
+- `games/dbd/` module (Steam app 381210, exe names, rail icon) and the DbD hub: Home (recap, session, what's new) + tabs Builds, Killers, Maps, Stats, Catch-up, with a survivor/killer switch on each.
+- Data source for killers, survivors, perks, add-ons, items, offerings and maps with icons, plus patch changes and current popular builds (sources picked at the start of the phase; cached, refreshed after DbD updates).
+- Short DbD setup: screen found, the game's UI scale and HUD scale, second monitor.
+- Match start/end from DbD's log file.
+- Catch-up from Steam's last-played date (with Change): new killers/survivors/perks/maps, big reworks/buffs/nerfs, what's strong now. Grouped page + "new" tags in builds and killer cards. "What changed this patch" once after each update.
+- Build manager: perk grid with search and tag filters, one-line summaries that expand to the full text, saved builds per side (perks, add-ons/item, offering), popular builds to copy, share codes for a friend.
+Done when: the catch-up is right for the real gap since the user last played, and builds save, load and share by code.
+
+### Phase D2 — Ask AI: MCP server and in-app chat
+Added by the user 2026-11-17 (DESIGN.md "Ask AI"). Both off by default, each with its own switch.
+Deliverables:
+- Grow the parked Skillshot MCP server (`electron/skillshot/mcpServer.ts`) into one shared, localhost-only ShotCaller MCP server with tools per game. Works with Claude Desktop, Claude Code and Gemini CLI; Settings shows copy-paste setup for each.
+- DbD tools in this phase: perk/killer/survivor/map lookup, catch-up ("what changed since I left"), list builds; save/edit builds behind a second "let AI change things" switch. Later DbD phases add their tools (D3 live match, D4 killers/maps, D5 stats).
+- In-app chat panel in the DbD hub (and a small one on the second monitor) with **no API keys and no extra cost**: ShotCaller runs the Claude Code CLI or Gemini CLI already installed and signed in on the PC (user picks; uses their existing Claude plan or Gemini's free Google sign-in), connected to ShotCaller's MCP tools. If neither is installed, the panel explains how to install and sign in. How each CLI is driven (headless mode, tool permissions) is checked at the start of the phase.
+Done when: Claude Desktop (or Claude Code) and Gemini CLI both answer "make me a build against <killer>" through the MCP server and the build appears in the build manager; the in-app chat does the same through Claude Code and through Gemini CLI, with no API key.
+
+### Phase D3 — Screen reading: hooks, timers, loadouts
+Deliverables:
+- Readers (using the setup's UI/HUD scale): side, survivor portraits (healthy / injured / dying / hooked, hook stage, dead / escaped), gens left, your own 4 perks, exhaustion, end-game collapse; the lobby loadout; teammates' perks from the Esc menu.
+- Hook badges beside the game's portraits: pips, red on death hook, "unhooked Ns ago"; as killer, survivors not hooked yet are dimmed.
+- Perk timers as rings over your perk icons: yours, plus "possible perk" windows for the other side (replaced by teammates' real perks once read). Auto-start with a hotkey backup; soft tick before one ends. Exhaustion countdown; collapse timer, hatch reminder, "NOED possible".
+- Lobby: names the saved build your equipped perks match.
+- Test set from the user's own recorded survivor and killer matches.
+Done when: hook stages, timers and loadouts match real matches on both sides.
+
+### Phase D4 — Killer counters, maps, second monitor
+Deliverables:
+- Survivor side: killer found from killer-only status effects you get, with a hotkey killer grid when it can't tell. Counter card (power, how to beat it, common add-ons/perks, your escape rate vs that killer): ~8 s on the game, full on the second monitor.
+- Killer side: card for your own killer (power tips, add-on pairs).
+- Map name from the loading screen; map picture with main building and strong loops marked, on the game while loading and on the second monitor all match.
+- Second monitor in a match: map left; killer card, session (and later squad) stacked right.
+Done when: killer and map are named right in real matches and the cards show in time to use.
+
+### Phase D5 — Stats, official tracker and achievements
+Deliverables:
+- End screen read after each public match (custom games skipped): side, characters, result, hooks, bloodpoints. Recap card on the second monitor (vs your usual) and the live session panel.
+- Stats tab: escape/kill rate over time, per-killer table (faced and played), how each saved build performs.
+- Official tracker tab (stats.deadbydaylight.com): the user signs in themselves, stays signed in; ShotCaller reads the user's own match history back to 2020 into the stats. Falls back to the plain tab if reading breaks.
+- Steam DbD stats with the user's own Steam Web API key (secret, encrypted in userData) and a Nightlight.gg button.
+- DbD Steam achievements in the hub with the unlock popup, plus ShotCaller goals (e.g. escape against every killer).
+Done when: real matches land in the history with the right results and the official history import fills the stats.
+
+### Phase D6 — Squad link (waits for a second tester)
+Deliverables:
+- Join code over the same relay as Fortnite's squad link; sharing off until you join, each part with its own switch.
+- Shared: the killer once anyone finds it, live timers (DS, BT, exhaustion, OTR) on each friend's badge, everyone's lobby perks/item/offering, one combined recap. Short on the badges, full squad panel on the second monitor. No callout hotkeys.
+- Squad stats: escape rate together vs solo.
+Done when: two PCs link with a code and see each other's timers and loadouts in a real match.
+
 ### Phase 6 Part 2 — Weapons, items, counters, library, achievements
 Deliverables:
 - Weapons (`data/weapons.ini`), items and counters data; counter tips in the recap and live (if the log records who hit you).
