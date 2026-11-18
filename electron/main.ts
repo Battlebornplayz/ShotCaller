@@ -20,6 +20,8 @@ import { fortniteMonitorSettingsChanged, syncFortniteMonitor } from './fortnite/
 import { disposeOnline, initOnline, onShop, onStats, refreshStats, wishlistChanged } from './fortnite/online';
 import { disposeAuth, initAuth, onAuthStateChange, refreshProfile } from './auth';
 import { initCrashReports } from './crashReports';
+import { disposeDbd, initDbd, onDbdChange, onDbdData } from './dbd';
+import { initDbdIcons, registerDbdScheme } from './dbd/icons';
 import { getDetectionState, onDetectionChange, startDetection, stopDetection } from './detection';
 import { disposeHotkeys, initHotkeys, refreshHotkeys, setHotkeysInGame } from './hotkeys';
 import { broadcast, registerIpc } from './ipc';
@@ -46,6 +48,9 @@ import { checkForUpdates, initUpdater } from './updater';
 import { createMainWindow, createSplashWindow } from './windows';
 
 const APP_ID = 'com.battlebornplayz.shotcaller';
+
+// DbD icons are served from the scdbd: scheme, which has to be known before the app is ready.
+registerDbdScheme();
 
 // Only one ShotCaller at a time: a second launch opens the first one's window.
 if (!app.requestSingleInstanceLock()) {
@@ -238,6 +243,10 @@ if (!app.requestSingleInstanceLock()) {
     onStats((s) => broadcast(IPC.fortniteStatsChanged, s));
     onShop((s) => broadcast(IPC.fortniteShopChanged, s));
     initOnline();
+    initDbdIcons();
+    onDbdChange((s) => broadcast(IPC.dbdChanged, s));
+    onDbdData((at) => broadcast(IPC.dbdDataChanged, at));
+    void initDbd();
     // The map is small to keep and needed for the lobby view too: load it (and look for a new season) now.
     void ensureSeasonMap();
     syncScreenReader();
@@ -272,6 +281,7 @@ if (!app.requestSingleInstanceLock()) {
     disposeFortnite();
     disposeOcr();
     disposeOnline();
+    disposeDbd();
     setMcpRunning(false);
     disposeSkillshot();
     disposePopup();

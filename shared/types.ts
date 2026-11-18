@@ -2,6 +2,7 @@
 
 import type { MatchRecord, ScreenPreview, ScreenReadStatus, SkillshotData, SkillshotLiveState } from './skillshot';
 import type { SkillCollection } from './skillshotCollection';
+import type { DbdData, DbdPatchNote, DbdPopularList, DbdSettingsPatch, DbdState } from './dbd';
 import type {
   FnDisplay,
   FnDrop,
@@ -694,6 +695,18 @@ export interface ShotCallerApi {
   joinFortniteSquad(code: string): Promise<FnSquadState>;
   leaveFortniteSquad(): Promise<FnSquadState>;
   getFortniteDisplays(): Promise<FnDisplay[]>;
+  /** Dead by Daylight (Phase D1): settings, builds, Steam play dates, DbD's own settings file. */
+  getDbd(): Promise<DbdState>;
+  onDbd(callback: (state: DbdState) => void): Unsubscribe;
+  /** The game data from the DbD wiki (null until the first download). */
+  getDbdData(): Promise<DbdData | null>;
+  onDbdData(callback: (fetchedAt: number) => void): Unsubscribe;
+  updateDbd(patch: DbdSettingsPatch): Promise<DbdState>;
+  saveDbdBuild(build: unknown): Promise<DbdState>;
+  deleteDbdBuild(id: string): Promise<DbdState>;
+  refreshDbd(): Promise<void>;
+  getDbdNews(force?: boolean): Promise<DbdPatchNote[]>;
+  getDbdPopular(): Promise<DbdPopularList>;
   /** Opens the second-monitor map window now. */
   showFortniteMonitor(): Promise<void>;
   getFortniteStats(): Promise<FnStatsState>;

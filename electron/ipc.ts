@@ -43,6 +43,7 @@ import { getMapImage } from './fortnite/seasonMap';
 import { listDisplays, showFortniteMonitor } from './fortnite/monitorWindow';
 import { getShop, getStats, refreshStats, searchCosmetics, setApiKey } from './fortnite/online';
 import { searchSteamApps } from './steamPublic';
+import { deleteDbdBuild, getDbdData, getDbdNews, getDbdPopular, getDbdState, refreshDbdData, saveDbdBuild, updateDbdSettings } from './dbd';
 import {
   cancelAuthFlow,
   dismissAuthMessage,
@@ -302,6 +303,14 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.fortniteSquadJoin, (_e, code: string) => joinSquad(String(code ?? '')));
   ipcMain.handle(IPC.fortniteSquadLeave, () => leaveSquad());
   ipcMain.handle(IPC.fortniteDisplays, () => listDisplays());
+  ipcMain.handle(IPC.dbdGet, () => getDbdState());
+  ipcMain.handle(IPC.dbdData, () => getDbdData());
+  ipcMain.handle(IPC.dbdUpdate, (_e, patch: unknown) => updateDbdSettings(patch && typeof patch === 'object' ? patch : {}));
+  ipcMain.handle(IPC.dbdSaveBuild, (_e, build: unknown) => saveDbdBuild(build));
+  ipcMain.handle(IPC.dbdDeleteBuild, (_e, id: unknown) => deleteDbdBuild(String(id ?? '')));
+  ipcMain.handle(IPC.dbdRefresh, () => refreshDbdData(true));
+  ipcMain.handle(IPC.dbdNews, (_e, force: unknown) => getDbdNews(force === true));
+  ipcMain.handle(IPC.dbdPopular, () => getDbdPopular());
   ipcMain.handle(IPC.fortniteShowMonitor, () => showFortniteMonitor());
   ipcMain.handle(IPC.fortniteStats, () => getStats());
   ipcMain.handle(IPC.fortniteRefreshStats, (_e, force: unknown) => refreshStats(force === true));

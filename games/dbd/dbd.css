@@ -1,0 +1,245 @@
+/* Dead by Daylight hub. ShotCaller's navy/blue look; red only for danger and timers (none in D1). */
+
+.dbd-icon-empty {
+  display: inline-block;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dbd-new {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(245, 196, 81, 0.16);
+  color: var(--gold);
+}
+
+.dbd-rich ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+.dbd-rich li {
+  margin: 2px 0;
+}
+.dbd-rich b {
+  color: var(--text);
+}
+
+.dbd-callout {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background:
+    linear-gradient(var(--accent), var(--accent)) left / 3px 100% no-repeat,
+    var(--card);
+}
+
+.dbd-home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.dbd-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+}
+.dbd-summary-n {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.dbd-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+.dbd-char {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+}
+
+/* Builds */
+.dbd-builds {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .dbd-builds {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dbd-build-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  width: 100%;
+}
+.dbd-build-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.dbd-build-row.active {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--accent-soft);
+}
+
+.dbd-slots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.dbd-slot {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 8px 10px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.025);
+}
+.dbd-slot.active {
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+}
+.dbd-slot-name {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.dbd-slot-x {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.dbd-slot-x:hover {
+  color: var(--text);
+}
+
+.dbd-loadout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+.dbd-loadout label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+.dbd-loadout select {
+  width: 100%;
+}
+
+.dbd-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.05);
+}
+.dbd-chip:hover {
+  color: var(--text);
+}
+.dbd-chip.on {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dbd-perk-detail {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  align-items: flex-start;
+}
+
+.dbd-perk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 6px;
+}
+.dbd-perk {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.dbd-perk:hover,
+.dbd-perk.focus {
+  background: rgba(255, 255, 255, 0.05);
+}
+.dbd-perk.chosen {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.dbd-perk .dbd-new {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+.dbd-perk-name {
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--muted);
+}
+.dbd-perk.chosen .dbd-perk-name,
+.dbd-perk:hover .dbd-perk-name {
+  color: var(--text);
+}
+
+/* Killers */
+.dbd-killer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+.dbd-killer {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  text-align: center;
+}
+.dbd-killer:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.dbd-killer.active {
+  border-color: var(--accent);
+}
+.dbd-killer .dbd-new {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.dbd-setup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}

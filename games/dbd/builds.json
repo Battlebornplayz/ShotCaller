@@ -1,0 +1,79 @@
+{
+  "checkedPatch": "10.2.2b",
+  "updated": "2026-11-17",
+  "builds": [
+    {
+      "name": "Anti-tunnel",
+      "side": "survivor",
+      "perks": ["Decisive Strike", "Off the Record", "Adrenaline", "Lithe"],
+      "why": "For when the killer camps or tunnels: two perks protect you right after an unhook, then a burst of speed to get away."
+    },
+    {
+      "name": "Gen speed",
+      "side": "survivor",
+      "perks": ["Déjà Vu", "Resilience", "Prove Thyself", "Stake Out"],
+      "why": "Finds the three gens that are close together and finishes them fast, alone or with a friend."
+    },
+    {
+      "name": "Healer",
+      "side": "survivor",
+      "perks": ["Botany Knowledge", "We'll Make It", "Desperate Measures", "Kindred"],
+      "item": "Emergency Med-Kit",
+      "why": "Keeps the team healthy and shows where everyone is when someone's hooked."
+    },
+    {
+      "name": "Chase",
+      "side": "survivor",
+      "perks": ["Windows of Opportunity", "Lithe", "Resilience", "Finesse"],
+      "why": "Shows the pallets and windows near you and gets you through them faster."
+    },
+    {
+      "name": "Solo queue info",
+      "side": "survivor",
+      "perks": ["Kindred", "Bond", "Windows of Opportunity", "Sprint Burst"],
+      "why": "For random teammates: see what they're doing and where the loops are."
+    },
+    {
+      "name": "Stealth",
+      "side": "survivor",
+      "perks": ["Distortion", "Calm Spirit", "Quick & Quiet", "Urban Evasion"],
+      "why": "Hard to find: hides your aura from killer perks and keeps you quiet."
+    },
+    {
+      "name": "Slowdown",
+      "side": "killer",
+      "perks": ["Grim Embrace", "Pop Goes the Weasel", "Scourge Hook: Pain Resonance", "Deadlock"],
+      "why": "Slows the gens down every time you hook someone, so you have time for chases."
+    },
+    {
+      "name": "Info and chase",
+      "side": "killer",
+      "perks": ["Lethal Pursuer", "Barbecue & Chilli", "Bamboozle", "Pop Goes the Weasel"],
+      "why": "Find survivors quickly at the start and after each hook; Bamboozle stops a window loop."
+    },
+    {
+      "name": "Endgame",
+      "side": "killer",
+      "perks": ["No Way Out", "Remember Me", "Blood Warden", "Bitter Murmur"],
+      "why": "Holds the exit gates shut for longer so the last hook still counts."
+    },
+    {
+      "name": "Anti-loop",
+      "side": "killer",
+      "perks": ["Bamboozle", "Brutal Strength", "Enduring", "Spirit Fury"],
+      "why": "For killers without a chase power: break pallets fast and shrug off stuns."
+    },
+    {
+      "name": "Hex totems",
+      "side": "killer",
+      "perks": ["Hex: Devour Hope", "Hex: Undying", "Hex: Ruin", "Hex: Pentimento"],
+      "why": "For fun: strong if the survivors don't find your totems."
+    },
+    {
+      "name": "Carry",
+      "side": "killer",
+      "perks": ["Agitation", "Iron Grasp", "Mad Grit", "Starstruck"],
+      "why": "Get survivors to a hook from far away, and punish anyone who comes to save them."
+    }
+  ]
+}
