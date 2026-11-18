@@ -1,7 +1,7 @@
 PHASE HANDOFF — ShotCaller — Phase D1 → Phase D2
 
 Use the `phased-project` skill. You are starting Phase D2 (Dead by Daylight: Ask AI — MCP server and in-app chat).
-At the end of this phase, write a new handoff in this same format for Phase D3
+At the end of this phase, write a new handoff in this same format for Phase M1 (AI module maker, added 2026-11-17; D3 comes after M1-M2)
 (and tell that chat to do the same), so every phase hands off to the next.
 
 Project folder: D:\ShotCaller
@@ -41,6 +41,7 @@ Done when:
 - Catch-up start date: Steam says DbD was last played Oct 11, 2026 (a 15-min session); the user can change it on the Catch-up tab.
 - Not checked in a real match: nothing in D1 needs a match. Not tested end to end: share codes between two PCs.
 - Popular builds were written by hand (perk names checked against the data, not their current strength); worth a review.
+- Next after D2 is Phase M1 (AI module maker, DESIGN.md "AI module maker" M-Q1 to M-Q40): design the D2 MCP server so modules can be made and edited through it later.
 - Fortnite F4 real-match check is still paused (docs/handoff-fortnite-F4.md). D6 squad link waits for a second tester.
 
 ## How to start

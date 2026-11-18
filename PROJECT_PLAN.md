@@ -211,6 +211,24 @@ Deliverables:
 - In-app chat panel in the DbD hub (and a small one on the second monitor) with **no API keys and no extra cost**: ShotCaller runs the Claude Code CLI or Gemini CLI already installed and signed in on the PC (user picks; uses their existing Claude plan or Gemini's free Google sign-in), connected to ShotCaller's MCP tools. If neither is installed, the panel explains how to install and sign in. How each CLI is driven (headless mode, tool permissions) is checked at the start of the phase.
 Done when: Claude Desktop (or Claude Code) and Gemini CLI both answer "make me a build against <killer>" through the MCP server and the build appears in the build manager; the in-app chat does the same through Claude Code and through Gemini CLI, with no API key.
 
+### Phase M1 — AI module maker: kit, modules and the make/edit tools (runs right after D2)
+Design: DESIGN.md "AI module maker" rounds 1-2 (M-Q1 to M-Q40). Needs D2's shared MCP server.
+Deliverables:
+- Module format for AI modules in userData (manifest, data, kit layout, assets, storage), loaded beside the built-ins; per-module on/off; AI add-ons layered on top of built-in modules without changing them.
+- The building-block kit (cards, lists, tables, timers, charts, checklists, links, notes) in the ShotCaller look, with own colours allowed; options page drawn from the module's option list.
+- MCP tools for all four AI tools (Claude Desktop, Claude Code, Gemini CLI, in-app chat): make module, edit module, list/read modules, suggest a game from the Games tab (user confirms), preview (errors + picture).
+- "Let AI make modules" switch; every change shown first with Apply; full version history with restore; broken modules turned off with "Ask AI to fix".
+- Share as file/code; import shows what the module can do before installing. Hub page, Home cards and second monitor placements.
+Done when: through Claude Code and Gemini CLI, the AI makes a data/kit module for a game in the library, the user applies it, edits it, rolls it back, and shares it to a second install.
+
+### Phase M2 — AI module maker: code, screen reading and live tools
+Deliverables:
+- Code modules behind their own switch, in a sealed box with only approved ShotCaller tools; AI-made building blocks reusable by other AI modules; outside libraries from an approved list.
+- Live tools: hotkeys (clash-checked, rebindable), sounds, corner popups (per-module mute), full timer tool, events (game start/close, match start/end, achievement, hotkey, screen result), running while its game runs or on an allowed schedule.
+- Screen tools: new screen areas; read text, numbers, find a picture, check a colour; record clips for testing. Read-only access to files in the game's folder. Never memory or the game process; never show what a game hides.
+- Over-game panels in ShotCaller's overlay frame; read access to library, playtime, builds, matches and built-in data (never secrets); shared storage between AI modules; custom goals/achievements; charts and stats pages; squad-link sending (user sees what is sent); run-time AI through the free signed-in CLI with a usage cap; internet access with the honest ShotCaller name; "Move to project" through Claude Code.
+Done when: the AI builds a working over-game module with a hotkey, a timer and a screen reader for a real game, it runs in a real match, and a broken version turns itself off and gets fixed by "Ask AI to fix".
+
 ### Phase D3 — Screen reading: hooks, timers, loadouts
 Deliverables:
 - Match start/end from the screen (moved from D1; DbD's log is encrypted).

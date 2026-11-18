@@ -439,6 +439,52 @@ User: "use multiple sources". Every request is sent openly as ShotCaller (its ow
 - **Setup reads DbD's settings file (user, 2026-11-17):** `%LOCALAPPDATA%\DeadByDaylight\Saved\Config\WindowsClient\GameUserSettings.ini` is plain text: `MenuScaleFactor`, `HudScaleFactor`, `ResolutionSizeX/Y`, `FullscreenMode` (1 = windowed fullscreen, needed for the overlay). Setup fills these in, re-reads the file when it changes, and the user can override. Only that file is opened.
 - **Popular builds (user, 2026-11-17):** a curated list in the repo (`games/dbd/builds.json`), fetched from GitHub so it can be updated without a release; perks are checked against the wiki data and builds with a perk changed since the list was written get a "check: changed in X" tag.
 
+### AI module maker — design interview, round 1 (2026-11-17)
+Let the MCP tools (Claude Desktop, Claude Code, Gemini CLI, in-app chat) make new modules and edit existing ones on this PC. Its own phase right after D2 (needs D2's MCP server). The user wants the AI to add custom things, with nearly the same powers as a hand-made module.
+- M-Q1: The AI makes data modules (tips, builds, lists, links) and code modules; code needs its own switch.
+- M-Q2: AI modules are saved in ShotCaller's own folder on this PC (userData), so updates don't touch them.
+- M-Q3: Built from a ShotCaller building-block kit (cards, lists, tables, timers, ...).
+- M-Q4: Code runs in a sealed box and can only use approved ShotCaller tools.
+- M-Q5: Every change is shown first; the user clicks Apply.
+- M-Q6: Full version history per module; restore any version.
+- M-Q7: Built-in modules (Fortnite, DbD, Skillshot) can get AI add-ons layered on top; their own code is never changed.
+- M-Q8: A new "let AI make modules" switch, plus an on/off for each module.
+- M-Q9: All four AI tools: Claude Desktop, Claude Code, Gemini CLI and the in-app chat.
+- M-Q10: AI modules can show on the hub page, the second monitor, over the game (see-through, `keepOutOfScreenCopies`) and as Home cards.
+- M-Q11: Read access to library, playtime, builds and matches; never secrets (keys, tokens).
+- M-Q12: Internet: any site (user's choice over the recommended approve-each-site). Still honest ShotCaller user agent; never get around bot blocks.
+- M-Q13: Modules can define new screen areas to read (user's choice). Still screen only: never game memory or process, and never show what the game hides; per-game rules (e.g. EasyAntiCheat games) still apply.
+- M-Q14: The AI suggests which game from the Games tab; the user confirms.
+- M-Q15: Share a module as a file or code.
+- M-Q16: Importing shows what the module can do (its permissions) before it installs.
+- M-Q17: A preview tool lets the AI test its module and get back errors and a picture.
+- M-Q18: A broken module is turned off, its error shown, with "Ask AI to fix".
+- M-Q19: "Move to project" turns a good module into a real built-in one through Claude Code in the repo.
+- M-Q20: Built as its own phase right after D2.
+
+### AI module maker — round 2: the AI's toolbox (2026-11-17)
+Nearly the same tools a hand-made module has, plus the AI's own custom pieces.
+- M-Q21: The AI can invent its own building blocks; other AI modules can reuse them.
+- M-Q22: ShotCaller look by default; own colours and styles allowed.
+- M-Q23: Hotkeys allowed, checked for clashes, rebindable in Settings.
+- M-Q24: Sounds: ShotCaller's own plus the module's sound files.
+- M-Q25: Corner popups allowed, with a mute per module.
+- M-Q26: Full timer tool, same as the built-ins (countdowns, rings, tick before the end).
+- M-Q27: Screen tools: read text, read numbers, find a picture/icon, check a colour, record clips for testing.
+- M-Q28: Read any file in the game's own folder, read-only (user's choice over approve-each-file). Never game memory or process.
+- M-Q29: Each module has its own storage and can share data with other AI modules.
+- M-Q30: The AI lists a module's options; ShotCaller draws the options page with switches.
+- M-Q31: Pictures and icons can be downloaded or drawn and are saved in the module.
+- M-Q32: Events: game started/closed, match start/end, achievement unlocked, hotkey pressed, screen reader result.
+- M-Q33: Modules can read and use built-in data and tools (DbD perks, Fortnite map, Steam info).
+- M-Q34: Modules run while their game runs, plus on a schedule if the user allows.
+- M-Q35: Modules can ask the AI at run time through the free signed-in CLI only, with a usage cap. No API keys.
+- M-Q36: Modules can send things over the squad link; the user sees what gets sent.
+- M-Q37: Modules can add their own goals and achievements to the hub, marked as custom.
+- M-Q38: Kit charts plus the module's own stats pages.
+- M-Q39: Outside code libraries only from an approved list.
+- M-Q40: Over-game panels use ShotCaller's overlay frame: see-through, Alt to move, hidden from screen copies.
+
 ## Technical notes
 - **Steam data (decided in Phase 5): local-first, no API key, no proxy.** For now ShotCaller is for the user's own PC. Achievement lists come from Steam's local schema cache (`appcache/stats/UserGameStatsSchema_<appid>.bin`), unlocks + unlock times from the local stats cache (`UserGameStats_<accountid>_<appid>.bin`, binary KeyValues), playtime from `userdata/<accountid>/config/localconfig.vdf`, the SteamID from `loginusers.vdf`, global rarity from the keyless `GetGlobalAchievementPercentagesForApp` endpoint, and achievement lists for games Steam hasn't cached from Steam's public achievement page. A Steam Web API key still never ships in the app; a proxy (Cloudflare Worker recommended) only becomes necessary if public users need data Steam doesn't keep locally (e.g. owned-but-never-played games).
 - Real-time unlocks: watch the Steam client's local stats cache (and local emulator achievement files) for changes and diff the unlocked set (no API round trip needed).
