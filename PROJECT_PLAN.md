@@ -197,10 +197,11 @@ Deliverables:
 - `games/dbd/` module (Steam app 381210, exe names, rail icon) and the DbD hub: Home (recap, session, what's new) + tabs Builds, Killers, Maps, Stats, Catch-up, with a survivor/killer switch on each.
 - Data source for killers, survivors, perks, add-ons, items, offerings and maps with icons, plus patch changes and current popular builds (sources picked at the start of the phase; cached, refreshed after DbD updates).
 - Short DbD setup: screen found, the game's UI scale and HUD scale, second monitor.
-- Match start/end from DbD's log file.
+- ~~Match start/end from DbD's log file.~~ Moved to D3: the log is encrypted, so match start/end comes from screen reading.
 - Catch-up from Steam's last-played date (with Change): new killers/survivors/perks/maps, big reworks/buffs/nerfs, what's strong now. Grouped page + "new" tags in builds and killer cards. "What changed this patch" once after each update.
 - Build manager: perk grid with search and tag filters, one-line summaries that expand to the full text, saved builds per side (perks, add-ons/item, offering), popular builds to copy, share codes for a friend.
 Done when: the catch-up is right for the real gap since the user last played, and builds save, load and share by code.
+**Status: done 2026-11-17, released as v0.0.4-beta.23 "e23".** Sources: deadbydaylight.wiki.gg (main), Steam news (patch notes), dbd.tricky.lol (backup); popular builds are a curated games/dbd/builds.json also read from GitHub. See DESIGN.md "Phase D1 findings".
 
 ### Phase D2 — Ask AI: MCP server and in-app chat
 Added by the user 2026-11-17 (DESIGN.md "Ask AI"). Both off by default, each with its own switch.
@@ -212,6 +213,7 @@ Done when: Claude Desktop (or Claude Code) and Gemini CLI both answer "make me a
 
 ### Phase D3 — Screen reading: hooks, timers, loadouts
 Deliverables:
+- Match start/end from the screen (moved from D1; DbD's log is encrypted).
 - Readers (using the setup's UI/HUD scale): side, survivor portraits (healthy / injured / dying / hooked, hook stage, dead / escaped), gens left, your own 4 perks, exhaustion, end-game collapse; the lobby loadout; teammates' perks from the Esc menu.
 - Hook badges beside the game's portraits: pips, red on death hook, "unhooked Ns ago"; as killer, survivors not hooked yet are dimmed.
 - Perk timers as rings over your perk icons: yours, plus "possible perk" windows for the other side (replaced by teammates' real perks once read). Auto-start with a hotkey backup; soft tick before one ends. Exhaustion countdown; collapse timer, hatch reminder, "NOED possible".
