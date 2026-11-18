@@ -6,6 +6,7 @@ import { Art, coverSources } from './hub/art';
 import { ago, formatPlaytime, play } from './games/common';
 import { TitleCard } from './games/GamesPage';
 import { EpicFreeCard } from './games/MorePanel';
+import { HomeModuleCards } from '../modules/Placements';
 
 export { SettingsPage } from './SettingsPage';
 export { ProfilePage } from './AccountPage';
@@ -108,6 +109,7 @@ export function HomePage({ onOpenGame }: { onOpenGame: (key: string) => void }) 
           <PlayingNow running={detection?.running ?? []} onOpenGame={onOpenGame} />
         </div>
         <EpicFreeCard />
+        <HomeModuleCards onOpenGame={onOpenGame} />
         {widgets.map((label, i) => (
           <div key={label} className="card enter" style={{ animationDelay: `${(i + 1) * 60}ms`, minHeight: 130 }}>
             <div className="section-label">{label}</div>

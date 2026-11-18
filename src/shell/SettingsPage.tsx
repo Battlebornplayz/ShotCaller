@@ -549,6 +549,17 @@ function AskAiSection() {
         />
       </SettingRow>
       <SettingRow
+        title="Let AI make modules"
+        description="The AI can make and change your own module pages (Modules in the menu). Every change waits for you to click Apply, and every version is kept so you can go back."
+      >
+        <Toggle label="Let AI make modules" checked={!!m?.modules} onChange={(v) => update({ mcp: { modules: v } })} />
+      </SettingRow>
+      {m?.modules && (
+        <SettingRow title="Modules safe mode" description="Turns every AI module off at once. Nothing is deleted.">
+          <Toggle label="Modules safe mode" checked={!!m?.modulesSafeMode} onChange={(v) => update({ mcp: { modulesSafeMode: v } })} />
+        </SettingRow>
+      )}
+      <SettingRow
         title="Let AI apps connect"
         description="Lets Claude Desktop, Claude Code or Antigravity use ShotCaller's tools in their own windows. Runs a small server only this PC can reach, protected by a secret code."
       >

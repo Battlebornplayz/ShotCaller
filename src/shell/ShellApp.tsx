@@ -9,6 +9,8 @@ import { AiChatDrawer, AiChatPanel } from '../components/AiChat';
 import { PageHeader } from './pages';
 import { CommandPalette } from './games/CommandPalette';
 import { toast, Toasts } from './games/common';
+import { ModulesPage } from '../modules/ModulesPage';
+import { ModulesBanner } from '../modules/Placements';
 
 export function ShellApp() {
   const [section, setSection] = useState<SectionId>('home');
@@ -24,6 +26,7 @@ export function ShellApp() {
     { id: 'profile', label: 'Profile' },
     { id: 'friends', label: 'Friends' },
     { id: 'ask', label: 'Ask AI' },
+    { id: 'modules', label: 'Modules' },
     { id: 'settings', label: 'Settings' },
   ];
 
@@ -99,6 +102,7 @@ export function ShellApp() {
           className="enter"
           style={{ flex: 1, minWidth: 0, overflowY: isGames ? 'hidden' : 'auto', padding: '26px 30px' }}
         >
+          {!(section === 'modules' && !game) && <ModulesBanner onOpen={() => onSelectSection('modules')} />}
           {game ? (
             <>
               <GamePage game={game} />
@@ -117,6 +121,8 @@ export function ShellApp() {
             <FriendsPage />
           ) : section === 'ask' ? (
             <AskAiPage />
+          ) : section === 'modules' ? (
+            <ModulesPage onAskAi={() => onSelectSection('ask')} />
           ) : (
             <SettingsPage />
           )}

@@ -13,9 +13,16 @@ export const DBD_SCHEME = 'scdbd';
 const PREFIX = `${WIKI}/images/`;
 const iconDir = () => path.join(app.getPath('userData'), 'dbd', 'icons');
 
-/** Must run before the app is ready. */
+/**
+ * Must run before the app is ready. Electron takes one list of special schemes, so AI modules' pictures (scmod:,
+ * Phase M1) are registered here too.
+ */
 export function registerDbdScheme(): void {
-  protocol.registerSchemesAsPrivileged([{ scheme: DBD_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
+  const privileges = { standard: true, secure: true, supportFetchAPI: true, stream: true };
+  protocol.registerSchemesAsPrivileged([
+    { scheme: DBD_SCHEME, privileges },
+    { scheme: 'scmod', privileges },
+  ]);
 }
 
 const missing = new Set<string>();

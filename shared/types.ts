@@ -1,5 +1,6 @@
 // Types shared by the Electron main process, the preload script and the renderer.
 
+import type { ModulesApi } from './modules';
 import type { MatchRecord, ScreenPreview, ScreenReadStatus, SkillshotData, SkillshotLiveState } from './skillshot';
 import type { SkillCollection } from './skillshotCollection';
 import type { DbdData, DbdPatchNote, DbdPopularList, DbdSettingsPatch, DbdState } from './dbd';
@@ -115,6 +116,10 @@ export interface McpSettings {
   provider: AiProvider;
   /** Open a small chat window on the second monitor while DbD runs. */
   chatMonitor: boolean;
+  /** "Let AI make modules" (Phase M1): the modules_ tools for making and editing modules. Off by default. */
+  modules: boolean;
+  /** Safe mode: every AI module stays off (their files are kept). */
+  modulesSafeMode: boolean;
 }
 
 export interface Settings {
@@ -557,7 +562,7 @@ export interface AppInfo {
 
 type Unsubscribe = () => void;
 
-export interface ShotCallerApi {
+export interface ShotCallerApi extends ModulesApi {
   getAppInfo(): Promise<AppInfo>;
 
   getSettings(): Promise<Settings>;

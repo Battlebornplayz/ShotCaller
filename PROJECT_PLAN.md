@@ -212,7 +212,7 @@ Deliverables:
 Done when: Claude Desktop (or Claude Code) and Gemini CLI both answer "make me a build against <killer>" through the MCP server and the build appears in the build manager; the in-app chat does the same through Claude Code and through Gemini CLI, with no API key.
 **Status: done 2026-11-17, released as v0.0.4-beta.24 "Ask AI".** Gemini CLI was replaced by Google's Antigravity CLI (`agy`) for free accounts in June 2026, so Antigravity is the Google option (user). At the user's request Ask AI covers the whole app, not just DbD: an Ask AI page in the menu, an Ask AI button on every game page (DbD keeps its tab), and app-wide tools (games, playtime, achievements, Fortnite). Checked: Claude Code and Antigravity each saved a Nurse build from their own apps, and Claude Code and Antigravity each saved a build from the in-app chat. Claude Desktop setup is built but not tested. See DESIGN.md "Phase D2 findings".
 
-### Phase M1 — AI module maker: kit, modules and the make/edit tools (runs right after D2)
+### Phase M1 — AI module maker: kit, modules and the make/edit tools ✅ (2026-11-18, beta pending)
 Design: DESIGN.md "AI module maker" rounds 1-2 (M-Q1 to M-Q40). Needs D2's shared MCP server.
 Deliverables:
 - Module format for AI modules in userData (manifest, data, kit layout, assets, storage), loaded beside the built-ins; per-module on/off; AI add-ons layered on top of built-in modules without changing them.
@@ -220,7 +220,8 @@ Deliverables:
 - MCP tools for all four AI tools (Claude Desktop, Claude Code, Gemini CLI, in-app chat): make module, edit module, list/read modules, suggest a game from the Games tab (user confirms), preview (errors + picture).
 - "Let AI make modules" switch; every change shown first with Apply; full version history with restore; broken modules turned off with "Ask AI to fix".
 - Share as file/code; import shows what the module can do before installing. Hub page, Home cards and second monitor placements.
-Done when: through Claude Code and Gemini CLI, the AI makes a data/kit module for a game in the library, the user applies it, edits it, rolls it back, and shares it to a second install.
+- Round 3 (M-Q41-M-Q49, M1 parts): making tools (templates, copy, edit one piece, side-by-side changes, drafts, undo, changelog, rename, merge, edit many); testing tools (mistake checker, pretend game running, error log, sizes, readability, slow warning, saved tests, second-monitor test); 16 new kit blocks; journal/bests/goals/backlog/session time/achievement guides; AI helpers (ideas, question buttons, tour, icon/colours, help text); friend gets updates, author credit, locked share; safety (AI log, safe mode, backup all, edit permissions, reset data, block internet, size limits).
+Done when: through Claude Code and Antigravity, the AI makes a data/kit module for a game in the library, the user applies it, edits it, rolls it back, and shares it to a second install.
 
 ### Phase M2 — AI module maker: code, screen reading and live tools
 Deliverables:
@@ -228,7 +229,17 @@ Deliverables:
 - Live tools: hotkeys (clash-checked, rebindable), sounds, corner popups (per-module mute), full timer tool, events (game start/close, match start/end, achievement, hotkey, screen result), running while its game runs or on an allowed schedule.
 - Screen tools: new screen areas; read text, numbers, find a picture, check a colour; record clips for testing. Read-only access to files in the game's folder. Never memory or the game process; never show what a game hides.
 - Over-game panels in ShotCaller's overlay frame; read access to library, playtime, builds, matches and built-in data (never secrets); shared storage between AI modules; custom goals/achievements; charts and stats pages; squad-link sending (user sees what is sent); run-time AI through the free signed-in CLI with a usage cap; internet access with the honest ShotCaller name; "Move to project" through Claude Code.
+- Round 3 M2 parts: open module when its game starts, reset and timed reminders, Windows notifications; preview over a game screenshot.
 Done when: the AI builds a working over-game module with a hotkey, a timer and a screen reader for a real game, it runs in a real match, and a broken version turns itself off and gets fixed by "Ask AI to fix".
+
+### Phase M3 — AI module maker: outside data, automation and extras
+Design: DESIGN.md round 3 (M-Q43, M-Q45-M-Q48, M-Q50 M3 parts).
+Deliverables:
+- Outside data: Steam news/price/sales for any game, any wiki.gg/Fandom wiki, game-updated alert, RSS, YouTube lists, Reddit, Twitch live, deals across stores, save a page offline; Steam friends playing; screenshot folder.
+- Automation: item shop watch, "when X do Y" rules, post to the user's own Discord webhook, Discord status.
+- AI helpers: patch notes into module data, learns which parts you use, translate a module. Sharing: shared shelf, picture card, QR code, ratings and notes.
+- Game extras: launch game, read text aloud, controller navigation, screenshot key to gallery, voice commands, Steam launch-options helper, show and (own switch, backup first, game closed) change game settings files.
+Done when: an AI module pulls a game's news and wiki data, runs a "when X do Y" rule, and safely changes then restores a game settings file.
 
 ### Phase D3 — Screen reading: hooks, timers, loadouts
 Deliverables:

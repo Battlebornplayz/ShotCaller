@@ -1,0 +1,257 @@
+/* AI modules (Phase M1): the building-block kit in ShotCaller's look. --tier is the module's (or block's) colour. */
+
+.mod-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.mod-block {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 14px 16px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--tier) 75%, transparent), color-mix(in srgb, var(--tier) 75%, transparent)) left / 3px 100% no-repeat,
+    rgba(255, 255, 255, 0.035);
+  border: 1px solid color-mix(in srgb, var(--tier) 18%, transparent);
+  border-radius: 12px;
+}
+.mod-block.half {
+  grid-column: span 1;
+}
+.mod-block.bare {
+  background: none;
+  border: none;
+  padding: 4px 2px 0;
+}
+@media (max-width: 640px) {
+  .mod-block.half {
+    grid-column: 1 / -1;
+  }
+}
+.mod-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.mod-block-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tier);
+}
+.mod-help {
+  display: inline-grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  cursor: help;
+}
+.mod-heading {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+}
+.mod-text p {
+  margin: 0 0 8px;
+  line-height: 1.55;
+}
+.mod-text p:last-child,
+.mod-text ul:last-child {
+  margin-bottom: 0;
+}
+.mod-text ul,
+.mod-list {
+  margin: 0 0 8px;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+.mod-caption {
+  font-size: 12px;
+  margin-top: 4px;
+}
+.mod-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+.mod-card {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+.mod-table-wrap {
+  overflow-x: auto;
+}
+.mod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.mod-table th,
+.mod-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+  vertical-align: top;
+}
+.mod-table thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  user-select: none;
+}
+.mod-tier {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+.mod-tier-label {
+  width: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  color: #0f1023;
+}
+.mod-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px;
+  cursor: pointer;
+}
+.mod-x {
+  margin-left: auto;
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 16px;
+}
+.mod-x:hover {
+  color: var(--red);
+}
+.mod-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.mod-tabs button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.mod-tabs button.active {
+  background: color-mix(in srgb, var(--tier) 18%, transparent);
+  color: var(--text);
+}
+.mod-code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+.mod-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.mod-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid #0f1023;
+  color: #0f1023;
+  font-size: 11px;
+  font-weight: 900;
+}
+.mod-pin-note {
+  position: absolute;
+  transform: translate(14px, -50%);
+  max-width: 240px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #0f1023ee;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+.mod-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.mod-cal-day {
+  text-align: center;
+  padding: 6px 0;
+  border-radius: 6px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.mod-cal-day.has {
+  background: color-mix(in srgb, var(--tier) 30%, transparent);
+  font-weight: 800;
+}
+.mod-cal-day.today {
+  outline: 2px solid var(--tier);
+}
+.mod-flash {
+  width: 100%;
+  min-height: 110px;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid color-mix(in srgb, var(--tier) 30%, transparent);
+}
+.mod-wheel-pointer {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 16px solid var(--text);
+  z-index: 1;
+}
+.mod-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 40px;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+.mod-diff-added {
+  --tier: var(--green);
+}
+.mod-diff-removed {
+  --tier: var(--red);
+}
+.mod-diff-changed {
+  --tier: var(--gold);
+}

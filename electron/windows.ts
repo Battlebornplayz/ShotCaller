@@ -9,7 +9,7 @@ export const APP_ICON = nativeImage.createFromPath(iconPath);
 
 export const OVERLAY_DEFAULT_SIZE = { width: 300, height: 260 };
 
-type WindowName = 'splash' | 'main' | 'overlay' | 'popup' | 'fnmonitor' | 'fnmaplayer' | 'fnaudio' | 'aichat';
+type WindowName = 'splash' | 'main' | 'overlay' | 'popup' | 'fnmonitor' | 'fnmaplayer' | 'fnaudio' | 'aichat' | 'modpreview' | 'modmonitor';
 
 export const POPUP_SIZE = { width: 440, height: 150 };
 
@@ -207,5 +207,40 @@ export function createAiChatWindow(bounds: Electron.Rectangle): BrowserWindow {
     webPreferences,
   });
   loadRenderer(win, 'aichat');
+  return win;
+}
+
+/**
+ * AI module preview (Phase M1): an unseen window that draws one module so the AI gets a picture, the page text and
+ * any errors back. Offscreen, so it can be captured without ever showing.
+ */
+export function createModulePreviewWindow(width: number, height: number, token: string): BrowserWindow {
+  const win = new BrowserWindow({
+    width,
+    height,
+    show: false,
+    frame: false,
+    backgroundColor: BG,
+    title: 'ShotCaller · module preview',
+    webPreferences: { ...webPreferences, offscreen: true, backgroundThrottling: false },
+  });
+  loadRenderer(win, 'modpreview', { token });
+  return win;
+}
+
+/** AI modules on the second monitor while their game runs (M-Q10): an ordinary window, never over the game. */
+export function createModuleMonitorWindow(bounds: Electron.Rectangle): BrowserWindow {
+  const win = new BrowserWindow({
+    ...bounds,
+    minWidth: 360,
+    minHeight: 300,
+    frame: false,
+    show: false,
+    backgroundColor: BG,
+    title: 'ShotCaller · modules',
+    icon: APP_ICON,
+    webPreferences,
+  });
+  loadRenderer(win, 'modmonitor');
   return win;
 }

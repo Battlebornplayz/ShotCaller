@@ -6,6 +6,7 @@ import { GameHero } from '../games/GameHero';
 import { SkillshotHub } from '../../../games/skillshot-city/SkillshotHub';
 import { FortniteHub } from '../../../games/fortnite/FortniteHub';
 import { DbdHub } from '../../../games/dbd/DbdHub';
+import { GameModules } from '../../modules/Placements';
 
 type Filter = 'all' | 'unlocked' | 'locked';
 type Sort = 'easiest' | 'rarest' | 'recent' | 'name';
@@ -40,6 +41,8 @@ export function GamePage({ game }: { game: LibraryGame }) {
       {game.moduleId === 'skillshot-city' && <SkillshotHub />}
       {game.moduleId === 'fortnite' && <FortniteHub />}
       {game.moduleId === 'dbd' && <DbdHub />}
+
+      <GameModules game={game} />
 
       {showAchievements && data?.tracking !== 'steam' && data && data.listSource !== 'shotcaller' && <ListSourceCard game={game} data={data} />}
 

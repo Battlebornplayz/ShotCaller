@@ -25,7 +25,7 @@ const DEFAULTS: Settings = {
   startup: { launchAtLogin: true, onGameLaunch: 'overlay', closeToTray: true },
   skillshot: { offerSound: true, memoryReader: false, screenReader: true, cardScale: 1 },
   fortnite: { ...DEFAULT_FORTNITE_SETTINGS, card: { ...DEFAULT_FORTNITE_SETTINGS.card }, mapLayer: { ...DEFAULT_FORTNITE_SETTINGS.mapLayer } },
-  mcp: { enabled: false, allowActions: false, chat: false, provider: 'claude', chatMonitor: false },
+  mcp: { enabled: false, allowActions: false, chat: false, provider: 'claude', chatMonitor: false, modules: false, modulesSafeMode: false },
 };
 
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
@@ -141,6 +141,8 @@ function sanitize(input: unknown): Settings {
       chat: bool(mcp.chat, DEFAULTS.mcp.chat),
       provider: oneOf<AiProvider>(mcp.provider, ['claude', 'antigravity'], DEFAULTS.mcp.provider),
       chatMonitor: bool(mcp.chatMonitor, DEFAULTS.mcp.chatMonitor),
+      modules: bool(mcp.modules, DEFAULTS.mcp.modules),
+      modulesSafeMode: bool(mcp.modulesSafeMode, DEFAULTS.mcp.modulesSafeMode),
     },
     startup: {
       launchAtLogin: bool(startup.launchAtLogin, DEFAULTS.startup.launchAtLogin),

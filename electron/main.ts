@@ -27,6 +27,8 @@ import { initDbdIcons, registerDbdScheme } from './dbd/icons';
 import { getDetectionState, onDetectionChange, startDetection, stopDetection } from './detection';
 import { disposeHotkeys, initHotkeys, refreshHotkeys, setHotkeysInGame } from './hotkeys';
 import { broadcast, registerIpc } from './ipc';
+import { registerModules, syncModuleMonitor } from './modules/ipc';
+import { modulesSettingsChanged } from './modules/store';
 import { getLibrary, importSteamLibrary, onLibraryChange, refreshLibrary, stopStoreWatchers } from './library';
 import { playGame } from './launcher';
 import {
@@ -141,6 +143,7 @@ if (!app.requestSingleInstanceLock()) {
     initAuth();
     onAuthStateChange((state) => broadcast(IPC.authState, state));
     registerIpc({ enterApp, openMain });
+    registerModules();
 
     createTray({
       openMain: showLauncher,
@@ -193,6 +196,7 @@ if (!app.requestSingleInstanceLock()) {
       syncScreenReader();
       syncFortnite();
       syncAiChatWindow(state.running.length > 0);
+      syncModuleMonitor();
       if (started.some(wantsOverlay) && getSettings().startup.onGameLaunch === 'window') openMain();
       refreshTray();
     });
@@ -224,6 +228,7 @@ if (!app.requestSingleInstanceLock()) {
       if (next.mcp.enabled !== prev.mcp.enabled || next.mcp.chat !== prev.mcp.chat) syncMcpServer();
       if (!next.mcp.chat && prev.mcp.chat) stopAiChat();
       if (next.mcp.provider !== prev.mcp.provider) aiProviderChanged();
+      if (next.mcp.modulesSafeMode !== prev.mcp.modulesSafeMode) modulesSettingsChanged();
       if (next.mcp.chat !== prev.mcp.chat || next.mcp.chatMonitor !== prev.mcp.chatMonitor) syncAiChatWindow();
       applyOverlaySettings(next, prev);
       if (next.overlay.allGames !== prev.overlay.allGames) setOverlayGame(overlayGameFrom(getDetectionState().running));
