@@ -111,6 +111,8 @@ export const IPC = {
   fortniteScreenChanged: 'fortnite:screen-changed',
   fortniteScreenPreview: 'fortnite:screen-preview',
   fortniteOpenShots: 'fortnite:open-shots',
+  fortniteAudioChunk: 'fortnite:audio-chunk',
+  fortniteAudioError: 'fortnite:audio-error',
   fortniteMap: 'fortnite:map',
   fortniteMapChanged: 'fortnite:map-changed',
   fortniteMapImage: 'fortnite:map-image',

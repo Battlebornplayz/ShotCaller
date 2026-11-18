@@ -367,7 +367,7 @@ function Options() {
         <Switch label="Count chests from the screen" help="Copies a small area right of centre while a match is on. Offline; never touches the game." on={fn.screenReader} onChange={(v) => set({ screenReader: v })} />
         <Switch
           label="Save screenshots while I play"
-          help={`For building new readers. One picture every 10 s during matches, kept on this PC only, up to ${screen?.recorder.cap ?? 600}. Saved so far: ${screen?.recorder.saved ?? 0}.`}
+          help={`For building new readers. One picture every 10 s during matches, kept on this PC only, up to ${screen?.recorder.cap ?? 600}. Saved so far: ${screen?.recorder.saved ?? 0}. While this is on, the +1 chest key also keeps the pictures from about 5 s before and 3 s after you press it (up to 40 times), so a reader for chests you break open can be built. Game sound: ${screen?.audio.error ? `couldn’t listen (${screen.audio.error})` : screen?.audio.hearing ? 'hearing it' : screen?.audio.on ? 'waiting for sound' : 'listens during matches'}; sound clips saved: ${screen?.audio.clips.open ?? 0} opened, ${screen?.audio.clips.broke ?? 0} broken, ${screen?.audio.clips.bg ?? 0} ordinary play.`}
           on={fn.recorder}
           onChange={(v) => set({ recorder: v })}
         />

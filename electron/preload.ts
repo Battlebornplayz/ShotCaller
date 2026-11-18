@@ -142,6 +142,8 @@ const api: ShotCallerApi = {
   updateProfile: (patch) => ipcRenderer.invoke(IPC.profileUpdate, patch),
   refreshProfile: () => ipcRenderer.invoke(IPC.profileRefresh),
   reportError: (message, stack) => ipcRenderer.send(IPC.crashReport, message, stack),
+  sendFortniteAudio: (pcm) => ipcRenderer.send(IPC.fortniteAudioChunk, pcm),
+  reportFortniteAudioError: (message) => ipcRenderer.send(IPC.fortniteAudioError, message),
 
   enterApp: () => ipcRenderer.invoke(IPC.appEnter),
   openMainWindow: () => ipcRenderer.invoke(IPC.appOpenMain),

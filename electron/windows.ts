@@ -9,7 +9,7 @@ export const APP_ICON = nativeImage.createFromPath(iconPath);
 
 export const OVERLAY_DEFAULT_SIZE = { width: 300, height: 260 };
 
-type WindowName = 'splash' | 'main' | 'overlay' | 'popup' | 'fnmonitor' | 'fnmaplayer';
+type WindowName = 'splash' | 'main' | 'overlay' | 'popup' | 'fnmonitor' | 'fnmaplayer' | 'fnaudio';
 
 export const POPUP_SIZE = { width: 440, height: 150 };
 
@@ -159,6 +159,21 @@ export function createFnMapLayerWindow(bounds: Electron.Rectangle): BrowserWindo
   });
   keepOutOfScreenCopies(win);
   loadRenderer(win, 'fnmaplayer');
+  return win;
+}
+
+/** Never shown: listens to the PC's sound for the Fortnite chest reader (see electron/fortnite/audio.ts). */
+export function createFortniteAudioWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 200,
+    height: 100,
+    show: false,
+    skipTaskbar: true,
+    focusable: false,
+    title: 'ShotCaller audio',
+    webPreferences: { ...webPreferences, backgroundThrottling: false, autoplayPolicy: 'no-user-gesture-required' },
+  });
+  loadRenderer(win, 'fnaudio');
   return win;
 }
 

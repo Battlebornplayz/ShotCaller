@@ -442,6 +442,18 @@ export interface FnScreenStatus {
   /** Chests read this session, newest last. */
   chests: FnChestRead[];
   recorder: { on: boolean; saved: number; cap: number };
+  /** Game audio (for chests you break open): listening or not, and clips saved by the recorder. */
+  audio: FnAudioStatus;
+}
+
+export interface FnAudioStatus {
+  on: boolean;
+  /** Sound is arriving right now. */
+  hearing: boolean;
+  /** Loudness of the latest piece, 0-1. */
+  level: number;
+  error: string | null;
+  clips: { open: number; broke: number; bg: number };
 }
 
 export interface FnScreenPreview {

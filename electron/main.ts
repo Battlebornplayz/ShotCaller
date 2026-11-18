@@ -12,6 +12,7 @@ import { initFortniteExtras } from './fortnite/ranked';
 import { disposeOcr } from './ocr';
 import { onFortniteScreen, setFortniteReaderRunning } from './fortnite/screenReader';
 import { initLiveMap, onLiveMap } from './fortnite/liveMap';
+import { initFortniteAudio } from './fortnite/audio';
 import { initFullMap } from './fortnite/fullMap';
 import { initSquad, onSquad, stopSquad } from './fortnite/squad';
 import { ensureSeasonMap } from './fortnite/seasonMap';
@@ -227,6 +228,7 @@ if (!app.requestSingleInstanceLock()) {
     onFortniteChange((s) => broadcast(IPC.fortniteChanged, s));
     onFortniteScreen((s) => broadcast(IPC.fortniteScreenChanged, s));
     initLiveMap();
+    initFortniteAudio();
     initFullMap();
     onLiveMap((s) => broadcast(IPC.fortniteMapChanged, s));
     initSquad();

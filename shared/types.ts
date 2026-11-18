@@ -729,6 +729,9 @@ export interface ShotCallerApi {
   refreshProfile(): Promise<void>;
   /** Renderer errors, forwarded to the opt-in crash reporter. */
   reportError(message: string, stack?: string): void;
+  /** The hidden Fortnite audio window only: a piece of 16 kHz mono sound, and why listening failed. */
+  sendFortniteAudio(pcm: ArrayBuffer): void;
+  reportFortniteAudioError(message: string): void;
 
   enterApp(): Promise<void>;
   openMainWindow(): Promise<void>;

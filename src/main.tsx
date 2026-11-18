@@ -18,7 +18,10 @@ window.addEventListener('unhandledrejection', (e) => {
 
 const windowName = new URLSearchParams(window.location.search).get('window');
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// The hidden audio window has no page: it only listens.
+if (windowName === 'fnaudio') void import('./fnaudio/capture');
+else
+  ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     {windowName === 'splash' ? <SplashApp /> : windowName === 'overlay' ? <OverlayApp /> : windowName === 'popup' ? <PopupApp /> : windowName === 'fnmonitor' ? <FnMonitorApp /> : windowName === 'fnmaplayer' ? <FnMapLayerApp /> : <ShellApp />}
   </React.StrictMode>,

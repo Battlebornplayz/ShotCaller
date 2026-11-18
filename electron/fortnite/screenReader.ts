@@ -29,6 +29,7 @@ import { readFullMapScreen } from './fullMap';
 import { heightAt1920, readSquadColors } from '../../shared/fortniteFullMap';
 import { setSquadColors } from './liveMap';
 import { pinChest, pinKill, readLiveMap } from './liveMap';
+import { getFortniteAudio, onFortniteAudio, saveAudioClip, setFortniteAudioRunning } from './audio';
 import { readHotbar } from './squad';
 import { addChest, busHasLeft, inFortniteMatch, setEliminations, setPlayersLeftAlive, setTimeAlive } from './tracker';
 import { readInventory } from './inventory';
@@ -48,6 +49,14 @@ const MAX_CHEST_READS = 200;
 const SHOT_EVERY_MS = 10_000;
 const SHOT_CAP = 600;
 const CHEST_SAMPLE_CAP = 100;
+/**
+ * Recorder, broken chests: the +1 chest key marks a chest you broke open, so the pictures from just before and
+ * after it are kept (`broke-<id>-b00…` before, `-a00…` after) to build and score a reader for them.
+ */
+const BURST_EVERY_MS = 500;
+const BURST_BEFORE = 10;
+const BURST_AFTER = 6;
+const BURST_CAP = 40;
 
 const template = chestLabel as GreyTemplate;
 const words = chestWords as ChestWords;
@@ -67,8 +76,16 @@ let lastTickAt = 0;
 let lastFrame: { pixels: Uint8Array; box: Box; match: { x: number; y: number } | null; score: number } | null = null;
 let lastShotAt = 0;
 let chestSamples = 0;
+let ring: { at: number; jpg: Buffer }[] = [];
+let lastRingAt = 0;
+let burstAfter: { id: number; n: number } | null = null;
+let bursts = 0;
+/** Background sound clips (no chest): one this often, and never within 20 s of a chest. */
+const BG_CLIP_EVERY_MS = 45_000;
+let lastBgClipAt = 0;
+let lastChestSoundAt = 0;
 
-const status: FnScreenStatus = { mode: 'no-game', frames: 0, width: 0, height: 0, lastScore: null, eliminations: null, chests: [], recorder: { on: false, saved: 0, cap: SHOT_CAP } };
+const status: FnScreenStatus = { mode: 'no-game', frames: 0, width: 0, height: 0, lastScore: null, eliminations: null, chests: [], recorder: { on: false, saved: 0, cap: SHOT_CAP }, audio: getFortniteAudio() };
 const listeners = new Set<(s: FnScreenStatus) => void>();
 
 const shotsDir = () => path.join(app.getPath('userData'), 'fortnite', 'shots');
@@ -83,8 +100,11 @@ export function onFortniteScreen(fn: (s: FnScreenStatus) => void): () => void {
 }
 
 function pushStatus(): void {
+  status.audio = { ...getFortniteAudio() };
   for (const fn of listeners) fn(status);
 }
+
+onFortniteAudio(() => pushStatus());
 
 function setMode(mode: FnScreenMode): void {
   if (status.mode === mode) return;
@@ -121,6 +141,37 @@ function recordShot(area: WindowArea): void {
   lastShotAt = Date.now();
   status.recorder.saved++;
   save(`shot-${lastShotAt}.jpg`, toImage(pixels, area.width, area.height).toJPEG(85));
+}
+
+/** Recorder: keeps the last few seconds of pictures in memory, and finishes a burst the +1 chest key started. */
+function recordBurstFrame(area: WindowArea): void {
+  if (!recorderOn || (bursts >= BURST_CAP && !burstAfter)) {
+    ring = [];
+    return;
+  }
+  const now = Date.now();
+  if (now - lastRingAt < BURST_EVERY_MS) return;
+  const pixels = currentFrame()?.pixels;
+  if (!pixels) return;
+  lastRingAt = now;
+  const jpg = toImage(pixels, area.width, area.height).toJPEG(80);
+  if (burstAfter) {
+    save(`broke-${burstAfter.id}-a${String(burstAfter.n).padStart(2, '0')}.jpg`, jpg);
+    if (++burstAfter.n >= BURST_AFTER) burstAfter = null;
+    return;
+  }
+  ring.push({ at: now, jpg });
+  if (ring.length > BURST_BEFORE) ring.shift();
+}
+
+/** The +1 chest key was pressed: save the pictures leading up to it and mark the next few to be saved too. */
+function saveBurst(): void {
+  if (!recorderOn || bursts >= BURST_CAP || burstAfter) return;
+  const id = Date.now();
+  ring.forEach((f, i) => save(`broke-${id}-b${String(i).padStart(2, '0')}.jpg`, f.jpg));
+  ring = [];
+  burstAfter = { id, n: 0 };
+  bursts++;
 }
 
 /** The top-right stack: the number next to the skull. Skipped while it isn't showing (down, spectating). */
@@ -202,6 +253,12 @@ function look(): void {
   status.height = area.height;
   // One copy of the whole window; every reader below cuts its part from it.
   if (!beginFrame(area)) return setMode('no-picture');
+  recordBurstFrame(area);
+  const nowMs = Date.now();
+  if (recorderOn && lifeState === 'alive' && nowMs - lastBgClipAt > BG_CLIP_EVERY_MS && nowMs - lastChestSoundAt > 20_000) {
+    lastBgClipAt = nowMs;
+    saveAudioClip('bg');
+  }
   // Fortnite's full map (M) covers the HUD: read the map instead, skip the HUD readers.
   if (readFullMapScreen(area)) {
     recordShot(area);
@@ -230,6 +287,8 @@ function look(): void {
   if (found.length) {
     for (const kind of found) {
       addChest(kind);
+      saveAudioClip('open');
+      lastChestSoundAt = Date.now();
       pinChest(kind);
       status.chests.push({ at: Date.now(), score, kind });
     }
@@ -268,6 +327,9 @@ export function getFortniteScreenPreview(): FnScreenPreview | null {
 /** The +1 hotkey: a chest the screen can't see (one you broke open). Listed on the Screen check page too. */
 export function addManualChest(): void {
   if (!addChest('manual')) return;
+  saveBurst();
+  saveAudioClip('broke');
+  lastChestSoundAt = Date.now();
   pinChest('manual');
   status.chests.push({ at: Date.now(), score: 1, kind: 'manual' });
   while (status.chests.length > MAX_CHEST_READS) status.chests.shift();
@@ -285,6 +347,7 @@ export function setFortniteReaderRunning(playing: boolean, on: boolean, recorder
   recorderOn = recorder;
   status.recorder.on = recorder;
   const want = playing && enabled;
+  setFortniteAudioRunning(want && recorder);
   if (want !== !!timer) {
     if (want) {
       counter = new ChestPopupCounter();
@@ -295,6 +358,10 @@ export function setFortniteReaderRunning(playing: boolean, on: boolean, recorder
         status.recorder.saved = n;
         pushStatus();
       });
+      void fsp
+        .readdir(shotsDir())
+        .then((names) => (bursts = new Set(names.filter((n) => n.startsWith('broke-')).map((n) => n.split('-')[1])).size))
+        .catch(() => undefined);
       timer = setInterval(() => {
         try {
           tick();
@@ -306,6 +373,8 @@ export function setFortniteReaderRunning(playing: boolean, on: boolean, recorder
       clearInterval(timer!);
       timer = null;
       lastFrame = null;
+      ring = [];
+      burstAfter = null;
     }
   }
   if (!want) setMode(enabled ? 'no-game' : 'off');
