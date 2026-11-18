@@ -77,6 +77,8 @@ export interface SkillshotSettings {
   memoryReader: boolean;
   /** Read the offered skills off the screen (a copy of a small strip, offline). On by default. */
   screenReader: boolean;
+  /** Size of the corner overlay card, 0.8-1.5 (1 = normal). */
+  cardScale: number;
 }
 
 export interface PrivacySettings {

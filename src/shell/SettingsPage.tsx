@@ -179,6 +179,27 @@ function OverlaySection() {
         />
       </SettingRow>
 
+      <div>
+        <div className="row">
+          <div>
+            <div style={{ fontWeight: 600 }}>Skillshot City overlay size</div>
+            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+              How big the corner card is. You can also hold Alt and use the size buttons on the overlay.
+            </div>
+          </div>
+          <span className="pill">{Math.round((settings?.skillshot.cardScale ?? 1) * 100)}%</span>
+        </div>
+        <input
+          type="range"
+          min={80}
+          max={150}
+          step={5}
+          value={Math.round((settings?.skillshot.cardScale ?? 1) * 100)}
+          onChange={(e) => update({ skillshot: { cardScale: Number(e.target.value) / 100 } })}
+          style={{ marginTop: 10 }}
+        />
+      </div>
+
       <SettingRow title="Show the overlay for every game" description="Off: only games with a ShotCaller module (Skillshot City) get the overlay.">
         <Toggle label="Show the overlay for every game" checked={!!o?.allGames} onChange={(v) => update({ overlay: { allGames: v } })} />
       </SettingRow>

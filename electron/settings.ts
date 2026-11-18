@@ -22,7 +22,7 @@ const DEFAULTS: Settings = {
   hotkeys: { ...DEFAULT_HOTKEYS },
   hotkeysOnlyInGame: true,
   startup: { launchAtLogin: true, onGameLaunch: 'overlay', closeToTray: true },
-  skillshot: { offerSound: true, memoryReader: false, screenReader: true },
+  skillshot: { offerSound: true, memoryReader: false, screenReader: true, cardScale: 1 },
   fortnite: { ...DEFAULT_FORTNITE_SETTINGS, card: { ...DEFAULT_FORTNITE_SETTINGS.card }, mapLayer: { ...DEFAULT_FORTNITE_SETTINGS.mapLayer } },
   mcp: { enabled: false, allowActions: false },
 };
@@ -147,6 +147,7 @@ function sanitize(input: unknown): Settings {
       offerSound: bool(skillshot.offerSound, DEFAULTS.skillshot.offerSound),
       memoryReader: bool(skillshot.memoryReader, DEFAULTS.skillshot.memoryReader),
       screenReader: bool(skillshot.screenReader, DEFAULTS.skillshot.screenReader),
+      cardScale: clamp(skillshot.cardScale, 0.8, 1.5, DEFAULTS.skillshot.cardScale),
     },
     fortnite: {
       screenReader: bool(fortnite.screenReader, FN.screenReader),

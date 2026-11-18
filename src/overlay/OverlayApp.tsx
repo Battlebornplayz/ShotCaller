@@ -26,7 +26,7 @@ export function OverlayApp() {
   const isFortnite = mod.id === 'fortnite';
   const idle = isFortnite ? (settings?.fortnite.cardOpacity ?? 0.6) : (state?.idleOpacity ?? 0.7);
   const opacity = kind === 'monitor' || interactive ? 1 : idle;
-  const scale = isFortnite && kind === 'corner' ? (settings?.fortnite.cardScale ?? 1) : 1;
+  const scale = kind !== 'corner' ? 1 : isFortnite ? (settings?.fortnite.cardScale ?? 1) : mod.id === 'skillshot-city' ? (settings?.skillshot.cardScale ?? 1) : 1;
 
   // Keep the corner window exactly as big as the card.
   useLayoutEffect(() => {

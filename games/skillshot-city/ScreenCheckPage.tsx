@@ -51,9 +51,17 @@ function Dot({ tone, pulse }: { tone: Tone; pulse?: boolean }) {
 }
 
 /** One line for the overlay, always visible, so you can see at a glance it's alive. */
-export function ScreenStatusLine({ status, data }: { status: ScreenReadStatus | null; data: SkillshotData | null }) {
+export function ScreenStatusLine({ status, data, compact }: { status: ScreenReadStatus | null; data: SkillshotData | null; compact?: boolean }) {
   if (!status) return null;
   const d = describe(status, data);
+  // During fights: just the dot while all is well; the full line only when something needs you.
+  if (compact && d.tone !== 'warn' && d.tone !== 'bad') {
+    return (
+      <span title={d.text} style={{ display: 'inline-flex' }}>
+        <Dot tone={d.tone} pulse={status.mode === 'watching' || status.mode === 'offer'} />
+      </span>
+    );
+  }
   const t = tally(status);
   const checked = t.right + t.wrong + t.missed;
   return (

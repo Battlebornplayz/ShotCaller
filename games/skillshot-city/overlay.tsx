@@ -3,7 +3,7 @@ import type { MatchRecord, SkillshotData, SkillshotLiveState, SkillshotSkill } f
 import { MAX_LEVEL_BY_RARITY, SKILL_TREES } from '../../shared/skillshot';
 import type { SkillAdvice } from '../../shared/skillshotAdvisor';
 import { RARITY_NAMES } from '../../shared/skillshotCollection';
-import { reviewMatch, suggestSessionGoals } from '../../shared/skillshotStats';
+import { avgPlace, computeStats, reviewMatch, suggestSessionGoals, type SkillshotStats } from '../../shared/skillshotStats';
 import type { Settings } from '../../shared/types';
 import { useOverlayState, useScreenStatus, useSettings, useSkillshot, useSkillshotData } from '../../src/hooks/useLive';
 import { ScreenStatusLine } from './ScreenCheckPage';
@@ -282,29 +282,6 @@ function RecentPicks({ s, data }: { s: SkillshotLiveState; data: SkillshotData |
   );
 }
 
-function SynergyMeter({ s }: { s: SkillshotLiveState }) {
-  const pct = Math.round(s.goalProgress * 100);
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
-          <span className="muted">Goal build</span>
-          <b>{s.goal.ids.length ? `${pct}%` : '—'}</b>
-        </div>
-        <div className="progress" style={{ height: 5 }}>
-          <span style={{ width: `${pct}%` }} />
-        </div>
-      </div>
-      <div style={{ textAlign: 'center', minWidth: 56 }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: s.activeSynergies.length ? 'var(--green)' : undefined }}>{s.activeSynergies.length}</div>
-        <div className="muted" style={{ fontSize: 10 }}>
-          synergies
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function BuildPanel({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotData; wide?: boolean }) {
   const entries = Object.entries(s.build);
   const linked = new Set<string>();
@@ -355,30 +332,125 @@ function BuildPanel({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotD
   );
 }
 
-function GoalRow({ s, data }: { s: SkillshotLiveState; data: SkillshotData }) {
+/** Why a missing goal skill is worth looking for, in a few words. */
+function goalReason(s: SkillshotLiveState, data: SkillshotData, id: string): string {
+  const has = (p: string) => (p.startsWith('class:') ? p === `class:${s.classId}` : !!s.build[p]);
+  const partners: string[] = [];
+  for (const syn of data.synergies) {
+    const i = syn.parts.indexOf(id);
+    if (i < 0) continue;
+    const other = syn.parts[1 - i];
+    if (has(other)) partners.push(partName(data, other));
+  }
+  if (partners.length) return `Pairs with ${partners.slice(0, 2).join(' and ')}`;
+  const tier = skillById(data, id)?.tier;
+  return tier ? `Strong pick (tier ${tier})` : 'Fills out the build';
+}
+
+/**
+ * The goal build as a path: what you have, then what's still missing in order, each with why it
+ * helps. A missing skill that's in the offer right now is called out.
+ */
+function GoalPath({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotData; wide?: boolean }) {
+  const pct = Math.round(s.goalProgress * 100);
+  const lockBtn = s.goal.ids.length > 0 && (
+    <button
+      className="muted"
+      style={{ fontSize: 11, color: s.goal.locked ? 'var(--gold)' : undefined }}
+      onClick={() => void window.shotcaller.setSkillshotGoal(s.goal.ids, !s.goal.locked)}
+      title={s.goal.locked ? 'Unlock: let ShotCaller adjust the goal as you pick' : 'Lock this goal build so it stops changing'}
+    >
+      {s.goal.locked ? '🔒 Locked' : 'Lock'}
+    </button>
+  );
+  const head = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span className="section-label" style={{ margin: 0, flex: 1 }}>
+        Goal build {s.goal.ids.length > 0 && <b style={{ color: 'var(--text)' }}>{pct}%</b>}
+      </span>
+      <span style={{ fontSize: 11, color: s.activeSynergies.length ? 'var(--green)' : undefined }} className={s.activeSynergies.length ? undefined : 'muted'}>
+        ⚡ {s.activeSynergies.length} {s.activeSynergies.length === 1 ? 'synergy' : 'synergies'}
+      </span>
+      {lockBtn}
+    </div>
+  );
   if (!s.goal.ids.length) {
     return (
-      <div className="muted" style={{ fontSize: 11.5 }}>
-        Goal build is suggested after your first 2 picks.
+      <div style={{ display: 'grid', gap: 4 }}>
+        {head}
+        <div className="muted" style={{ fontSize: 11.5 }}>
+          Your goal build is suggested after your first 2 picks.
+        </div>
       </div>
     );
   }
+  const owned = s.goal.ids.filter((id) => s.build[id]);
+  const missing = s.goal.ids.filter((id) => !s.build[id]);
+  const offered = new Set(s.offer?.ids ?? []);
+  const shown = wide ? missing : missing.slice(0, 3);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-      <span className="section-label" style={{ margin: 0 }}>
-        Goal
-      </span>
-      {s.goal.ids.map((id) => (
-        <SkillIcon key={id} skill={skillById(data, id)} size={22} dim={!s.build[id]} rarity={s.build[id] ? (s.pool[id] ?? 0) : undefined} />
-      ))}
-      <button
-        className="muted"
-        style={{ fontSize: 11, marginLeft: 'auto', color: s.goal.locked ? 'var(--gold)' : undefined }}
-        onClick={() => void window.shotcaller.setSkillshotGoal(s.goal.ids, !s.goal.locked)}
-        title={s.goal.locked ? 'Unlock: let ShotCaller adjust the goal as you pick' : 'Lock this goal build'}
-      >
-        {s.goal.locked ? '🔒 Locked' : 'Lock'}
-      </button>
+    <div style={{ display: 'grid', gap: 6 }}>
+      {head}
+      <div className="progress" style={{ height: 4 }}>
+        <span style={{ width: `${pct}%` }} />
+      </div>
+      {owned.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+          <span className="muted" style={{ fontSize: 10.5, marginRight: 2 }}>
+            Have
+          </span>
+          {owned.map((id) => (
+            <SkillIcon key={id} skill={skillById(data, id)} rarity={s.pool[id] ?? 0} size={20} label={String(s.build[id])} />
+          ))}
+        </div>
+      )}
+      {missing.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}>✓ Goal build done. Level these up.</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 4 }}>
+          {shown.map((id, i) => {
+            const skill = skillById(data, id);
+            const now = offered.has(id);
+            return (
+              <div
+                key={id}
+                className={now ? 'toast' : undefined}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '4px 6px',
+                  borderRadius: 8,
+                  background: now ? 'rgba(61,220,151,0.12)' : i === 0 ? 'rgba(255,255,255,0.04)' : undefined,
+                  border: now ? '1px solid rgba(61,220,151,0.4)' : '1px solid transparent',
+                }}
+                title={skill?.short}
+              >
+                <span className="muted" style={{ fontSize: 10.5, width: 12, textAlign: 'right' }}>
+                  {owned.length + i + 1}
+                </span>
+                <SkillIcon skill={skill} size={22} dim={!now} rarity={s.pool[id]} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{skill?.name ?? id}</div>
+                  <div className="muted" style={{ fontSize: 10.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {goalReason(s, data, id)}
+                  </div>
+                </div>
+                {now ? (
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--green)' }}>OFFERED</span>
+                ) : (
+                  i === 0 && <span className="muted" style={{ fontSize: 10.5 }}>next</span>
+                )}
+              </div>
+            );
+          })}
+          {shown.length < missing.length && (
+            <span className="muted" style={{ fontSize: 10.5 }}>
+              +{missing.length - shown.length} more
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -446,6 +518,41 @@ function ManualPick({ s, data, onClose }: { s: SkillshotLiveState; data: Skillsh
   );
 }
 
+/** A few plain-word tips for the next match, from the last match and your history. */
+function tryNext(data: SkillshotData, m: MatchRecord | null, review: ReturnType<typeof reviewMatch> | null, stats: SkillshotStats | null): string[] {
+  const tips: string[] = [];
+  const nm = (id: string | null) => (id && skillById(data, id)?.name) || id || '';
+  if (review?.worst?.advised && review.worst.picked) {
+    tips.push(`If ${nm(review.worst.picked)} and ${nm(review.worst.advised)} show up together again, take ${nm(review.worst.advised)}.`);
+  }
+  if (m && review && review.synergies.length === 0 && Object.keys(m.build).length >= 3) {
+    tips.push('No synergies last match. Aim for two skills that pair up: the goal build shows which.');
+  }
+  const best = stats?.byBuild.filter((b) => b.placed >= 2).sort((x, y) => (avgPlace(x) ?? 99) - (avgPlace(y) ?? 99))[0];
+  if (best) {
+    const names = best.key.split('+').map(nm).join(' + ');
+    tips.push(`Your best build so far: ${names} (average #${(avgPlace(best) ?? 0).toFixed(1)} over ${best.placed}).`);
+  }
+  if (m && m.deaths > m.kills + 2) tips.push('You went down a lot: play safer early and use syringes to heal.');
+  if (stats && stats.adviceFollowRate !== null && stats.adviceFollowRate < 0.5 && stats.summary.matches >= 3) {
+    tips.push(`You follow the advice ${Math.round(stats.adviceFollowRate * 100)}% of the time. Try trusting "Take this" for a match.`);
+  }
+  return tips;
+}
+
+function RoundDots({ results }: { results: (boolean | null)[] }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 3 }} title="Rounds: green won, red lost">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          style={{ width: 14, height: 5, borderRadius: 4, background: results[i] === true ? 'var(--green)' : results[i] === false ? 'var(--red)' : 'rgba(255,255,255,0.12)' }}
+        />
+      ))}
+    </span>
+  );
+}
+
 function LobbyView({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotData; wide: boolean }) {
   const [matches, setMatches] = useState<MatchRecord[]>([]);
   const lastId = `${s.lastMatch?.id ?? ''}:${s.lastMatch?.endedAt ?? ''}`;
@@ -454,79 +561,165 @@ function LobbyView({ s, data, wide }: { s: SkillshotLiveState; data: SkillshotDa
   }, [lastId]);
   const m = s.lastMatch;
   const review = useMemo(() => (m ? reviewMatch(data, m) : null), [data, m]);
+  const stats = useMemo(() => (matches.length ? computeStats(data, matches) : null), [data, matches]);
   const goals = useMemo(() => suggestSessionGoals(matches), [matches]);
+  const tips = useMemo(() => tryNext(data, m, review, stats), [data, m, review, stats]);
   const nm = (id: string | null) => (id && skillById(data, id)?.name) || id || '';
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
-      <div>
-        <div className="section-label">Last match</div>
-        {m ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-              <div style={{ fontSize: 26, fontWeight: 800, color: m.won ? 'var(--gold)' : undefined, minWidth: 44 }}>{m.place ? `#${m.place}` : '—'}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12 }}>
+  const trend = stats?.trend;
+  const better = trend && trend.recent !== null && trend.previous !== null ? trend.previous - trend.recent : null;
+
+  const recap = (
+    <div>
+      <div className="section-label">Last match</div>
+      {m ? (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: m.won ? 'var(--gold)' : undefined, minWidth: 44 }}>{m.place ? `#${m.place}` : '—'}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span>
                   <b>{m.kills}</b>
                   <span className="muted"> kills · </span>
                   <b>{m.deaths}</b>
                   <span className="muted"> deaths · lv </span>
                   <b>{m.level}</b>
-                  {!m.place && <span className="muted"> · {m.complete ? '' : 'unfinished'}</span>}
-                </div>
-                <div style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap' }}>
-                  {Object.entries(m.build).map(([id]) => (
-                    <SkillIcon key={id} skill={skillById(data, id)} size={wide ? 26 : 20} />
-                  ))}
-                </div>
-              </div>
-            </div>
-            {review && review.choices > 0 && (
-              <div style={{ display: 'grid', gap: 3, marginTop: 8, fontSize: 11.5 }}>
-                <span>
-                  <span className="muted">Advice followed </span>
-                  <b>
-                    {review.followed}/{review.choices}
-                  </b>
                 </span>
-                {review.best && (
-                  <span>
-                    <span className="muted">Best pick </span>
-                    <b style={{ color: 'var(--green)' }}>{nm(review.best.picked)}</b>
-                  </span>
-                )}
-                {review.worst && (
-                  <span>
-                    <span className="muted">Weakest </span>
-                    <b style={{ color: 'var(--red)' }}>{nm(review.worst.picked)}</b>
-                    <span className="muted"> → {nm(review.worst.advised)} was better</span>
-                  </span>
-                )}
+                <RoundDots results={m.roundResults} />
+                {!m.place && !m.complete && <span className="muted">unfinished</span>}
               </div>
-            )}
-          </>
-        ) : (
-          <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-            No matches tracked yet.
-          </div>
-        )}
-      </div>
-      <div>
-        <div className="section-label">Today's goals</div>
-        <div style={{ display: 'grid', gap: 3, marginTop: 5 }}>
-          {goals.slice(0, wide ? 4 : 3).map((g) => (
-            <div key={g.id} style={{ display: 'flex', gap: 7, fontSize: 11.5 }}>
-              <span style={{ color: g.done ? 'var(--green)' : 'var(--muted)' }}>{g.done ? '✓' : '○'}</span>
-              <span style={{ flex: 1, opacity: g.done ? 0.65 : 1 }}>{g.text}</span>
-              <span className="muted">{g.progress}</span>
+              <div style={{ display: 'flex', gap: 3, marginTop: 5, flexWrap: 'wrap' }}>
+                {Object.entries(m.build)
+                  .sort((x, y) => y[1] - x[1])
+                  .map(([id, lvl]) => (
+                    <SkillIcon key={id} skill={skillById(data, id)} size={wide ? 26 : 22} label={String(lvl)} />
+                  ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
-      {s.classId && (
-        <div className="muted" style={{ fontSize: 11 }}>
-          Class: <b style={{ color: 'var(--text)' }}>{classLabel(data, s.classId)}</b> {s.classSource === 'auto' ? '(from your last match)' : '(picked)'}
+          </div>
+          {review && review.synergies.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+              {review.synergies.slice(0, wide ? 4 : 2).map((i) => (
+                <span key={i} className="pill green" style={{ fontSize: 10.5 }}>
+                  ⚡ {synergyLabel(data, i)}
+                </span>
+              ))}
+            </div>
+          )}
+          {review && review.choices > 0 && (
+            <div style={{ display: 'grid', gap: 3, marginTop: 8, fontSize: 11.5 }}>
+              <span>
+                <span className="muted">Advice followed </span>
+                <b>
+                  {review.followed}/{review.choices}
+                </b>
+              </span>
+              {review.best && (
+                <span>
+                  <span className="muted">Best pick </span>
+                  <b style={{ color: 'var(--green)' }}>{nm(review.best.picked)}</b>
+                </span>
+              )}
+              {review.worst && (
+                <span>
+                  <span className="muted">Weakest </span>
+                  <b style={{ color: 'var(--red)' }}>{nm(review.worst.picked)}</b>
+                  <span className="muted"> → {nm(review.worst.advised)} was better</span>
+                </span>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+          No matches tracked yet. Play one and your recap shows here.
         </div>
       )}
+    </div>
+  );
+
+  const next = tips.length > 0 && (
+    <div>
+      <div className="section-label">Try next match</div>
+      <div style={{ display: 'grid', gap: 4, marginTop: 5 }}>
+        {tips.slice(0, wide ? 4 : 2).map((t) => (
+          <div key={t} style={{ display: 'flex', gap: 7, fontSize: 11.5, lineHeight: 1.35 }}>
+            <span style={{ color: 'var(--accent)' }}>→</span>
+            <span style={{ flex: 1 }}>{t}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const form = stats && stats.summary.placed > 0 && (
+    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11.5 }}>
+      {trend?.recent != null && (
+        <span title="Your average place over your last 10 finished matches">
+          <span className="muted">Recent avg </span>
+          <b>#{trend.recent.toFixed(1)}</b>
+          {better !== null && Math.abs(better) >= 0.1 && (
+            <span style={{ color: better > 0 ? 'var(--green)' : 'var(--red)', marginLeft: 4 }}>{better > 0 ? '▲ better' : '▼ worse'}</span>
+          )}
+        </span>
+      )}
+      {stats.summary.winRate !== null && (
+        <span>
+          <span className="muted">Wins </span>
+          <b>{Math.round(stats.summary.winRate * 100)}%</b>
+        </span>
+      )}
+      {stats.summary.kd !== null && (
+        <span title="Kills per death">
+          <span className="muted">K/D </span>
+          <b>{stats.summary.kd.toFixed(1)}</b>
+        </span>
+      )}
+    </div>
+  );
+
+  const today = (
+    <div>
+      <div className="section-label">Today's goals</div>
+      <div style={{ display: 'grid', gap: 3, marginTop: 5 }}>
+        {goals.slice(0, wide ? 4 : 3).map((g) => (
+          <div key={g.id} style={{ display: 'flex', gap: 7, fontSize: 11.5 }}>
+            <span style={{ color: g.done ? 'var(--green)' : 'var(--muted)' }}>{g.done ? '✓' : '○'}</span>
+            <span style={{ flex: 1, opacity: g.done ? 0.65 : 1 }}>{g.text}</span>
+            <span className="muted">{g.progress}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const cls = s.classId && (
+    <div className="muted" style={{ fontSize: 11 }}>
+      Class: <b style={{ color: 'var(--text)' }}>{classLabel(data, s.classId)}</b> {s.classSource === 'auto' ? '(from your last match)' : '(picked)'}
+    </div>
+  );
+
+  if (wide) {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 2fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
+          {recap}
+          {next}
+        </div>
+        <div style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
+          {form}
+          {today}
+          {cls}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
+      {recap}
+      {next}
+      {form}
+      {today}
+      {cls}
     </div>
   );
 }
@@ -617,6 +810,7 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
         {toastEl}
         <LobbyView s={s} data={data} wide={wide} />
         {lookupEl}
+        {interactive && !wide && <LookControls />}
       </div>
     );
   }
@@ -624,9 +818,14 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
   if (!expanded) {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
-        {statusEl}
+        {s.coach && <CoachNote coach={s.coach} data={data} />}
         {toastEl}
-        <RoundStrip s={s} data={data} compact />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <ScreenStatusLine status={screen} data={data} compact />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <RoundStrip s={s} data={data} compact />
+          </div>
+        </div>
       </div>
     );
   }
@@ -653,8 +852,7 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
             {lookupEl}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, alignContent: 'start' }}>
-            <SynergyMeter s={s} />
-            <GoalRow s={s} data={data} />
+            <GoalPath s={s} data={data} wide />
             <div className="section-label" style={{ margin: 0 }}>
               Build
             </div>
@@ -672,12 +870,13 @@ export function SkillshotPanel({ hotkeys, wide }: SkillshotPanelProps) {
       {toastEl}
       <RoundStrip s={s} data={data} />
       {advice}
-      <RecentPicks s={s} data={data} />
-      <SynergyMeter s={s} />
+      {/* Your build already shows every pick: the list only matters while one waits for the log. */}
+      {s.recentPicks.some((p) => !p.confirmed) && <RecentPicks s={s} data={data} />}
       <BuildPanel s={s} data={data} />
-      <GoalRow s={s} data={data} />
+      <GoalPath s={s} data={data} />
       {(interactive || lookup) && lookupEl}
       {interactive && <Hints hotkeys={hotkeys} />}
+      {interactive && <LookControls />}
     </div>
   );
 }
@@ -694,6 +893,41 @@ function Hints({ hotkeys }: { hotkeys: Settings['hotkeys'] | null }) {
       <span>
         <Keycap accel={hotkeys?.endMatch} /> end match
       </span>
+    </div>
+  );
+}
+
+/** Hold Alt: quick size and see-through buttons for the corner card (also in Settings → Overlay). */
+function LookControls() {
+  const settings = useSettings();
+  const overlay = useOverlayState();
+  if (!settings || !overlay) return null;
+  const scale = settings.skillshot.cardScale;
+  const see = settings.overlay.idleOpacity;
+  const round = (v: number) => Math.round(v * 100) / 100;
+  const setScale = (v: number) => void window.shotcaller.updateSettings({ skillshot: { cardScale: round(Math.min(1.5, Math.max(0.8, v))) } });
+  const setSee = (v: number) => void window.shotcaller.updateSettings({ overlay: { idleOpacity: round(Math.min(1, Math.max(0.3, v))) } });
+  const btn = { fontSize: 12, fontWeight: 800, width: 22, height: 20, borderRadius: 6, background: 'rgba(255,255,255,0.08)' } as const;
+  return (
+    <div className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, flexWrap: 'wrap' }}>
+      <span>Size</span>
+      <button style={btn} onClick={() => setScale(scale - 0.1)} title="Smaller">
+        −
+      </button>
+      <b style={{ color: 'var(--text)', minWidth: 30, textAlign: 'center' }}>{Math.round(scale * 100)}%</b>
+      <button style={btn} onClick={() => setScale(scale + 0.1)} title="Bigger">
+        +
+      </button>
+      <span style={{ marginLeft: 8 }} title="How solid the card is when you're not holding Alt">
+        Solid
+      </span>
+      <button style={btn} onClick={() => setSee(see - 0.1)} title="More see-through">
+        −
+      </button>
+      <b style={{ color: 'var(--text)', minWidth: 30, textAlign: 'center' }}>{Math.round(see * 100)}%</b>
+      <button style={btn} onClick={() => setSee(see + 0.1)} title="Less see-through">
+        +
+      </button>
     </div>
   );
 }
