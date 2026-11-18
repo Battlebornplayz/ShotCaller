@@ -1,3 +1,4 @@
+import type { AiChatState } from '../../shared/ai';
 import { useEffect, useState } from 'react';
 import type { ScreenReadStatus, SkillshotData, SkillshotLiveState } from '../../shared/skillshot';
 import type { SkillCollection } from '../../shared/skillshotCollection';
@@ -28,6 +29,7 @@ export const useLibrary = (): Library | null => useLive(() => api().getLibrary()
 export const useDetection = (): DetectionState | null => useLive(() => api().getDetection(), (cb) => api().onDetection(cb));
 export const useOverlayState = (): OverlayState | null => useLive(() => api().getOverlayState(), (cb) => api().onOverlayState(cb));
 export const useHotkeyStatus = (): HotkeyStatus | null => useLive(() => api().getHotkeyStatus(), (cb) => api().onHotkeyStatus(cb));
+export const useAiChat = (): AiChatState | null => useLive(() => api().getAiChat(), (cb) => api().onAiChat(cb));
 export const useAuth = (): AuthState | null => useLive(() => api().getAuthState(), (cb) => api().onAuthState(cb));
 
 export const useSkillshot = (): SkillshotLiveState | null => useLive(() => api().getSkillshot(), (cb) => api().onSkillshot(cb));

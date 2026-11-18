@@ -5,6 +5,8 @@ import { TitleBar } from '../components/TitleBar';
 import { GameRail } from './GameRail';
 import { SectionNav, type Section, type SectionId } from './SectionNav';
 import { HomePage, GamesPage, ProfilePage, FriendsPage, GamePage, SettingsPage, TimelinePage } from './pages';
+import { AiChatDrawer, AiChatPanel } from '../components/AiChat';
+import { PageHeader } from './pages';
 import { CommandPalette } from './games/CommandPalette';
 import { toast, Toasts } from './games/common';
 
@@ -21,6 +23,7 @@ export function ShellApp() {
     { id: 'timeline', label: 'Timeline' },
     { id: 'profile', label: 'Profile' },
     { id: 'friends', label: 'Friends' },
+    { id: 'ask', label: 'Ask AI' },
     { id: 'settings', label: 'Settings' },
   ];
 
@@ -52,8 +55,15 @@ export function ShellApp() {
     }
     if (added.at === lastAdded.current) return;
     lastAdded.current = added.at;
-    const names = added.keys.map((k) => library.games.find((g) => g.key === k)?.name).filter(Boolean) as string[];
-    if (names.length) toast(names.length === 1 ? `Added ${names[0]}` : `Added ${names.length} games: ${names.slice(0, 3).join(', ')}${names.length > 3 ? '…' : ''}`);
+    const names = added.keys
+      .map((k) => library.games.find((g) => g.key === k)?.name)
+      .filter(Boolean) as string[];
+    if (names.length)
+      toast(
+        names.length === 1
+          ? `Added ${names[0]}`
+          : `Added ${names.length} games: ${names.slice(0, 3).join(', ')}${names.length > 3 ? '…' : ''}`,
+      );
   }, [library]);
 
   const isGames = !game && section === 'games';
@@ -69,7 +79,11 @@ export function ShellApp() {
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <GameRail activeGameKey={gameKey} onSelectHome={() => onSelectGame(null)} onSelectGame={onSelectGame} />
+        <GameRail
+          activeGameKey={gameKey}
+          onSelectHome={() => onSelectGame(null)}
+          onSelectGame={onSelectGame}
+        />
 
         <SectionNav
           sections={game ? [] : sections}
@@ -86,7 +100,11 @@ export function ShellApp() {
           style={{ flex: 1, minWidth: 0, overflowY: isGames ? 'hidden' : 'auto', padding: '26px 30px' }}
         >
           {game ? (
-            <GamePage game={game} />
+            <>
+              <GamePage game={game} />
+              {/* DbD has its own Ask AI tab. */}
+              {game.moduleId !== 'dbd' && <AiChatDrawer page={game.name} />}
+            </>
           ) : section === 'home' ? (
             <HomePage onOpenGame={onSelectGame} />
           ) : section === 'games' ? (
@@ -97,6 +115,8 @@ export function ShellApp() {
             <ProfilePage />
           ) : section === 'friends' ? (
             <FriendsPage />
+          ) : section === 'ask' ? (
+            <AskAiPage />
           ) : (
             <SettingsPage />
           )}
@@ -105,6 +125,18 @@ export function ShellApp() {
 
       <CommandPalette onOpenGame={onSelectGame} onSection={onSelectSection} />
       <Toasts />
+    </div>
+  );
+}
+
+function AskAiPage() {
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      <PageHeader
+        title="Ask AI"
+        subtitle="Ask about your games, achievements, Dead by Daylight and Fortnite. Uses the AI you picked in Settings."
+      />
+      <AiChatPanel page="Home" />
     </div>
   );
 }

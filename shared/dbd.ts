@@ -140,8 +140,8 @@ export interface DbdBuild {
   addons: string[];
   offering: string | null;
   notes: string;
-  /** Where it came from. */
-  from: 'mine' | 'popular' | 'friend';
+  /** Where it came from ('ai': saved by Ask AI). */
+  from: 'mine' | 'popular' | 'friend' | 'ai';
   createdAt: number;
   updatedAt: number;
 }

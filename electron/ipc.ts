@@ -30,7 +30,11 @@ import {
   setGoal,
   setOffer,
 } from './skillshot/tracker';
-import { getMcpInfo } from './skillshot/mcpServer';
+import { getMcpInfo, getOutsideToken, mcpUrl } from './ai/mcpServer';
+import { connectClient } from './ai/setup';
+import { getAiChat, resetAiChat, sendAiChat, stopAiChat } from './ai/chat';
+import { checkClis, openSignInTerminal } from './ai/clis';
+import { showAiChatWindow } from './ai/chatWindow';
 import { getScreenPreview, getScreenStatus } from './skillshot/screenReader';
 import { getFortniteMatches, getFortniteState } from './fortnite/tracker';
 import { getFortniteScreen, getFortniteScreenPreview, openFortniteShots } from './fortnite/screenReader';
@@ -273,6 +277,18 @@ export function registerIpc(h: IpcHandlers): void {
   ipcMain.handle(IPC.skillshotScreen, () => getScreenStatus());
   ipcMain.handle(IPC.skillshotScreenPreview, () => getScreenPreview());
   ipcMain.handle(IPC.mcpInfo, () => getMcpInfo());
+  ipcMain.handle(IPC.mcpConnect, (_e, client: unknown) => {
+    if (!getSettings().mcp.enabled) return { ok: false, message: 'Turn on "Let AI apps connect" first.' };
+    if (client !== 'claude-code' && client !== 'claude-desktop' && client !== 'antigravity') return { ok: false, message: 'Unknown app.' };
+    return connectClient(client, mcpUrl(), getOutsideToken());
+  });
+  ipcMain.handle(IPC.aiChatGet, () => getAiChat());
+  ipcMain.handle(IPC.aiChatSend, (_e, text: unknown, page: unknown) => sendAiChat(String(text ?? ''), typeof page === 'string' ? page : undefined));
+  ipcMain.handle(IPC.aiChatStop, () => stopAiChat());
+  ipcMain.handle(IPC.aiChatReset, () => resetAiChat());
+  ipcMain.handle(IPC.aiCliCheck, () => checkClis());
+  ipcMain.handle(IPC.aiSignIn, (_e, provider: unknown) => openSignInTerminal(provider === 'antigravity' ? 'antigravity' : 'claude'));
+  ipcMain.handle(IPC.aiChatWindow, () => showAiChatWindow());
   ipcMain.handle(IPC.skillshotSetOffer, (_e, v: unknown) => setOffer(ids(v), 'manual'));
   ipcMain.handle(IPC.skillshotPick, (_e, which: unknown) => {
     if (which === 0 || which === 1 || which === 2) pickOffer(which);

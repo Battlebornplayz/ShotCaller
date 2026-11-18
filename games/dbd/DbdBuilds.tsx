@@ -107,7 +107,7 @@ export function BuildsTab({ state, data, side, newSince }: { state: DbdState; da
           </div>
           {mine.length === 0 && <div className="muted" style={{ fontSize: 13 }}>None yet. Make one on the right, or copy a popular one.</div>}
           {mine.map((b) => (
-            <BuildRow key={b.id} name={b.name} perks={b.perks} perkByName={perkByName} active={draft.id === b.id} sub={b.from === 'friend' ? 'From a friend' : b.killer ?? b.item ?? undefined} onClick={() => (setDraft(fromBuild(b)), setSlot(0))} />
+            <BuildRow key={b.id} name={b.name} perks={b.perks} perkByName={perkByName} active={draft.id === b.id} sub={b.from === 'friend' ? 'From a friend' : b.from === 'ai' ? `Made by AI${b.killer ? ` · ${b.killer}` : ''}` : b.killer ?? b.item ?? undefined} onClick={() => (setDraft(fromBuild(b)), setSlot(0))} />
           ))}
         </section>
 
@@ -225,6 +225,7 @@ function Editor({ draft, setDraft, slot, setSlot, data, perkByName }: { draft: D
         <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Build name" maxLength={60} style={{ flex: 1, fontWeight: 700 }} />
         {draft.from === 'popular' && !draft.id && <span className="pill muted">Popular build, not saved yet</span>}
         {draft.from === 'friend' && <span className="pill muted">From a friend</span>}
+        {draft.from === 'ai' && <span className="pill muted">Made by Ask AI</span>}
       </div>
 
       <div className="dbd-slots">

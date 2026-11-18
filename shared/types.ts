@@ -3,6 +3,9 @@
 import type { MatchRecord, ScreenPreview, ScreenReadStatus, SkillshotData, SkillshotLiveState } from './skillshot';
 import type { SkillCollection } from './skillshotCollection';
 import type { DbdData, DbdPatchNote, DbdPopularList, DbdSettingsPatch, DbdState } from './dbd';
+import type { AiChatState, AiCliInfo, AiClient, AiProvider, McpInfo } from './ai';
+
+export type { McpInfo } from './ai';
 import type {
   FnDisplay,
   FnDrop,
@@ -100,21 +103,18 @@ export interface PopupSettings {
 
 export type LibraryView = 'grid' | 'list';
 
-/** The optional connection that lets Claude read ShotCaller's data. */
+/** Ask AI (Phase D2): the local MCP server for outside AI apps, and the in-app chat. Each has its own switch. */
 export interface McpSettings {
-  /** Run the local server. Off by default. */
+  /** Let outside AI apps (Claude Desktop, Claude Code, Antigravity) connect. Off by default. */
   enabled: boolean;
-  /** Also let Claude change things in ShotCaller: show advice on the overlay, set the goal build, set offers. */
+  /** Let the AI change things in ShotCaller (save/edit builds, overlay advice). Off: read only. */
   allowActions: boolean;
-}
-
-export interface McpInfo {
-  running: boolean;
-  url: string;
-  /** Why it isn't running, when it should be. */
-  error: string | null;
-  /** The command that connects Claude Code. Holds the secret token. Null while the connection is off. */
-  command: string | null;
+  /** The in-app chat. Off by default. */
+  chat: boolean;
+  /** Which installed AI the chat runs. */
+  provider: AiProvider;
+  /** Open a small chat window on the second monitor while DbD runs. */
+  chatMonitor: boolean;
 }
 
 export interface Settings {
@@ -649,6 +649,20 @@ export interface ShotCallerApi {
   /** The latest picture the screen reader looked at, or null when it isn't running. */
   getScreenPreview(): Promise<ScreenPreview | null>;
   getMcpInfo(): Promise<McpInfo>;
+  /** Adds ShotCaller to that AI app's MCP settings (runs its own add command, or edits its config file). */
+  connectAiClient(client: AiClient): Promise<{ ok: boolean; message: string }>;
+  /** Ask AI chat (Phase D2). State is pushed on every change. */
+  getAiChat(): Promise<AiChatState>;
+  onAiChat(callback: (state: AiChatState) => void): Unsubscribe;
+  /** page: where the player is in ShotCaller ("Dead by Daylight", "Home"...), given to the AI as context. */
+  sendAiChat(text: string, page?: string): Promise<void>;
+  stopAiChat(): Promise<void>;
+  resetAiChat(): Promise<void>;
+  /** Which AI command-line tools are on this PC (and signed in, if known). */
+  checkAiClis(): Promise<AiCliInfo[]>;
+  /** Opens a terminal running that AI so the user can sign in. */
+  signInAi(provider: AiProvider): Promise<void>;
+  showAiChatWindow(): Promise<void>;
   /** Your owned skills with rarity and the build you equip on each class, read from the game's files. Pushed on change. */
   getSkillCollection(): Promise<SkillCollection>;
   onSkillCollection(callback: (collection: SkillCollection) => void): Unsubscribe;

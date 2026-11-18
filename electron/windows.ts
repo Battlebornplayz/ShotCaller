@@ -9,7 +9,7 @@ export const APP_ICON = nativeImage.createFromPath(iconPath);
 
 export const OVERLAY_DEFAULT_SIZE = { width: 300, height: 260 };
 
-type WindowName = 'splash' | 'main' | 'overlay' | 'popup' | 'fnmonitor' | 'fnmaplayer' | 'fnaudio';
+type WindowName = 'splash' | 'main' | 'overlay' | 'popup' | 'fnmonitor' | 'fnmaplayer' | 'fnaudio' | 'aichat';
 
 export const POPUP_SIZE = { width: 440, height: 150 };
 
@@ -190,5 +190,22 @@ export function createFortniteMonitorWindow(bounds: Electron.Rectangle): Browser
     webPreferences: { ...webPreferences, backgroundThrottling: false },
   });
   loadRenderer(win, 'fnmonitor');
+  return win;
+}
+
+/** The small Ask AI chat for a second monitor (Phase D2): an ordinary window, never over the game. */
+export function createAiChatWindow(bounds: Electron.Rectangle): BrowserWindow {
+  const win = new BrowserWindow({
+    ...bounds,
+    minWidth: 340,
+    minHeight: 360,
+    frame: false,
+    show: false,
+    backgroundColor: BG,
+    title: 'ShotCaller · Ask AI',
+    icon: APP_ICON,
+    webPreferences,
+  });
+  loadRenderer(win, 'aichat');
   return win;
 }

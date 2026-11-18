@@ -7,7 +7,6 @@ import {
   type DisplayInfo,
   type GameLaunchAction,
   type HotkeyAction,
-  type McpInfo,
   type OverlayMode,
   type PopupCorner,
   type SettingsPatch,
@@ -21,14 +20,35 @@ import { StoreList } from './games/GamesPage';
 import { useUpdateState } from '../hooks/useUpdateState';
 import { AccountSection, PrivacySection } from './AccountPage';
 import { PageHeader } from './pages';
+import {
+  AI_PROVIDER_NAMES,
+  type AiCliInfo,
+  type AiClient,
+  type AiProvider,
+  type McpInfo,
+} from '../../shared/ai';
+import { AiInstallHelp } from '../components/AiChat';
 
 const update = (patch: SettingsPatch) => void window.shotcaller.updateSettings(patch);
 
 // ---------- Small building blocks ----------
 
-function Section({ title, subtitle, children, delay = 0 }: { title: string; subtitle: string; children: ReactNode; delay?: number }) {
+function Section({
+  title,
+  subtitle,
+  children,
+  delay = 0,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+  delay?: number;
+}) {
   return (
-    <section className="card enter" style={{ display: 'grid', gap: 16, maxWidth: 760, marginBottom: 14, animationDelay: `${delay}ms` }}>
+    <section
+      className="card enter"
+      style={{ display: 'grid', gap: 16, maxWidth: 760, marginBottom: 14, animationDelay: `${delay}ms` }}
+    >
       <div>
         <div style={{ fontWeight: 800, fontSize: 17 }}>{title}</div>
         <div className="muted" style={{ fontSize: 13 }}>
@@ -40,11 +60,35 @@ function Section({ title, subtitle, children, delay = 0 }: { title: string; subt
   );
 }
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
-  return <button role="switch" aria-checked={checked} aria-label={label} className="toggle" onClick={() => onChange(!checked)} />;
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      className="toggle"
+      onClick={() => onChange(!checked)}
+    />
+  );
 }
 
-function SettingRow({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
+function SettingRow({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <div className="row">
       <div style={{ minWidth: 0 }}>
@@ -118,13 +162,27 @@ function OverlaySection() {
 
   return (
     <Section title="Overlay" subtitle="How ShotCaller shows up over your game.">
-      <ChoiceCards options={MODES} value={o?.mode} onPick={(mode) => update({ overlay: { mode } })} columns={3} />
+      <ChoiceCards
+        options={MODES}
+        value={o?.mode}
+        onPick={(mode) => update({ overlay: { mode } })}
+        columns={3}
+      />
 
       {o?.mode === 'monitor' ? (
-        <SettingRow title="Display" description={displays.length < 2 ? 'Only one display is connected, so the window opens on it.' : 'Where the overlay window opens.'}>
+        <SettingRow
+          title="Display"
+          description={
+            displays.length < 2
+              ? 'Only one display is connected, so the window opens on it.'
+              : 'Where the overlay window opens.'
+          }
+        >
           <select
             value={o.monitorDisplayId ?? ''}
-            onChange={(e) => update({ overlay: { monitorDisplayId: e.target.value === '' ? null : Number(e.target.value) } })}
+            onChange={(e) =>
+              update({ overlay: { monitorDisplayId: e.target.value === '' ? null : Number(e.target.value) } })
+            }
           >
             <option value="">Automatic (first non-primary)</option>
             {displays.map((d) => (
@@ -159,9 +217,17 @@ function OverlaySection() {
           </div>
           <SettingRow
             title="Position"
-            description={o?.position ? 'Moved by you. Hold Alt and drag the overlay’s header to move it.' : 'Top right of your main display. Hold Alt and drag its header to move it.'}
+            description={
+              o?.position
+                ? 'Moved by you. Hold Alt and drag the overlay’s header to move it.'
+                : 'Top right of your main display. Hold Alt and drag its header to move it.'
+            }
           >
-            <button className="btn" onClick={() => update({ overlay: { position: null } })} disabled={!o?.position}>
+            <button
+              className="btn"
+              onClick={() => update({ overlay: { position: null } })}
+              disabled={!o?.position}
+            >
               Reset position
             </button>
           </SettingRow>
@@ -200,21 +266,32 @@ function OverlaySection() {
         />
       </div>
 
-      <SettingRow title="Show the overlay for every game" description="Off: only games with a ShotCaller module (Skillshot City) get the overlay.">
-        <Toggle label="Show the overlay for every game" checked={!!o?.allGames} onChange={(v) => update({ overlay: { allGames: v } })} />
+      <SettingRow
+        title="Show the overlay for every game"
+        description="Off: only games with a ShotCaller module (Skillshot City) get the overlay."
+      >
+        <Toggle
+          label="Show the overlay for every game"
+          checked={!!o?.allGames}
+          onChange={(v) => update({ overlay: { allGames: v } })}
+        />
       </SettingRow>
 
       <div className="row" style={{ alignItems: 'flex-start' }}>
         <div className="muted" style={{ fontSize: 12, maxWidth: 480 }}>
-          The overlay is its own window, never injected into the game. It shows over <b>borderless</b> and <b>windowed</b> games; exclusive
-          fullscreen hides it.
+          The overlay is its own window, never injected into the game. It shows over <b>borderless</b> and{' '}
+          <b>windowed</b> games; exclusive fullscreen hides it.
           {overlay && !overlay.altHook && o?.mode !== 'monitor' && (
             <div style={{ color: 'var(--gold)', marginTop: 6 }}>
-              The Alt-key listener couldn’t start on this system, so the corner overlay stays clickable instead of click-through.
+              The Alt-key listener couldn’t start on this system, so the corner overlay stays clickable
+              instead of click-through.
             </div>
           )}
         </div>
-        <button className="btn primary" onClick={() => void window.shotcaller.setOverlayPreview(!overlay?.preview)}>
+        <button
+          className="btn primary"
+          onClick={() => void window.shotcaller.setOverlayPreview(!overlay?.preview)}
+        >
           {overlay?.preview ? 'Close preview' : 'Preview overlay'}
         </button>
       </div>
@@ -259,7 +336,9 @@ function toAccelerator(e: KeyboardEvent): string | null {
   else if (/^F([1-9]|1\d|2[0-4])$/.test(e.code)) key = e.code;
   else key = CODE_KEYS[e.code] ?? null;
   if (!key) return null;
-  const mods = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Super'].filter(Boolean) as string[];
+  const mods = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Super'].filter(
+    Boolean,
+  ) as string[];
   if (mods.length === 0 && !/^F\d+$/.test(key)) return null;
   return [...mods, key].join('+');
 }
@@ -294,7 +373,8 @@ function HotkeysSection() {
       }
       const accel = toAccelerator(e);
       if (!accel) {
-        if (!['Alt', 'Control', 'Shift', 'Meta'].includes(e.key)) setHint('Use a modifier (Alt, Ctrl, Shift) with the key, or a function key.');
+        if (!['Alt', 'Control', 'Shift', 'Meta'].includes(e.key))
+          setHint('Use a modifier (Alt, Ctrl, Shift) with the key, or a function key.');
         return;
       }
       update({ hotkeys: { [recording]: accel } });
@@ -311,7 +391,11 @@ function HotkeysSection() {
   const isDefault = settings && HOTKEY_ACTIONS.every((a) => settings.hotkeys[a] === DEFAULT_HOTKEYS[a]);
 
   return (
-    <Section title="Hotkeys" subtitle="Global shortcuts that work while you’re in game. Click one to rebind it." delay={60}>
+    <Section
+      title="Hotkeys"
+      subtitle="Global shortcuts that work while you’re in game. Click one to rebind it."
+      delay={60}
+    >
       <div style={{ display: 'grid', gap: 10 }}>
         {HOTKEY_ACTIONS.map((action) => {
           const accel = settings?.hotkeys[action] ?? '';
@@ -327,7 +411,10 @@ function HotkeysSection() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 'none' }}>
                 {st && !isRec && <span className={STATUS_TEXT[st].cls}>{STATUS_TEXT[st].text}</span>}
-                <button className={`kbd${isRec ? ' recording' : ''}`} onClick={() => setRecording(isRec ? null : action)}>
+                <button
+                  className={`kbd${isRec ? ' recording' : ''}`}
+                  onClick={() => setRecording(isRec ? null : action)}
+                >
                   {isRec ? 'Press keys…' : accel ? acceleratorParts(accel).join(' + ') : 'Not set'}
                 </button>
               </div>
@@ -340,8 +427,15 @@ function HotkeysSection() {
           {hint ?? 'Press the new combination. Esc cancels, Backspace clears it.'}
         </div>
       )}
-      <SettingRow title="Only while a game is running" description="Off: the hotkeys are always active, even outside games.">
-        <Toggle label="Only while a game is running" checked={!!settings?.hotkeysOnlyInGame} onChange={(v) => update({ hotkeysOnlyInGame: v })} />
+      <SettingRow
+        title="Only while a game is running"
+        description="Off: the hotkeys are always active, even outside games."
+      >
+        <Toggle
+          label="Only while a game is running"
+          checked={!!settings?.hotkeysOnlyInGame}
+          onChange={(v) => update({ hotkeysOnlyInGame: v })}
+        />
       </SettingRow>
       <div>
         <button className="btn" onClick={() => update({ hotkeys: DEFAULT_HOTKEYS })} disabled={!!isDefault}>
@@ -360,58 +454,162 @@ const LAUNCH_ACTIONS: { id: GameLaunchAction; label: string }[] = [
   { id: 'nothing', label: 'Do nothing (use the hotkey)' },
 ];
 
-/** The Claude connection is parked and only partly tested (see HANDOFF.md), so its switch stays out of releases. */
-const SHOW_CLAUDE_CONNECTION: boolean = false;
+function useAiClis() {
+  const [clis, setClis] = useState<AiCliInfo[] | null>(null);
+  const refresh = () => void window.shotcaller.checkAiClis().then(setClis);
+  useEffect(refresh, []);
+  return [clis, refresh] as const;
+}
 
-function ClaudeSection() {
+/** Ask AI (Phase D2): the in-app chat, outside AI apps, and the "change things" switch. Everything off by default. */
+function AskAiSection() {
   const settings = useSettings();
-  const enabled = !!settings?.mcp.enabled;
-  const [mcp, setMcp] = useState<McpInfo | null>(null);
-  const [copied, setCopied] = useState(false);
+  const m = settings?.mcp;
+  const [info, setInfo] = useState<McpInfo | null>(null);
+  const [clis, refreshClis] = useAiClis();
+  const [copied, setCopied] = useState<string | null>(null);
+  const [result, setResult] = useState<Record<string, { ok: boolean; message: string }>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const loadInfo = () => void window.shotcaller.getMcpInfo().then(setInfo);
   useEffect(() => {
     // Starting the server takes a moment, and a port clash only shows up after that.
-    const t = setTimeout(() => void window.shotcaller.getMcpInfo().then(setMcp), 400);
+    const t = setTimeout(loadInfo, 400);
     return () => clearTimeout(t);
-  }, [enabled]);
-  const copy = () => {
-    if (!mcp?.command) return;
-    void navigator.clipboard.writeText(mcp.command).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  }, [m?.enabled, m?.chat]);
+  const copy = (key: string, text: string) =>
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
     });
+  const connect = async (client: AiClient) => {
+    setBusy(client);
+    const r = await window.shotcaller.connectAiClient(client);
+    setBusy(null);
+    setResult((x) => ({ ...x, [client]: r }));
+    loadInfo();
   };
+  const cli = (p: AiProvider) => clis?.find((c) => c.provider === p);
+  const chosen = m ? cli(m.provider) : undefined;
+
   return (
-    <Section title="Claude connection" subtitle="Optional: lets Claude see your match data and coach you. ShotCaller works fully without it." delay={90}>
+    <Section
+      title="Ask AI"
+      subtitle="Optional: ask an AI about your games and let it make builds for you. Free: it uses an AI app you already have signed in on this PC, with no API key."
+      delay={90}
+    >
       <SettingRow
-        title="Connect to Claude"
-        description="Runs a small server that only this PC can reach, protected by a secret token. It shares ShotCaller’s data, including your match history, with the Claude app you connect. Claude’s replies use your Claude plan."
+        title="Ask AI chat"
+        description="A chat in ShotCaller (Ask AI in the menu, and a button on every game page). It runs Claude Code or Antigravity on this PC, so replies use your own Claude plan or Google's free tier. The AI can only use ShotCaller's tools: no commands, files or web."
       >
-        <Toggle label="Connect to Claude" checked={enabled} onChange={(v) => update({ mcp: { enabled: v } })} />
+        <Toggle label="Ask AI chat" checked={!!m?.chat} onChange={(v) => update({ mcp: { chat: v } })} />
       </SettingRow>
-      {enabled && (
+      {m?.chat && (
         <>
           <SettingRow
-            title="Let Claude show advice"
-            description="Claude can put advice on your overlay, set your goal build and enter offers. Off: it can only read."
+            title="AI to use"
+            description={
+              chosen && !chosen.installed
+                ? `${AI_PROVIDER_NAMES[m.provider]} isn't installed on this PC yet: see below.`
+                : 'Each uses your own sign-in on this PC.'
+            }
           >
-            <Toggle label="Let Claude show advice" checked={!!settings?.mcp.allowActions} onChange={(v) => update({ mcp: { allowActions: v } })} />
+            <select
+              value={m.provider}
+              onChange={(e) => update({ mcp: { provider: e.target.value as AiProvider } })}
+            >
+              {(['claude', 'antigravity'] as AiProvider[]).map((p) => (
+                <option key={p} value={p}>
+                  {AI_PROVIDER_NAMES[p]}
+                  {cli(p) && !cli(p)?.installed ? ' (not installed)' : ''}
+                </option>
+              ))}
+            </select>
           </SettingRow>
-          {mcp?.error && <div style={{ fontSize: 13, color: 'var(--red)' }}>Couldn’t start: {mcp.error}</div>}
-          {mcp?.running && (
-            <div className="tile" style={{ padding: '12px 14px', display: 'grid', gap: 8 }}>
-              <div className="row">
-                <div className="eyebrow">Set up Claude Code</div>
-                <button className="btn" style={{ padding: '5px 12px', fontSize: 12.5 }} onClick={copy}>
-                  {copied ? 'Copied' : 'Copy command'}
-                </button>
+          {chosen && !chosen.installed && <AiInstallHelp provider={m.provider} onCheck={refreshClis} />}
+          <SettingRow
+            title="Chat on the second monitor"
+            description="Opens a small chat window on your second screen while a game runs. You can also pop the chat out any time."
+          >
+            <Toggle
+              label="Chat on the second monitor"
+              checked={!!m.chatMonitor}
+              onChange={(v) => update({ mcp: { chatMonitor: v } })}
+            />
+          </SettingRow>
+        </>
+      )}
+      <SettingRow
+        title="Let the AI change things"
+        description="The AI can save and edit your builds (and in Skillshot City, put advice on your overlay). Off: it can only read. Applies to the chat and to outside AI apps."
+      >
+        <Toggle
+          label="Let the AI change things"
+          checked={!!m?.allowActions}
+          onChange={(v) => update({ mcp: { allowActions: v } })}
+        />
+      </SettingRow>
+      <SettingRow
+        title="Let AI apps connect"
+        description="Lets Claude Desktop, Claude Code or Antigravity use ShotCaller's tools in their own windows. Runs a small server only this PC can reach, protected by a secret code."
+      >
+        <Toggle
+          label="Let AI apps connect"
+          checked={!!m?.enabled}
+          onChange={(v) => update({ mcp: { enabled: v } })}
+        />
+      </SettingRow>
+      {info?.error && <div style={{ fontSize: 13, color: 'var(--red)' }}>Couldn’t start: {info.error}</div>}
+      {m?.enabled && info?.running && (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {info.clients.map((c) => (
+            <div key={c.client} className="tile" style={{ padding: '12px 14px', display: 'grid', gap: 8 }}>
+              <div className="row" style={{ gap: 8 }}>
+                <div style={{ fontWeight: 600 }}>{c.name}</div>
+                {c.connected ? (
+                  <span className="pill">Connected</span>
+                ) : !c.installed ? (
+                  <span className="pill muted">Not installed</span>
+                ) : null}
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                  <button
+                    className="btn"
+                    style={{ padding: '5px 12px', fontSize: 12.5 }}
+                    onClick={() => copy(c.client, c.snippet)}
+                  >
+                    {copied === c.client
+                      ? 'Copied'
+                      : c.snippetKind === 'json'
+                        ? 'Copy config'
+                        : 'Copy command'}
+                  </button>
+                  {c.installed && (
+                    <button
+                      className="btn primary"
+                      style={{ padding: '5px 12px', fontSize: 12.5 }}
+                      disabled={busy === c.client}
+                      onClick={() => void connect(c.client)}
+                    >
+                      {busy === c.client ? 'Setting up…' : c.connected ? 'Set up again' : 'Set it up for me'}
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="muted" style={{ fontSize: 12 }}>
-                Run the command once in a terminal, then start a new Claude Code chat. Type <b style={{ color: 'var(--text)' }}>/mcp__shotcaller__coach</b> when you start a match. The command holds your secret token, so
-                don’t share it.
+                {c.steps}
               </div>
+              {result[c.client] && (
+                <div style={{ fontSize: 12.5, color: result[c.client].ok ? 'var(--text)' : 'var(--red)' }}>
+                  {result[c.client].message}
+                </div>
+              )}
             </div>
-          )}
-        </>
+          ))}
+          <div className="muted" style={{ fontSize: 12 }}>
+            Then ask it things like{' '}
+            <b style={{ color: 'var(--text)' }}>“make me a Dead by Daylight build against Nurse”</b>. The
+            copied text holds your secret code, so don’t share it.
+          </div>
+        </div>
       )}
     </Section>
   );
@@ -421,15 +619,30 @@ function StartupSection({ info }: { info: AppInfo | null }) {
   const settings = useSettings();
   const s = settings?.startup;
   return (
-    <Section title="Startup" subtitle="Running in the background so ShotCaller is ready when you play." delay={120}>
+    <Section
+      title="Startup"
+      subtitle="Running in the background so ShotCaller is ready when you play."
+      delay={120}
+    >
       <SettingRow
         title="Start with your computer"
-        description={info?.packaged === false ? 'Saved, but only applied in installed builds.' : 'Starts quietly in the tray; nothing opens until a game launches.'}
+        description={
+          info?.packaged === false
+            ? 'Saved, but only applied in installed builds.'
+            : 'Starts quietly in the tray; nothing opens until a game launches.'
+        }
       >
-        <Toggle label="Start with your computer" checked={!!s?.launchAtLogin} onChange={(v) => update({ startup: { launchAtLogin: v } })} />
+        <Toggle
+          label="Start with your computer"
+          checked={!!s?.launchAtLogin}
+          onChange={(v) => update({ startup: { launchAtLogin: v } })}
+        />
       </SettingRow>
       <SettingRow title="When a supported game launches">
-        <select value={s?.onGameLaunch ?? 'overlay'} onChange={(e) => update({ startup: { onGameLaunch: e.target.value as GameLaunchAction } })}>
+        <select
+          value={s?.onGameLaunch ?? 'overlay'}
+          onChange={(e) => update({ startup: { onGameLaunch: e.target.value as GameLaunchAction } })}
+        >
           {LAUNCH_ACTIONS.map((a) => (
             <option key={a.id} value={a.id}>
               {a.label}
@@ -437,8 +650,15 @@ function StartupSection({ info }: { info: AppInfo | null }) {
           ))}
         </select>
       </SettingRow>
-      <SettingRow title="Keep running in the tray when closed" description="Off: closing the window quits ShotCaller and game detection stops.">
-        <Toggle label="Keep running in the tray when closed" checked={!!s?.closeToTray} onChange={(v) => update({ startup: { closeToTray: v } })} />
+      <SettingRow
+        title="Keep running in the tray when closed"
+        description="Off: closing the window quits ShotCaller and game detection stops."
+      >
+        <Toggle
+          label="Keep running in the tray when closed"
+          checked={!!s?.closeToTray}
+          onChange={(v) => update({ startup: { closeToTray: v } })}
+        />
       </SettingRow>
     </Section>
   );
@@ -448,7 +668,11 @@ function StartupSection({ info }: { info: AppInfo | null }) {
 
 const CHANNELS: { id: Channel; title: string; description: string }[] = [
   { id: 'stable', title: 'Stable', description: 'Tested releases only. Recommended for most people.' },
-  { id: 'beta', title: 'Beta', description: 'Get new features early (GitHub pre-releases). Expect rough edges.' },
+  {
+    id: 'beta',
+    title: 'Beta',
+    description: 'Get new features early (GitHub pre-releases). Expect rough edges.',
+  },
 ];
 
 function UpdateStatus({ state, info }: { state: UpdateState; info: AppInfo | null }) {
@@ -496,7 +720,11 @@ function UpdateButton({ state }: { state: UpdateState }) {
     );
   }
   return (
-    <button className="btn" onClick={() => void window.shotcaller.checkForUpdates()} disabled={state.status === 'checking' || state.status === 'downloading'}>
+    <button
+      className="btn"
+      onClick={() => void window.shotcaller.checkForUpdates()}
+      disabled={state.status === 'checking' || state.status === 'downloading'}
+    >
       {state.status === 'downloading' ? `Downloading… ${state.percent}%` : 'Check for updates'}
     </button>
   );
@@ -513,12 +741,23 @@ function PopupSection() {
   const settings = useSettings();
   const p = settings?.popups;
   return (
-    <Section title="Unlock popups" subtitle="The card that slides in when you earn an achievement. Rarer unlocks get fancier cards and sounds.">
+    <Section
+      title="Unlock popups"
+      subtitle="The card that slides in when you earn an achievement. Rarer unlocks get fancier cards and sounds."
+    >
       <SettingRow title="Show unlock popups" description="Shows over borderless and windowed games.">
-        <Toggle checked={p?.enabled ?? true} onChange={(enabled) => update({ popups: { enabled } })} label="Show unlock popups" />
+        <Toggle
+          checked={p?.enabled ?? true}
+          onChange={(enabled) => update({ popups: { enabled } })}
+          label="Show unlock popups"
+        />
       </SettingRow>
       <SettingRow title="Play a sound">
-        <Toggle checked={p?.sound ?? true} onChange={(sound) => update({ popups: { sound } })} label="Play a sound" />
+        <Toggle
+          checked={p?.sound ?? true}
+          onChange={(sound) => update({ popups: { sound } })}
+          label="Play a sound"
+        />
       </SettingRow>
       <div>
         <div className="row">
@@ -537,7 +776,10 @@ function PopupSection() {
         />
       </div>
       <SettingRow title="Corner" description="Where on your main display the card appears.">
-        <select value={p?.corner ?? 'bottom-right'} onChange={(e) => update({ popups: { corner: e.target.value as PopupCorner } })}>
+        <select
+          value={p?.corner ?? 'bottom-right'}
+          onChange={(e) => update({ popups: { corner: e.target.value as PopupCorner } })}
+        >
           {CORNERS.map((c) => (
             <option key={c.id} value={c.id}>
               {c.label}
@@ -549,7 +791,12 @@ function PopupSection() {
         <div style={{ fontWeight: 600, marginBottom: 8 }}>Try it</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {RARITY_TIERS.map((tier) => (
-            <button key={tier} className="btn" onClick={() => void window.shotcaller.testPopup(tier)} style={{ color: TIER_COLOR[tier] }}>
+            <button
+              key={tier}
+              className="btn"
+              onClick={() => void window.shotcaller.testPopup(tier)}
+              style={{ color: TIER_COLOR[tier] }}
+            >
               {TIER_LABEL[tier]}
             </button>
           ))}
@@ -574,11 +821,17 @@ function StoresSection() {
     if (r.ok) {
       setKey('');
       setKeySet(!!value);
-      setMsg({ ok: true, text: value ? 'Key saved. Missing covers fill in over the next minute.' : 'Key removed.' });
+      setMsg({
+        ok: true,
+        text: value ? 'Key saved. Missing covers fill in over the next minute.' : 'Key removed.',
+      });
     } else setMsg({ ok: false, text: r.error ?? 'That didn’t work.' });
   };
   return (
-    <Section title="Game stores" subtitle="Where the Games tab finds your games. ShotCaller only reads the stores’ files; no sign-in, nothing changed.">
+    <Section
+      title="Game stores"
+      subtitle="Where the Games tab finds your games. ShotCaller only reads the stores’ files; no sign-in, nothing changed."
+    >
       {library ? <StoreList library={library} /> : <div className="muted">Reading your stores…</div>}
       <div className="row" style={{ gap: 8 }}>
         <button
@@ -599,7 +852,8 @@ function StoresSection() {
       <div style={{ display: 'grid', gap: 8 }}>
         <div style={{ fontWeight: 700 }}>Cover art for games without any (optional)</div>
         <div className="muted" style={{ fontSize: 13 }}>
-          Paste a free SteamGridDB API key (steamgriddb.com → Preferences → API). It’s stored encrypted on this PC only. Without it, those games get a clean title card.
+          Paste a free SteamGridDB API key (steamgriddb.com → Preferences → API). It’s stored encrypted on
+          this PC only. Without it, those games get a clean title card.
         </div>
         {keySet ? (
           <div className="row" style={{ gap: 8 }}>
@@ -617,18 +871,28 @@ function StoresSection() {
               void saveKey(key);
             }}
           >
-            <input type="password" placeholder="SteamGridDB API key" value={key} onChange={(e) => setKey(e.target.value)} style={{ width: 300 }} />
+            <input
+              type="password"
+              placeholder="SteamGridDB API key"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              style={{ width: 300 }}
+            />
             <button className="btn" type="submit" disabled={!key.trim()}>
               Save key
             </button>
-            <button className="btn" type="button" onClick={() => void window.shotcaller.openExternal('https://www.steamgriddb.com/profile/preferences/api')}>
+            <button
+              className="btn"
+              type="button"
+              onClick={() =>
+                void window.shotcaller.openExternal('https://www.steamgriddb.com/profile/preferences/api')
+              }
+            >
               Get a key ↗
             </button>
           </form>
         )}
-        {msg && (
-          <div style={{ fontSize: 13, color: msg.ok ? 'var(--green)' : 'var(--red)' }}>{msg.text}</div>
-        )}
+        {msg && <div style={{ fontSize: 13, color: msg.ok ? 'var(--green)' : 'var(--red)' }}>{msg.text}</div>}
       </div>
     </Section>
   );
@@ -645,26 +909,37 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="Overlay, hotkeys, startup and updates. Changes save instantly." />
+      <PageHeader
+        title="Settings"
+        subtitle="Overlay, hotkeys, startup and updates. Changes save instantly."
+      />
 
       <AccountSection />
       <StoresSection />
       <PopupSection />
       <OverlaySection />
       <HotkeysSection />
-      {SHOW_CLAUDE_CONNECTION && <ClaudeSection />}
+      <AskAiSection />
       <StartupSection info={info} />
       <PrivacySection delay={150} />
 
       <Section title="Update channel" subtitle="Which releases ShotCaller offers you." delay={180}>
-        <ChoiceCards options={CHANNELS} value={settings?.channel} onPick={(channel) => update({ channel })} columns={2} />
+        <ChoiceCards
+          options={CHANNELS}
+          value={settings?.channel}
+          onPick={(channel) => update({ channel })}
+          columns={2}
+        />
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <UpdateStatus state={updateState} info={info} />
           <UpdateButton state={updateState} />
         </div>
       </Section>
 
-      <section className="card enter" style={{ display: 'grid', gap: 6, maxWidth: 760, animationDelay: '240ms' }}>
+      <section
+        className="card enter"
+        style={{ display: 'grid', gap: 6, maxWidth: 760, animationDelay: '240ms' }}
+      >
         <div style={{ fontWeight: 700 }}>About</div>
         <div className="muted" style={{ fontSize: 13 }}>
           ShotCaller {info ? `v${info.version}` : ''} · MIT licensed · github.com/Battlebornplayz/ShotCaller

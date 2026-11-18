@@ -3,7 +3,9 @@ import { IPC } from '../shared/ipc';
 import type { RunningGame } from '../shared/types';
 import { disposeHub, initHub, onHubChange } from './achievements';
 import { backupGameLog, disposeSkillshot, initSkillshot, onCollectionChange, onSkillshotChange } from './skillshot/tracker';
-import { setMcpRunning } from './skillshot/mcpServer';
+import { syncMcpServer } from './ai/mcpServer';
+import { aiProviderChanged, onAiChat, stopAiChat } from './ai/chat';
+import { syncAiChatWindow } from './ai/chatWindow';
 import { noteMouseDown, onScreenStatus, screenReaderRunning, setScreenReaderRunning } from './skillshot/screenReader';
 import { disposeAltHook, initAltHook, setAltHookRunning } from './altHook';
 import { disposeFortnite, initFortnite, onFortniteChange, setFortniteRunning } from './fortnite/tracker';
@@ -190,6 +192,7 @@ if (!app.requestSingleInstanceLock()) {
       setOverlayGame(overlayGameFrom(state.running));
       syncScreenReader();
       syncFortnite();
+      syncAiChatWindow(state.running.length > 0);
       if (started.some(wantsOverlay) && getSettings().startup.onGameLaunch === 'window') openMain();
       refreshTray();
     });
@@ -218,7 +221,10 @@ if (!app.requestSingleInstanceLock()) {
       if (next.fortnite.screenReader !== prev.fortnite.screenReader || next.fortnite.recorder !== prev.fortnite.recorder) syncFortnite();
       if (JSON.stringify(next.fortnite.monitor) !== JSON.stringify(prev.fortnite.monitor)) fortniteMonitorSettingsChanged();
       if (JSON.stringify(next.fortnite.wishlist) !== JSON.stringify(prev.fortnite.wishlist)) wishlistChanged();
-      if (next.mcp.enabled !== prev.mcp.enabled) setMcpRunning(next.mcp.enabled);
+      if (next.mcp.enabled !== prev.mcp.enabled || next.mcp.chat !== prev.mcp.chat) syncMcpServer();
+      if (!next.mcp.chat && prev.mcp.chat) stopAiChat();
+      if (next.mcp.provider !== prev.mcp.provider) aiProviderChanged();
+      if (next.mcp.chat !== prev.mcp.chat || next.mcp.chatMonitor !== prev.mcp.chatMonitor) syncAiChatWindow();
       applyOverlaySettings(next, prev);
       if (next.overlay.allGames !== prev.overlay.allGames) setOverlayGame(overlayGameFrom(getDetectionState().running));
     });
@@ -246,12 +252,13 @@ if (!app.requestSingleInstanceLock()) {
     initDbdIcons();
     onDbdChange((s) => broadcast(IPC.dbdChanged, s));
     onDbdData((at) => broadcast(IPC.dbdDataChanged, at));
+    onAiChat((s) => broadcast(IPC.aiChatChanged, s));
     void initDbd();
     // The map is small to keep and needed for the lobby view too: load it (and look for a new season) now.
     void ensureSeasonMap();
     syncScreenReader();
     syncFortnite(); // Starts in the right state ("off" or "game not running") before any game is seen.
-    setMcpRunning(getSettings().mcp.enabled);
+    syncMcpServer();
     void importSteamLibrary().then(() => Promise.all([initHub(), initSkillshot()]));
 
     if (startedHidden()) {
@@ -282,7 +289,7 @@ if (!app.requestSingleInstanceLock()) {
     disposeOcr();
     disposeOnline();
     disposeDbd();
-    setMcpRunning(false);
+    stopAiChat();
     disposeSkillshot();
     disposePopup();
     disposeHotkeys();

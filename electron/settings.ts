@@ -12,6 +12,7 @@ import {
   type SettingsPatch,
 } from '../shared/types';
 import { DEFAULT_FORTNITE_SETTINGS } from '../shared/fortnite';
+import type { AiProvider } from '../shared/ai';
 
 const DEFAULTS: Settings = {
   channel: 'stable',
@@ -24,7 +25,7 @@ const DEFAULTS: Settings = {
   startup: { launchAtLogin: true, onGameLaunch: 'overlay', closeToTray: true },
   skillshot: { offerSound: true, memoryReader: false, screenReader: true, cardScale: 1 },
   fortnite: { ...DEFAULT_FORTNITE_SETTINGS, card: { ...DEFAULT_FORTNITE_SETTINGS.card }, mapLayer: { ...DEFAULT_FORTNITE_SETTINGS.mapLayer } },
-  mcp: { enabled: false, allowActions: false },
+  mcp: { enabled: false, allowActions: false, chat: false, provider: 'claude', chatMonitor: false },
 };
 
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
@@ -137,6 +138,9 @@ function sanitize(input: unknown): Settings {
     mcp: {
       enabled: bool(mcp.enabled, DEFAULTS.mcp.enabled),
       allowActions: bool(mcp.allowActions, DEFAULTS.mcp.allowActions),
+      chat: bool(mcp.chat, DEFAULTS.mcp.chat),
+      provider: oneOf<AiProvider>(mcp.provider, ['claude', 'antigravity'], DEFAULTS.mcp.provider),
+      chatMonitor: bool(mcp.chatMonitor, DEFAULTS.mcp.chatMonitor),
     },
     startup: {
       launchAtLogin: bool(startup.launchAtLogin, DEFAULTS.startup.launchAtLogin),

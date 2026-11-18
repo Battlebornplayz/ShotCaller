@@ -109,7 +109,7 @@ function cleanBuild(raw: unknown): DbdBuild | null {
     addons: list(r.addons, 2).filter(Boolean),
     offering: text(r.offering, 60) || null,
     notes: text(r.notes, 500),
-    from: r.from === 'popular' || r.from === 'friend' ? r.from : 'mine',
+    from: r.from === 'popular' || r.from === 'friend' || r.from === 'ai' ? r.from : 'mine',
     createdAt: typeof r.createdAt === 'number' ? r.createdAt : now,
     updatedAt: now,
   };
